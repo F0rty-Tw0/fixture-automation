@@ -23,6 +23,7 @@
     "@fixture-automation/openapi-ai-fixtures": "workspace:*",
     "@fixture-automation/openapi-fixtures": "workspace:*",
     "@fixture-automation/openapi-types": "workspace:*",
+    "@fixture-automation/shared": "workspace:*",
     "openapi-sampler": "catalog:dependencies"
   }
 }

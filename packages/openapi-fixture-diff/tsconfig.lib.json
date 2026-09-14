@@ -10,6 +10,7 @@
   "references": [
     { "path": "../openapi-ai-fixtures/tsconfig.lib.json" },
     { "path": "../openapi-fixtures/tsconfig.lib.json" },
-    { "path": "../openapi-types/tsconfig.lib.json" }
+    { "path": "../openapi-types/tsconfig.lib.json" },
+    { "path": "../shared/tsconfig.lib.json" }
   ]
 }

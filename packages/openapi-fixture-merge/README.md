@@ -82,6 +82,8 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
 | `--schema <name>` | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.   |
 | `-h, --help`      | No            | Print this usage and exit 0.                                                     |
 
+**Interactive:** in a terminal, a missing required input starts a prompt session on stderr that asks for it and every unset optional; Enter skips an optional. Piped/CI runs get the usage error instead.
+
 ## Examples
 
 **No `--spec`** — same inputs as Quick start, validation is skipped:
@@ -188,6 +190,7 @@ console.log(`filled ${result.filled.length} path(s)`);
 - **`.ts` modules load via Node's native `import()`.** Your build must emit real `.ts`/`.js` output; type-only imports are erased at runtime and only the exported value matters.
 - **Extra keys survive.** `additionalProperties` and any extra keys in the populated file are preserved in the merged result.
 - **Validation needs `--spec`.** Without it, the merged file is written unvalidated and a warning goes to stderr. `--schema` is only needed when the spec carries no `x-root-schema`.
+- **`openapi-fixture-merge … > out` redirects stdout,** so it will not prompt — pass the args.
 
 ## Develop
 

@@ -1,8 +1,9 @@
 import { parseArgs } from 'node:util';
 
-import { FixtureError } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
+import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { MERGE_USAGE } from '../common/fixture-merge-cli.const.ts';
+import { MERGE_INPUTS, MERGE_USAGE } from '../common/fixture-merge-cli.const.ts';
 import type { MergeInput, MergeSpec } from '../common/fixture-merge.type.ts';
 
 const stringOption = { type: 'string' } as const;
@@ -29,17 +30,23 @@ const validationSpec = (url: string | undefined, schemaName: string | undefined)
 };
 
 /** Parse the merge command line; `undefined` means the caller should print usage. */
-export const parseMergeArgs = (args: string[]): MergeInput | undefined => {
+export const parseMergeArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<MergeInput | undefined> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values.help) return undefined;
 
-  const [corruptFile, populatedFile, outFile] = positionals;
-  const isComplete = positionals.length === 3 && corruptFile !== undefined && populatedFile !== undefined && outFile !== undefined;
+  if (positionals.length > 3) throw new FixtureError(MERGE_USAGE);
 
-  if (!isComplete) throw new FixtureError(MERGE_USAGE);
+  const corruptFile = await inputs.required(positionals[0], MERGE_INPUTS.corruptFile, MERGE_USAGE);
+  const populatedFile = await inputs.required(positionals[1], MERGE_INPUTS.populatedFile, MERGE_USAGE);
+  const outFile = await inputs.required(positionals[2], MERGE_INPUTS.outFile, MERGE_USAGE);
+  const specUrl = await inputs.optional(values.spec, MERGE_INPUTS.spec);
+  // ponytail: --schema is only asked once --spec is settled, matching the flags' own dependency
+  let schemaName = values.schema;
 
-  const spec = validationSpec(values.spec, values.schema);
+  if (specUrl !== undefined) schemaName = await inputs.optional(values.schema, MERGE_INPUTS.schema);
+
+  const spec = validationSpec(specUrl, schemaName);
   const base: MergeInput = { corruptFile, populatedFile, outFile };
 
   if (spec === undefined) return base;

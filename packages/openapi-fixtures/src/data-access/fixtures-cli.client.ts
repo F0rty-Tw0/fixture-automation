@@ -6,8 +6,10 @@ import { fixtures } from './fixtures.client.ts';
 import { writeTextFile } from './json-file.client.ts';
 import { loadSpec } from './openapi-spec.client.ts';
 import { FixtureError } from '../common/fixture.error.ts';
-import { FIXTURES_HELP, FIXTURES_USAGE } from '../common/fixtures-cli.const.ts';
+import { FIXTURES_HELP, FIXTURES_INPUTS, FIXTURES_USAGE } from '../common/fixtures-cli.const.ts';
+import type { Inputs } from '../common/input.type.ts';
 import { schemaTarget } from '../utils/schema-name.util.ts';
+import { silentInputs } from '../utils/silent-inputs.util.ts';
 import { typescriptImport } from '../utils/typescript-import.util.ts';
 import { typescriptStub } from '../utils/typescript-stub.util.ts';
 
@@ -35,7 +37,7 @@ const typesImportFor = async (typesFile: string, outFile: string | undefined): P
   return typescriptImport(outputPath, typesPath);
 };
 
-export const runFixturesCli = async (args: string[]): Promise<void> => {
+export const runFixturesCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values.help === true) {
@@ -44,18 +46,21 @@ export const runFixturesCli = async (args: string[]): Promise<void> => {
     return;
   }
 
-  const [specUrl, first, second] = positionals;
+  if (positionals.length > 3) throw new FixtureError(FIXTURES_USAGE);
 
-  if (!specUrl || positionals.length > 3) throw new FixtureError(FIXTURES_USAGE);
-
+  const specUrl = await inputs.required(positionals[0], FIXTURES_INPUTS.specUrl, FIXTURES_USAGE);
+  // ponytail: a lone second positional stays ambiguous (schema or out-file); a prompted answer resolves the same way
+  const first = await inputs.optional(positionals[1], FIXTURES_INPUTS.schemaName);
+  const second = await inputs.optional(positionals[2], FIXTURES_INPUTS.outFile);
+  const typesFile = await inputs.optional(values.ts, FIXTURES_INPUTS.ts);
+  const requiredOnly = await inputs.flag(values['required-only'], FIXTURES_INPUTS.requiredOnly);
   const spec = await loadSpec(specUrl);
   const { schemaName, outFile } = schemaTarget(spec, first, second);
-  const typesFile = values.ts;
   let typesImport: string | undefined;
 
   if (typesFile !== undefined) typesImport = await typesImportFor(typesFile, outFile);
 
-  const sampleOptions = { skipNonRequired: values['required-only'] === true };
+  const sampleOptions = { skipNonRequired: requiredOnly };
   const fixture = fixtures(spec, sampleOptions)(schemaName);
   const json = JSON.stringify(fixture, null, 2);
   let output = `${json}\n`;

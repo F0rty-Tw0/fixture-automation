@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/test/**"],
+  "references": [
+    { "path": "../openapi-ai-fixtures/tsconfig.lib.json" },
+    { "path": "../openapi-fixture-diff/tsconfig.lib.json" },
+    { "path": "../openapi-fixture-merge/tsconfig.lib.json" },
+    { "path": "../openapi-fixtures/tsconfig.lib.json" },
+    { "path": "../openapi-types/tsconfig.lib.json" },
+    { "path": "../shared/tsconfig.lib.json" }
+  ]
+}

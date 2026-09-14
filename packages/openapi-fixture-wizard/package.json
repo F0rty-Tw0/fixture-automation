@@ -1,0 +1,30 @@
+{
+  "name": "@fixture-automation/openapi-fixture-wizard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "One interactive run through types, fixtures, diff, AI fill and merge.",
+  "bin": {
+    "openapi-fixture-wizard": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@fixture-automation/openapi-ai-fixtures": "workspace:*",
+    "@fixture-automation/openapi-fixture-diff": "workspace:*",
+    "@fixture-automation/openapi-fixture-merge": "workspace:*",
+    "@fixture-automation/openapi-fixtures": "workspace:*",
+    "@fixture-automation/openapi-types": "workspace:*",
+    "@fixture-automation/shared": "workspace:*"
+  }
+}

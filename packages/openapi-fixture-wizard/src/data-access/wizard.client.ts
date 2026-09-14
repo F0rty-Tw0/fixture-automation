@@ -1,0 +1,93 @@
+import { join, resolve } from 'node:path';
+
+import { aiMissingFixture, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
+import { mergeFixture } from '@fixture-automation/openapi-fixture-merge';
+import type { MergeInput, MergeSpec } from '@fixture-automation/openapi-fixture-merge';
+import { loadSpec, terminalQuestion } from '@fixture-automation/openapi-fixtures';
+import type { Inputs } from '@fixture-automation/openapi-fixtures';
+
+import { choose } from './choose.client.ts';
+import { diffExisting } from './diff.client.ts';
+import { fillMissing } from './fill.client.ts';
+import { generateFiles } from './generate.client.ts';
+import { DEFAULT_OUT_DIR, FORMATS, WIZARD_INPUTS, WIZARD_USAGE } from '../common/wizard.const.ts';
+import type { DiffResult, WizardContext, WizardDeps } from '../common/wizard.type.ts';
+import { resolveTarget } from '../utils/route-schema.util.ts';
+
+const MISSING_DIR = 'missing';
+
+const defaultDeps: WizardDeps = { question: terminalQuestion, discover: discoverModels, fill: aiMissingFixture };
+
+const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string> => {
+  const { inputs, specUrl, schemaName, outDir, fixtureFile } = context;
+  const answer = await inputs.optional(undefined, WIZARD_INPUTS.mergedFile);
+  const outFile = answer ?? join(outDir, `${schemaName}.fixed.json`);
+  const spec: MergeSpec = { url: specUrl, schemaName };
+  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outFile, spec };
+
+  await mergeFixture(input);
+
+  return outFile;
+};
+
+/** After the diff found missing fields: fill with a harness, then merge, each behind a y/N. */
+const fillAndMerge = async (context: WizardContext, diffed: DiffResult): Promise<string[]> => {
+  const { inputs } = context;
+  const missingFiles = [diffed.jsonFile, diffed.typesFile, diffed.stubFile];
+  const wantsAi = await inputs.flag(undefined, WIZARD_INPUTS.fillWithAi);
+
+  if (!wantsAi) return missingFiles;
+
+  const populatedFile = await fillMissing(context, diffed);
+  const wantsMerge = await inputs.flag(undefined, WIZARD_INPUTS.merge);
+
+  if (!wantsMerge) return [...missingFiles, populatedFile];
+
+  const mergedFile = await mergeFilled(context, populatedFile);
+
+  return [...missingFiles, populatedFile, mergedFile];
+};
+
+const checkExisting = async (context: WizardContext): Promise<string[]> => {
+  const { inputs, spec, schemaName, outDir, fixtureFile } = context;
+  const requiredOnly = await inputs.flag(undefined, WIZARD_INPUTS.requiredOnly);
+  const missingDir = join(outDir, MISSING_DIR);
+  const diffed = await diffExisting({ spec, schemaName, fixtureFile, outDir: missingDir, requiredOnly });
+
+  if (diffed === undefined) {
+    console.error('no missing fields');
+
+    return [];
+  }
+
+  console.error(`${diffed.diff.paths.length} missing field(s): ${diffed.diff.paths.join(', ')}`);
+
+  return fillAndMerge(context, diffed);
+};
+
+const runSteps = async (inputs: Inputs, deps: WizardDeps): Promise<string[]> => {
+  const specUrl = await inputs.required(undefined, WIZARD_INPUTS.specUrl, WIZARD_USAGE);
+  const outDirAnswer = await inputs.optional(undefined, WIZARD_INPUTS.outDir);
+  // ponytail: absolute so every `wrote` line matches the absolute paths the diff step returns
+  const outDir = resolve(outDirAnswer ?? DEFAULT_OUT_DIR);
+  const spec = await loadSpec(specUrl);
+  const target = await inputs.required(undefined, WIZARD_INPUTS.target, WIZARD_USAGE);
+  const schemaName = resolveTarget(spec, target);
+  const format = await choose(deps.question, WIZARD_INPUTS.format, FORMATS);
+  const generated = await generateFiles({ spec, schemaName, outDir, format });
+  const fixtureFile = await inputs.optional(undefined, WIZARD_INPUTS.existingFixture);
+
+  if (fixtureFile === undefined) return generated;
+
+  const context: WizardContext = { inputs, deps, specUrl, spec, schemaName, outDir, fixtureFile };
+  const checked = await checkExisting(context);
+
+  return [...generated, ...checked];
+};
+
+/** Ask every prompt in turn, run the steps the answers select, and list each written file on stderr. */
+export const runWizard = async (inputs: Inputs, deps: WizardDeps = defaultDeps): Promise<void> => {
+  const written = await runSteps(inputs, deps);
+
+  for (const file of written) console.error(`wrote ${file}`);
+};

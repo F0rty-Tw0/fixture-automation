@@ -1,0 +1,32 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Type Generation API", "version": "1.0.0" },
+  "paths": {
+    "/v1/invoices/{invoice}": {
+      "get": {
+        "parameters": [{ "name": "invoice", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/invoice" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "invoice": {
+        "type": "object",
+        "required": ["id", "amount_due", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "amount_due": { "type": "integer" },
+          "status": { "type": "string", "enum": ["draft", "open"] }
+        }
+      }
+    }
+  }
+}

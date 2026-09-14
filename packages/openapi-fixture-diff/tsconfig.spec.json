@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/vitest",
+    "emitDeclarationOnly": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
+    "tsBuildInfoFile": "out-tsc/vitest/tsconfig.spec.tsbuildinfo"
+  },
+  "include": ["src/**/*.spec.ts", "src/**/test/**/*.ts", "vitest.config.ts"],
+  "exclude": ["src/**/test/fixtures/**"],
+  "references": [
+    { "path": "./tsconfig.lib.json" },
+    { "path": "../openapi-ai-fixtures/tsconfig.lib.json" },
+    { "path": "../openapi-fixtures/tsconfig.lib.json" },
+    { "path": "../openapi-types/tsconfig.lib.json" }
+  ]
+}

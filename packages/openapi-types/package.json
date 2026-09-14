@@ -1,0 +1,26 @@
+{
+  "name": "@fixture-automation/openapi-types",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Generate TypeScript types from an OpenAPI spec URL.",
+  "bin": {
+    "openapi-types": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@fixture-automation/openapi-fixtures": "workspace:*",
+    "openapi-typescript": "catalog:dependencies"
+  }
+}

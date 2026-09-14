@@ -1,4 +1,5 @@
-import { loadSpec, readJsonFile, readTextFile, schemaTarget } from '@fixture-automation/openapi-fixtures';
+import { loadSpec, readJsonFile, readTextFile, schemaTarget, silentInputs } from '@fixture-automation/openapi-fixtures';
+import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { aiFixtures } from './ai-fixtures.client.ts';
 import { aiMissingFixture } from './ai-missing-fixtures.client.ts';
@@ -84,7 +85,7 @@ const generate = async (options: AiFixtureCliOptions): Promise<void> => {
   await writeFixtureOutput(target, schemaName, enriched);
 };
 
-export const runAiFixturesCli = async (args: string[]): Promise<void> => {
+export const runAiFixturesCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
   const listedTool = parseListModelsArgs(args);
 
   if (listedTool !== undefined) {
@@ -93,7 +94,7 @@ export const runAiFixturesCli = async (args: string[]): Promise<void> => {
     return;
   }
 
-  const options = parseAiFixtureArgs(args);
+  const options = await parseAiFixtureArgs(args, inputs);
 
   if (options === undefined) {
     process.stdout.write(`${AI_FIXTURES_HELP}\n`);

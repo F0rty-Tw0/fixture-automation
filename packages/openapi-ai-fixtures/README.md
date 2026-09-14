@@ -71,6 +71,23 @@ Without --model a terminal prompts for one and a pipe uses the harness default.
 | `--list-models`       | No                      | Print the tool's models and exit; needs no spec, fixture, or scenario.                                                       |
 | `-h, --help`          | No                      | Print usage and exit 0.                                                                                                      |
 
+**Interactive.** In a terminal, a missing required input starts a prompt session on stderr: it asks for `spec-url`
+(skipped with `--missing`), `--fixture`, `--scenario` (skipped with `--missing`, which defaults it), and `--tool`,
+then every unset optional (`schema-name` — skipped with `--missing` — `out-file`, `--ts`, `--executable`,
+`--timeout`); Enter skips an optional. `--model` keeps its own numbered picker, not this session. A run with every
+required value given asks nothing. Piped and CI runs get the usage error instead.
+
+A bare run's first two prompts, captured on stderr:
+
+```text
+spec-url: http(s):// or file:// URL of the JSON spec
+  e.g. file:///E:/specs/invoice.spec.json
+spec-url:
+--fixture: existing JSON fixture to enrich
+  e.g. invoice.fixture.json
+--fixture:
+```
+
 ## Examples
 
 **List models** — deterministic, no provider call:
@@ -198,6 +215,7 @@ const invoice = await enrich('invoice', {
 
 ## Gotchas
 
+- **`openapi-ai-fixtures > out.json` will not prompt.** Redirecting stdout makes the run non-interactive, so a missing required input is the usage error instead of a prompt. Pass the args, or write with `[out-file]`.
 - **Not a sandbox.** The scratch working directory and provider tool/MCP restrictions are not an OS sandbox. Do not point `--executable` at code you have not reviewed.
 - **Credentials are inherited.** The normal credential environment passes through so a pre-authenticated CLI works — provider-managed credentials, policy, and quotas still apply.
 - **Gemini's MCP-disable setting is ineffective.** The staged `admin.mcp.enabled` file setting does not work in the reviewed Gemini CLI v0.59.0 release.

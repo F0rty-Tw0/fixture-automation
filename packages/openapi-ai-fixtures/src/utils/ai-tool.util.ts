@@ -2,7 +2,7 @@ import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 
-const TOOL_FIX = '--tool codex, or claude, antigravity, copilot, gemini';
+export const TOOL_FIX = '--tool codex, or claude, antigravity, copilot, gemini';
 
 export const parseAiTool = (value: string | undefined): AiTool => {
   switch (value) {

@@ -1,5 +1,57 @@
+import type { InputSpec } from '@fixture-automation/openapi-fixtures';
+
 export const AI_FIXTURES_USAGE =
   'usage: <spec-url> [schema-name] [out-file] --fixture <fixture.json> --scenario <text> --tool <claude|codex|antigravity|copilot|gemini>, or [out-file] --fixture <corrupt.json> --missing <missing.json> --tool <name>';
+
+const specUrl: InputSpec = {
+  label: 'spec-url',
+  description: 'http(s):// or file:// URL of the JSON spec',
+  example: 'file:///E:/specs/invoice.spec.json'
+};
+const fixture: InputSpec = {
+  label: '--fixture',
+  description: 'existing JSON fixture to enrich',
+  example: 'invoice.fixture.json'
+};
+const scenario: InputSpec = {
+  label: '--scenario',
+  description: 'what the fixture should describe',
+  example: 'an open invoice for 4200 cents'
+};
+const tool: InputSpec = {
+  label: '--tool',
+  description: 'claude, codex, antigravity, copilot or gemini',
+  example: 'codex'
+};
+const schemaName: InputSpec = {
+  label: 'schema-name',
+  description:
+    'a key under components.schemas; defaults to the x-root-schema of a spec written by openapi-types <spec-url> <schema-name> <out-file>',
+  example: 'invoice'
+};
+const outFile: InputSpec = {
+  label: 'out-file',
+  description: 'destination file; omitted means stdout',
+  example: 'invoice.ai.json'
+};
+const ts: InputSpec = {
+  label: '--ts',
+  description: 'write a typed .ts stub; requires an out-file',
+  example: 'invoice.d.ts'
+};
+const executable: InputSpec = {
+  label: '--executable',
+  description: 'absolute path to the harness binary',
+  example: 'C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd'
+};
+const timeout: InputSpec = {
+  label: '--timeout',
+  description: 'harness timeout in milliseconds',
+  example: '600000'
+};
+
+/** What each prompt says when a terminal run is missing the input. */
+export const AI_FIXTURES_INPUTS = { specUrl, fixture, scenario, tool, schemaName, outFile, ts, executable, timeout };
 
 export const AI_FIXTURES_HELP = `usage: openapi-ai-fixtures <spec-url> [schema-name] [out-file] [options]
        openapi-ai-fixtures [out-file] --fixture <corrupt.json> --missing <missing.json> [options]

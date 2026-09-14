@@ -1,4 +1,4 @@
-import { createInterface } from 'node:readline/promises';
+import { terminalQuestion } from '@fixture-automation/openapi-fixtures';
 
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 import type { ModelSelection } from '../common/model.type.ts';
@@ -6,17 +6,6 @@ import { DEFAULT_MODEL } from '../utils/model-flag.util.ts';
 
 const PROMPT_ATTEMPTS = 3;
 const QUESTION = 'model number: ';
-
-/** Prompts on stderr so a piped stdout keeps only the fixture JSON. */
-const terminalPrompt = async (question: string): Promise<string> => {
-  const reader = createInterface({ input: process.stdin, output: process.stderr });
-
-  try {
-    return await reader.question(question);
-  } finally {
-    reader.close();
-  }
-};
 
 const printModels = (tool: AiTool, models: string[]): void => {
   console.error(`${tool} models:`);
@@ -43,7 +32,7 @@ const chosenModel = (answer: string, models: string[]): string | undefined => {
 };
 
 const askForModel = async (selection: ModelSelection): Promise<string> => {
-  const ask = selection.prompt ?? terminalPrompt;
+  const ask = selection.prompt ?? terminalQuestion;
   const { models } = selection.discovery;
 
   printModels(selection.tool, models);

@@ -1,121 +1,217 @@
-import { describe, expect, it } from 'vitest';
+import { promptedInputs } from '@fixture-automation/openapi-fixtures';
+import type { Question } from '@fixture-automation/openapi-fixtures';
+import { describe, expect, it, vi } from 'vitest';
 
 import { parseAiFixtureArgs } from './ai-fixtures-cli.util.ts';
+import { TOOL_FIX } from './ai-tool.util.ts';
+import { MISSING_SCENARIO } from '../common/ai-fixtures-cli.const.ts';
+
+const answering = (...answers: string[]): Question => {
+  const queue = [...answers];
+
+  return async (): Promise<string> => {
+    const answer = await Promise.resolve(queue.shift());
+
+    return answer ?? '';
+  };
+};
+
+const silence = (): void => undefined;
 
 describe('FEATURE: AI fixture CLI arguments', (): void => {
   describe('GIVEN required fixture generation inputs', (): void => {
     const args = ['file:///spec.json', 'invoice', '--fixture', 'base.json', '--scenario', 'Open invoice'];
 
-    it('WHEN no tool is selected THEN rejects rather than choosing a provider', (): void => {
-      expect((): unknown => parseAiFixtureArgs(args)).toThrow(Error);
+    it('WHEN no tool is selected THEN rejects rather than choosing a provider', async (): Promise<void> => {
+      await expect(parseAiFixtureArgs(args)).rejects.toThrow(Error);
     });
 
-    it('WHEN an unknown tool is selected THEN rejects rather than falling back', (): void => {
+    it('WHEN no tool is selected THEN the rejection carries the supported-tools fix', async (): Promise<void> => {
+      const failure = parseAiFixtureArgs(args);
+
+      await expect(failure).rejects.toThrow(expect.objectContaining({ fix: TOOL_FIX }));
+    });
+
+    it('WHEN no fixture is given THEN the rejection carries its fix', async (): Promise<void> => {
+      const noFixture = ['file:///spec.json', 'invoice', '--scenario', 'Open invoice', '--tool', 'claude'];
+      const failure = parseAiFixtureArgs(noFixture);
+
+      await expect(failure).rejects.toThrow(expect.objectContaining({ fix: '--fixture invoice.fixture.json' }));
+    });
+
+    it('WHEN an unknown tool is selected THEN rejects rather than falling back', async (): Promise<void> => {
       const unknown = [...args, '--tool', 'unknown'];
 
-      expect((): unknown => parseAiFixtureArgs(unknown)).toThrow(Error);
+      await expect(parseAiFixtureArgs(unknown)).rejects.toThrow(Error);
     });
 
     it.each(['0', '-1', 'NaN', '1.5', '2147483648'])(
       'WHEN the timeout is %s THEN rejects before generation',
-      (timeout: string): void => {
+      async (timeout: string): Promise<void> => {
         const invalid = [...args, '--tool', 'claude', '--timeout', timeout];
 
-        expect((): unknown => parseAiFixtureArgs(invalid)).toThrow(Error);
+        await expect(parseAiFixtureArgs(invalid)).rejects.toThrow(Error);
       }
     );
 
-    it('WHEN a model is selected THEN carries the slug on the tool options', (): void => {
+    it('WHEN a model is selected THEN carries the slug on the tool options', async (): Promise<void> => {
       const selected = [...args, '--tool', 'claude', '--model', 'opus'];
+      const parsed = await parseAiFixtureArgs(selected);
 
-      expect(parseAiFixtureArgs(selected)?.options.model).toBe('opus');
+      expect(parsed?.options.model).toBe('opus');
     });
 
-    it('WHEN no model is selected THEN leaves the tool options without a model', (): void => {
+    it('WHEN no model is selected THEN leaves the tool options without a model', async (): Promise<void> => {
       const unselected = [...args, '--tool', 'claude'];
+      const parsed = await parseAiFixtureArgs(unselected);
 
-      expect(parseAiFixtureArgs(unselected)?.options.model).toBeUndefined();
+      expect(parsed?.options.model).toBeUndefined();
     });
 
-    it('WHEN the model is empty THEN rejects before generation', (): void => {
+    it('WHEN the model is empty THEN rejects before generation', async (): Promise<void> => {
       const invalid = [...args, '--tool', 'claude', '--model', ''];
 
-      expect((): unknown => parseAiFixtureArgs(invalid)).toThrow(Error);
+      await expect(parseAiFixtureArgs(invalid)).rejects.toThrow(Error);
     });
   });
 
   describe('GIVEN a spec URL alone in scenario mode', (): void => {
-    it('WHEN parsing THEN the schema name and out-file are left for the spec to resolve', (): void => {
+    it('WHEN parsing THEN the schema name and out-file are left for the spec to resolve', async (): Promise<void> => {
       const args = ['file:///spec.json', '--fixture', 'base.json', '--scenario', 'Open invoice', '--tool', 'claude'];
       const expected = { specUrl: 'file:///spec.json', schemaName: undefined, outFile: undefined };
+      const parsed = await parseAiFixtureArgs(args);
 
-      expect(parseAiFixtureArgs(args)).toMatchObject(expected);
+      expect(parsed).toMatchObject(expected);
     });
 
-    it('WHEN no positional is given THEN the usage is reported', (): void => {
+    it('WHEN no positional is given THEN the usage is reported', async (): Promise<void> => {
       const args = ['--fixture', 'base.json', '--scenario', 'Open invoice', '--tool', 'claude'];
 
-      expect((): unknown => parseAiFixtureArgs(args)).toThrow(/usage:/);
+      await expect(parseAiFixtureArgs(args)).rejects.toThrow(/usage:/);
     });
   });
 
   describe('GIVEN missing-field positionals', (): void => {
     const flags = ['--fixture', 'corrupt.json', '--missing', 'missing.json', '--tool', 'claude'];
 
-    it('WHEN only an out-file is given THEN it is the destination and no spec is read', (): void => {
+    it('WHEN only an out-file is given THEN it is the destination and no spec is read', async (): Promise<void> => {
       const expected = { specUrl: undefined, schemaName: undefined, outFile: 'out.json' };
+      const parsed = await parseAiFixtureArgs(['out.json', ...flags]);
 
-      expect(parseAiFixtureArgs(['out.json', ...flags])).toMatchObject(expected);
+      expect(parsed).toMatchObject(expected);
     });
 
-    it('WHEN nothing is given THEN output goes to stdout', (): void => {
-      expect(parseAiFixtureArgs(flags)?.outFile).toBeUndefined();
+    it('WHEN nothing is given THEN output goes to stdout', async (): Promise<void> => {
+      const parsed = await parseAiFixtureArgs(flags);
+
+      expect(parsed?.outFile).toBeUndefined();
     });
 
-    it('WHEN the old spec, schema and out-file form is given THEN the third value is the destination', (): void => {
+    it('WHEN the old spec, schema and out-file form is given THEN the third value is the destination', async (): Promise<void> => {
       const expected = { specUrl: undefined, outFile: 'out.json' };
+      const parsed = await parseAiFixtureArgs(['file:///spec.json', 'invoice', 'out.json', ...flags]);
 
-      expect(parseAiFixtureArgs(['file:///spec.json', 'invoice', 'out.json', ...flags])).toMatchObject(expected);
+      expect(parsed).toMatchObject(expected);
     });
   });
 
   describe('GIVEN missing-field inputs', (): void => {
     const args = ['file:///spec.json', 'invoice', '--fixture', 'corrupt.json', '--tool', 'claude'];
 
-    it('WHEN a projection is given without a scenario THEN uses the default missing scenario', (): void => {
+    it('WHEN a projection is given without a scenario THEN uses the default missing scenario', async (): Promise<void> => {
       const filling = [...args, '--missing', 'missing.json'];
-      const parsed = parseAiFixtureArgs(filling);
+      const parsed = await parseAiFixtureArgs(filling);
 
       expect(parsed?.missingFile).toBe('missing.json');
       expect(parsed?.scenario).toBe('Fill every missing field with realistic values coherent with the baseline');
     });
 
-    it('WHEN a scenario accompanies the projection THEN keeps the given scenario', (): void => {
+    it('WHEN a scenario accompanies the projection THEN keeps the given scenario', async (): Promise<void> => {
       const filling = [...args, '--missing', 'missing.json', '--scenario', '  Fill the status.  '];
+      const parsed = await parseAiFixtureArgs(filling);
 
-      expect(parseAiFixtureArgs(filling)?.scenario).toBe('Fill the status.');
+      expect(parsed?.scenario).toBe('Fill the status.');
     });
 
-    it('WHEN the scenario is blank THEN rejects rather than silently defaulting', (): void => {
+    it('WHEN the scenario is blank THEN rejects rather than silently defaulting', async (): Promise<void> => {
       const blank = [...args, '--missing', 'missing.json', '--scenario', '   '];
 
-      expect((): unknown => parseAiFixtureArgs(blank)).toThrow(Error);
+      await expect(parseAiFixtureArgs(blank)).rejects.toThrow(Error);
     });
 
-    it('WHEN the projection path is empty THEN rejects before generation', (): void => {
+    it('WHEN the projection path is empty THEN rejects before generation', async (): Promise<void> => {
       const empty = [...args, '--missing', ''];
 
-      expect((): unknown => parseAiFixtureArgs(empty)).toThrow(Error);
+      await expect(parseAiFixtureArgs(empty)).rejects.toThrow(Error);
     });
 
-    it('WHEN no projection is given THEN a scenario is still required', (): void => {
-      expect((): unknown => parseAiFixtureArgs(args)).toThrow(/--scenario/);
+    it('WHEN no projection is given THEN a scenario is still required', async (): Promise<void> => {
+      await expect(parseAiFixtureArgs(args)).rejects.toThrow(/--scenario/);
     });
 
-    it('WHEN no projection is given THEN leaves the options without a missing file', (): void => {
+    it('WHEN no projection is given THEN leaves the options without a missing file', async (): Promise<void> => {
       const enriching = [...args, '--scenario', 'Open invoice'];
+      const parsed = await parseAiFixtureArgs(enriching);
 
-      expect(parseAiFixtureArgs(enriching)?.missingFile).toBeUndefined();
+      expect(parsed?.missingFile).toBeUndefined();
+    });
+  });
+
+  describe('GIVEN a terminal missing every required input', (): void => {
+    it('WHEN every prompt is answered THEN parses the answers and asks the unset optionals', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const question = vi.fn(
+        answering('file:///spec.json', 'base.json', 'Open invoice', 'codex', 'invoice', 'x.json', '', '', '1000')
+      );
+
+      const parsed = await parseAiFixtureArgs([], promptedInputs(question));
+      const expectedOptions = { tool: 'codex', timeoutMs: 1000 };
+      const expected = {
+        specUrl: 'file:///spec.json',
+        fixtureFile: 'base.json',
+        scenario: 'Open invoice',
+        schemaName: 'invoice',
+        outFile: 'x.json',
+        typesFile: undefined,
+        options: expectedOptions
+      };
+
+      expect(parsed).toMatchObject(expected);
+      expect(question).toHaveBeenCalledTimes(9);
+    });
+  });
+
+  describe('GIVEN a terminal with every argument flagged', (): void => {
+    it('WHEN parsing THEN never asks', async (): Promise<void> => {
+      const args = ['file:///spec.json', 'invoice', '--fixture', 'base.json', '--scenario', 'Open invoice', '--tool', 'claude'];
+      const question = vi.fn(answering('unused'));
+
+      await parseAiFixtureArgs(args, promptedInputs(question));
+
+      expect(question).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GIVEN a terminal in missing mode short only --tool', (): void => {
+    it('WHEN answering THEN only --tool and the optionals are asked, and the spec is never asked', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const question = vi.fn(answering('claude', 'out.json', '', '', ''));
+
+      const parsed = await parseAiFixtureArgs(['--missing', 'm.json', '--fixture', 'f.json'], promptedInputs(question));
+      const expected = { specUrl: undefined, scenario: MISSING_SCENARIO, outFile: 'out.json' };
+
+      expect(parsed).toMatchObject(expected);
+      expect(question).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe('GIVEN a terminal answers an unsupported tool', (): void => {
+    it('WHEN --tool is missing and the typed answer is invalid THEN rejects without retrying', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const args = ['file:///spec.json', 'invoice', '--fixture', 'base.json', '--scenario', 'Open invoice'];
+      const question = vi.fn(answering('nope'));
+
+      await expect(parseAiFixtureArgs(args, promptedInputs(question))).rejects.toThrow('--tool must be');
     });
   });
 });

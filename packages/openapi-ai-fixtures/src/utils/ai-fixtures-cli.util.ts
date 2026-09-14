@@ -1,9 +1,10 @@
 import { parseArgs } from 'node:util';
 
-import { FixtureError } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
+import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { parseAiTool } from './ai-tool.util.ts';
-import { AI_FIXTURES_USAGE, MISSING_SCENARIO } from '../common/ai-fixtures-cli.const.ts';
+import { TOOL_FIX, parseAiTool } from './ai-tool.util.ts';
+import { AI_FIXTURES_INPUTS, AI_FIXTURES_USAGE, MISSING_SCENARIO } from '../common/ai-fixtures-cli.const.ts';
 import type { AiFixtureCliOptions, CliPositionals } from '../common/ai-fixtures-cli.type.ts';
 import type { AiFixtureOptions, AiTool } from '../common/ai-fixtures.type.ts';
 
@@ -64,12 +65,17 @@ const toolOptions = (
 };
 
 /** Missing-field mode makes `--scenario` optional; every other mode still requires it. */
-const fixtureScenario = (scenario: string | undefined, missingFile: string | undefined): string => {
+const fixtureScenario = async (scenario: string | undefined, missingFile: string | undefined, inputs: Inputs): Promise<string> => {
   const isDefaulted = scenario === undefined && missingFile !== undefined;
 
   if (isDefaulted) return MISSING_SCENARIO;
 
-  return requiredValue(scenario?.trim(), '--scenario requires non-empty text', '--scenario "an open invoice for 4200 cents"');
+  return inputs.required(
+    scenario?.trim(),
+    AI_FIXTURES_INPUTS.scenario,
+    '--scenario requires non-empty text',
+    '--scenario "an open invoice for 4200 cents"'
+  );
 };
 
 /**
@@ -84,18 +90,18 @@ const missingPositionals = (positionals: string[]): CliPositionals => {
   return parsed;
 };
 
-const scenarioPositionals = (positionals: string[]): CliPositionals => {
+const scenarioPositionals = async (positionals: string[], inputs: Inputs): Promise<CliPositionals> => {
   const [rawSpecUrl, schemaName, outFile] = positionals;
-  const specUrl = requiredValue(rawSpecUrl, AI_FIXTURES_USAGE);
+  const specUrl = await inputs.required(rawSpecUrl, AI_FIXTURES_INPUTS.specUrl, AI_FIXTURES_USAGE);
   const parsed: CliPositionals = { specUrl, schemaName, outFile };
 
   return parsed;
 };
 
-const positionalsFor = (positionals: string[], isMissingMode: boolean): CliPositionals => {
+const positionalsFor = async (positionals: string[], isMissingMode: boolean, inputs: Inputs): Promise<CliPositionals> => {
   if (isMissingMode) return missingPositionals(positionals);
 
-  return scenarioPositionals(positionals);
+  return scenarioPositionals(positionals, inputs);
 };
 
 /** The harness whose models should be listed, or `undefined` when `--list-models` was not requested. */
@@ -107,7 +113,7 @@ export const parseListModelsArgs = (args: string[]): AiTool | undefined => {
   return parseAiTool(values.tool);
 };
 
-export const parseAiFixtureArgs = (args: string[]): AiFixtureCliOptions | undefined => {
+export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<AiFixtureCliOptions | undefined> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values.help) return undefined;
@@ -119,21 +125,32 @@ export const parseAiFixtureArgs = (args: string[]): AiFixtureCliOptions | undefi
   if (missingFile === '') throw new FixtureError('--missing requires a missing.json file');
 
   const isMissingMode = missingFile !== undefined;
-  const target = positionalsFor(positionals, isMissingMode);
-  const fixtureFile = requiredValue(
+  const target = await positionalsFor(positionals, isMissingMode, inputs);
+  const fixtureFile = await inputs.required(
     values.fixture,
+    AI_FIXTURES_INPUTS.fixture,
     '--fixture requires an existing JSON fixture file',
     '--fixture invoice.fixture.json'
   );
-  const scenario = fixtureScenario(values.scenario, missingFile);
-  const typesFile = values.ts;
+  const scenario = await fixtureScenario(values.scenario, missingFile, inputs);
+  const toolName = await inputs.required(values.tool, AI_FIXTURES_INPUTS.tool, '--tool is required', TOOL_FIX);
 
   if (target.outFile === '') throw new FixtureError('the destination path must not be empty');
 
+  // ponytail: schemaName stays ambiguous vs out-file for a lone second positional; a prompted answer
+  // resolves the same way schemaTarget() does today. Missing mode never asks it: missing.json names the schema.
+  let schemaName: string | undefined;
+
+  if (!isMissingMode) schemaName = await inputs.optional(target.schemaName, AI_FIXTURES_INPUTS.schemaName);
+  const outFile = await inputs.optional(target.outFile, AI_FIXTURES_INPUTS.outFile);
+  const typesFile = await inputs.optional(values.ts, AI_FIXTURES_INPUTS.ts);
+
   if (typesFile === '') throw new FixtureError('--ts requires a types file');
 
-  const options = toolOptions(values.tool, values.executable, values.timeout, values.model);
-  const parsed: AiFixtureCliOptions = { ...target, fixtureFile, scenario, options, typesFile };
+  const executable = await inputs.optional(values.executable, AI_FIXTURES_INPUTS.executable);
+  const timeout = await inputs.optional(values.timeout, AI_FIXTURES_INPUTS.timeout);
+  const options = toolOptions(toolName, executable, timeout, values.model);
+  const parsed: AiFixtureCliOptions = { specUrl: target.specUrl, schemaName, fixtureFile, scenario, options, outFile, typesFile };
 
   if (missingFile === undefined) return parsed;
 

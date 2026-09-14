@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { isMissingFile } from './json-file.client.ts';
+import { isMissingFile } from '@fixture-automation/shared';
+
 import { FixtureError } from '../common/fixture.error.ts';
 import type { OpenApiSpec } from '../common/openapi.type.ts';
 import { errorMessage } from '../utils/error-message.util.ts';

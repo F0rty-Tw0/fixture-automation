@@ -1,3 +1,5 @@
+import { isRecord } from '@fixture-automation/shared';
+
 import { errorMessage } from './error-message.util.ts';
 import { FixtureError } from '../common/fixture.error.ts';
 import type { OpenApiSpec } from '../common/openapi.type.ts';
@@ -10,10 +12,6 @@ const isYamlLocation = (specUrl: string | URL): boolean => {
   const lowered = location.toLowerCase();
 
   return YAML_EXTENSIONS.some((extension: string): boolean => lowered.endsWith(extension));
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
 };
 
 const isOpenApiSpec = (value: unknown): value is OpenApiSpec => {

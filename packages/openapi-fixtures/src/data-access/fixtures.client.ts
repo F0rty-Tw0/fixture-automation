@@ -1,12 +1,9 @@
+import { isRecord } from '@fixture-automation/shared';
 import { sample } from 'openapi-sampler';
 
 import { FixtureError } from '../common/fixture.error.ts';
 import type { FixtureFactory, OpenApiSpec, SampleOptions, SchemaMap } from '../common/openapi.type.ts';
 import { schemaSuggestion } from '../utils/schema-suggestion.util.ts';
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
 
 /**
  * Deterministic fixtures from `components.schemas`. Pass the generated `components` type:

@@ -1,4 +1,5 @@
-import { isMissingFile } from './json-file.client.ts';
+import { isMissingFile } from '@fixture-automation/shared';
+
 import { FixtureError } from '../common/fixture.error.ts';
 import { errorMessage } from '../utils/error-message.util.ts';
 

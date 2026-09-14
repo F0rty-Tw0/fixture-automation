@@ -1,12 +1,9 @@
+import { isRecord } from '@fixture-automation/shared';
 import type { JSONSchema7 } from 'json-schema';
 
 import { referenceName } from './schema-reference.util.ts';
 
 type SpecSchemas = Record<string, JSONSchema7>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
 
 const collectRefs = (value: unknown, names: Set<string>): void => {
   if (Array.isArray(value)) {

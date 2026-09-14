@@ -1,19 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
+import { fileLabel, isMissingFile } from '@fixture-automation/shared';
+
 import { FixtureError } from '../common/fixture.error.ts';
 import { errorMessage } from '../utils/error-message.util.ts';
 
 const MISSING_FIX = 'check the path; it is resolved from the current directory';
-
-/** `true` when Node reported the path as absent (`ENOENT`), for reads and writes alike. */
-export const isMissingFile = (error: unknown): boolean => {
-  return error instanceof Error && 'code' in error && error.code === 'ENOENT';
-};
-
-const fileLabel = (label: string, file: string): string => {
-  return `${label} file "${file}"`;
-};
 
 /** Read a UTF-8 file, naming both the input it belongs to and the path when it is absent. */
 export const readTextFile = async (label: string, file: string): Promise<string> => {

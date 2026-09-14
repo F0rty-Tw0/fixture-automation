@@ -1,0 +1,32 @@
+import type { SchemaMap } from '@fixture-automation/openapi-fixtures';
+
+export type AiTool = 'claude' | 'codex' | 'antigravity' | 'copilot' | 'gemini';
+
+export type AiFixtureOptions = {
+  /** Installed coding tool to invoke; there is no automatic fallback. */
+  readonly tool: AiTool;
+  /** Optional absolute path to the tool executable or Node.js entry point. */
+  readonly executable?: string;
+  /**
+   * Model slug passed straight to the selected tool. Omitting it, or passing the
+   * literal `'default'`, adds no model flag and leaves the harness default in place.
+   * Antigravity rejects every value other than `'default'`; its CLI has no model switch.
+   */
+  readonly model?: string;
+  /** Tool timeout: integer milliseconds from 1 to 2147483647. Defaults to 120000. */
+  readonly timeoutMs?: number;
+  /** Cancels generation and terminates the child process tree. */
+  readonly signal?: AbortSignal;
+};
+
+export type AiFixtureRequest<TFixture = Record<string, unknown>> = {
+  /** Existing JSON fixture to enrich, without mutating it. */
+  readonly fixture: TFixture;
+  /** Natural-language scenario; the schema remains authoritative. */
+  readonly scenario: string;
+};
+
+export type AiFixtureFactory<TComponents extends SchemaMap = SchemaMap> = <TSchemaName extends keyof TComponents['schemas'] & string>(
+  name: TSchemaName,
+  request: AiFixtureRequest<TComponents['schemas'][TSchemaName]>
+) => Promise<TComponents['schemas'][TSchemaName]>;

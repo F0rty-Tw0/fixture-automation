@@ -1,0 +1,17 @@
+node_modules/
+.nx/
+dist/
+out-tsc/
+tmp/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+
+# This workspace uses pnpm; do not add npm lockfiles.
+package-lock.json
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/openapi-ai-fixtures"
+    },
+    {
+      "path": "./packages/openapi-fixture-diff"
+    },
+    {
+      "path": "./packages/openapi-fixture-merge"
+    },
+    {
+      "path": "./packages/openapi-fixtures"
+    },
+    {
+      "path": "./packages/openapi-types"
+    }
+  ]
+}

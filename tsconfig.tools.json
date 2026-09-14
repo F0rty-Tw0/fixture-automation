@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": ".nx/cache/tsconfig.tools.tsbuildinfo"
+  },
+  "include": ["*.config.ts"]
+}

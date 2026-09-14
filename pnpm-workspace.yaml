@@ -1,0 +1,38 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  nx: true
+  unrs-resolver: true
+
+catalogs:
+  dependencies:
+    '@types/json-schema': 7.0.15
+    ajv-draft-04: 1.0.0
+    ajv-formats: 3.0.1
+    openapi-sampler: 1.7.5
+    openapi-typescript: 7.13.0
+  devDependencies:
+    '@nx/eslint': 23.2.1
+    '@nx/js': 23.2.1
+    '@nx/vitest': 23.2.1
+    '@types/node': 24.13.4
+    ajv: 8.20.0
+    eslint: 10.10.0
+    jiti: 2.7.0
+    lint-suite: 2.1.0
+    nx: 23.2.1
+    prettier: 3.9.6
+    # Nx 23.2.1 and typescript-eslint 8.x require the pre-7 compiler API.
+    typescript: 6.0.3
+    vite: 8.2.2
+    vitest: 4.1.11
+
+minimumReleaseAge: 2880
+
+overrides:
+  'lint-suite>@nx/eslint-plugin': 23.2.1
+  # https://github.com/advisories/GHSA-7w5x-hrqm-74c2
+  'nx@23.2.1>smol-toml': 1.7.1
+patchedDependencies:
+  openapi-sampler@1.7.5: patches/openapi-sampler@1.7.5.patch
+strictDepBuilds: true

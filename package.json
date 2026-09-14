@@ -1,0 +1,35 @@
+{
+  "name": "fixture-automation",
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "scripts": {
+    "build": "nx run-many -t build",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "nx run-many -t test",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --project tsconfig.tools.json && nx run-many -t typecheck",
+    "graph": "nx graph"
+  },
+  "private": true,
+  "devDependencies": {
+    "@nx/eslint": "catalog:devDependencies",
+    "@nx/js": "catalog:devDependencies",
+    "@nx/vitest": "catalog:devDependencies",
+    "@types/node": "catalog:devDependencies",
+    "eslint": "catalog:devDependencies",
+    "jiti": "catalog:devDependencies",
+    "lint-suite": "catalog:devDependencies",
+    "nx": "catalog:devDependencies",
+    "prettier": "catalog:devDependencies",
+    "typescript": "catalog:devDependencies",
+    "vite": "catalog:devDependencies",
+    "vitest": "catalog:devDependencies"
+  }
+}

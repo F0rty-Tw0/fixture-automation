@@ -13,6 +13,8 @@ export type OpenApiSpec = {
   readonly jsonSchemaDialect?: string;
   /** Root schema name recorded by `pruneSpec`; later tools default their schema name from it. */
   readonly 'x-root-schema'?: string;
+  /** Route table; only read to map a route answer to its response schema. `pruneSpec` drops it. */
+  readonly paths?: Record<string, unknown>;
   readonly components?: SpecComponents;
 };
 

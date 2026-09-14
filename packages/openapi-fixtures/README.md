@@ -214,7 +214,7 @@ const components = JSON.parse(JSON.stringify(spec.components, (k, v) => (k === '
 - `typescriptStub(schemaName: string, typesImport: string, json: string): string` — renders a `const <NAME>_STUB: components["schemas"]["<name>"] = <json>` module.
 - `FixtureError` — an `Error` subclass with an optional `.fix: string | undefined` naming the corrective action.
 - `runCli(tool: string, run: () => Promise<void>): Promise<void>` — wraps a CLI's body, catching errors into the shared 3-line format and setting `process.exitCode`.
-- `cliInputs(): Inputs` — `promptedInputs()` when stdin and stdout are both a terminal, else `silentInputs`. `promptedInputs(question?)` takes a `Question` for tests; `terminalQuestion` is the readline default.
+- `cliInputs(): Inputs` — `promptedInputs()` when stdin is a terminal, else `silentInputs`. `promptedInputs(question?)` takes a `Question` for tests; `terminalQuestion` is the readline default.
 - `readJsonFile(label: string, file: string): Promise<unknown>` / `readTextFile(label: string, file: string): Promise<string>` — read a file, naming both the input and the path in `FixtureError` on a missing/invalid file.
 - `schemaSuggestion(names: string[], query: string): string` — `did you mean ...?` for a near match, else a capped list of available names.
 - Types: `OpenApiSpec`, `SampleOptions`, `SchemaMap`, `InputSpec`, `Inputs`, `Question`.
@@ -232,7 +232,7 @@ See [`@fixture-automation/openapi-ai-fixtures`](../openapi-ai-fixtures/README.md
 - **YAML specs are not supported.** `loadSpec` and the CLI need JSON; `openapi-types` accepts YAML.
 - **Network in tests.** `loadSpec` over `https://` hits the network every run. Vendor the JSON and use `file://` for CI.
 - **Unknown schema name** throws `schema not found: <name>`. The TypeScript type already prevents this once `spec` is bound with `fixtures<components>`.
-- **`openapi-fixtures > out.json` will not prompt.** Redirecting stdout makes the run non-interactive, so a missing `spec-url` is the usage error. Pass the args, or write with `[out-file]`.
+- **Prompts go to stderr.** `openapi-fixtures ... > out.json` still prompts on stderr and keeps stdout clean.
 
 ## Develop
 

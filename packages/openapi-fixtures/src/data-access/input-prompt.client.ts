@@ -82,9 +82,9 @@ export const promptedInputs = (question: Question = terminalQuestion): Inputs =>
   return inputs;
 };
 
-/** Prompt only when both ends are a terminal; a pipe or CI run gets the usage error instead. */
+/** Prompt when stdin is a terminal; a pipe or CI run gets the usage error instead. */
 export const cliInputs = (): Inputs => {
-  const isTerminal = process.stdin.isTTY === true && process.stdout.isTTY === true;
+  const isTerminal = process.stdin.isTTY === true;
 
   if (isTerminal) return promptedInputs();
 

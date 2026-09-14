@@ -21,6 +21,7 @@
   ],
   "dependencies": {
     "@fixture-automation/openapi-ai-fixtures": "workspace:*",
-    "@fixture-automation/openapi-fixtures": "workspace:*"
+    "@fixture-automation/openapi-fixtures": "workspace:*",
+    "@fixture-automation/shared": "workspace:*"
   }
 }

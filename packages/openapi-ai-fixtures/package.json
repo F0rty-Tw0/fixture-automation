@@ -21,6 +21,7 @@
   ],
   "dependencies": {
     "@fixture-automation/openapi-fixtures": "workspace:*",
+    "@fixture-automation/shared": "workspace:*",
     "ajv": "catalog:devDependencies",
     "ajv-draft-04": "catalog:dependencies",
     "ajv-formats": "catalog:dependencies"

@@ -190,7 +190,7 @@ console.log(`filled ${result.filled.length} path(s)`);
 - **`.ts` modules load via Node's native `import()`.** Your build must emit real `.ts`/`.js` output; type-only imports are erased at runtime and only the exported value matters.
 - **Extra keys survive.** `additionalProperties` and any extra keys in the populated file are preserved in the merged result.
 - **Validation needs `--spec`.** Without it, the merged file is written unvalidated and a warning goes to stderr. `--schema` is only needed when the spec carries no `x-root-schema`.
-- **`openapi-fixture-merge … > out` redirects stdout,** so it will not prompt — pass the args.
+- **Prompts go to stderr.** `openapi-fixture-merge … > out` still prompts on stderr and keeps stdout clean.
 
 ## Develop
 

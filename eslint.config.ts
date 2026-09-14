@@ -1,5 +1,5 @@
 import { defineConfig } from 'eslint/config';
-import { base, javascript, json, prettier, typescript, vitest } from 'lint-suite/eslint';
+import { base, boundaries, javascript, json, prettier, typescript, vitest } from 'lint-suite/eslint';
 
 export default defineConfig([
   ...base,
@@ -8,6 +8,7 @@ export default defineConfig([
   ...json,
   ...vitest,
   ...prettier,
+  ...boundaries,
   {
     files: ['*.config.ts'],
     languageOptions: {

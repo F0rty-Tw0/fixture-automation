@@ -12,6 +12,9 @@
       "path": "./packages/openapi-fixture-merge"
     },
     {
+      "path": "./packages/openapi-fixture-wizard"
+    },
+    {
       "path": "./packages/openapi-fixtures"
     },
     {

@@ -151,7 +151,7 @@ type GetInvoiceResponse = operations['GetInvoicesInvoice']['responses'][200]['co
 
 ## Gotchas
 
-- **Redirecting stdout disables prompting.** `openapi-types $SPEC > out.d.ts` pipes stdout, so it will not prompt even with a terminal attached; pass the args or write with `[out-file]` instead.
+- **Prompts go to stderr.** `openapi-types $SPEC > out.d.ts` still prompts on stderr and keeps stdout clean.
 - **TypeScript 5 peer warning.** `openapi-typescript` declares a peer dependency on TypeScript 5. This repo uses TypeScript 6. It works, but `pnpm install` prints an unmet-peer warning.
 - **No endpoint filtering.** The whole spec is generated every time; narrow with `paths` / `components` at the type level, not the CLI.
 - **Fixtures live elsewhere.** This package only generates types. Sampling data is [`@fixture-automation/openapi-fixtures`](../openapi-fixtures/README.md).

@@ -147,7 +147,7 @@ const files = await writeMissingFiles(diff, 'out');
 - **`anyOf`/`oneOf` branch choice is a heuristic.** Each branch resolves first; the branch whose properties overlap the value's keys most wins. Primitives and `null` never report missing fields.
 - **Large hub schemas can blow the 1 MiB AI input limit.** A schema reachable through a hub object (like Stripe's `account`) pulls its whole graph into `components`. Drop leaf fields only, or split hub-reaching fields across multiple `diff` runs, to keep the projection small.
 - **`additionalProperties` and `patternProperties` are ignored.**
-- **`openapi-fixture-diff > out.json` will not prompt.** Redirecting stdout makes the run non-interactive, so a missing command is the usage error. Pass the command and its args instead.
+- **Prompts go to stderr.** `openapi-fixture-diff ... > out.json` still prompts on stderr and keeps stdout clean.
 
 ## Develop
 

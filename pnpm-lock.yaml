@@ -68,7 +68,7 @@ overrides:
 
 patchedDependencies:
   openapi-sampler@1.7.5:
-    hash: e7fc77f22b4b562ed6d4cf3702456078ee8c70ba1a92f4840fbd1defd33d889d
+    hash: 5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0
     path: patches/openapi-sampler@1.7.5.patch
 
 importers:
@@ -117,6 +117,9 @@ importers:
       '@fixture-automation/openapi-fixtures':
         specifier: workspace:*
         version: link:../openapi-fixtures
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
       ajv:
         specifier: catalog:devDependencies
         version: 8.20.0
@@ -138,9 +141,12 @@ importers:
       '@fixture-automation/openapi-types':
         specifier: workspace:*
         version: link:../openapi-types
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
       openapi-sampler:
         specifier: catalog:dependencies
-        version: 1.7.5(patch_hash=e7fc77f22b4b562ed6d4cf3702456078ee8c70ba1a92f4840fbd1defd33d889d)
+        version: 1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0)
 
   packages/openapi-fixture-merge:
     dependencies:
@@ -150,15 +156,42 @@ importers:
       '@fixture-automation/openapi-fixtures':
         specifier: workspace:*
         version: link:../openapi-fixtures
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/openapi-fixture-wizard:
+    dependencies:
+      '@fixture-automation/openapi-ai-fixtures':
+        specifier: workspace:*
+        version: link:../openapi-ai-fixtures
+      '@fixture-automation/openapi-fixture-diff':
+        specifier: workspace:*
+        version: link:../openapi-fixture-diff
+      '@fixture-automation/openapi-fixture-merge':
+        specifier: workspace:*
+        version: link:../openapi-fixture-merge
+      '@fixture-automation/openapi-fixtures':
+        specifier: workspace:*
+        version: link:../openapi-fixtures
+      '@fixture-automation/openapi-types':
+        specifier: workspace:*
+        version: link:../openapi-types
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/openapi-fixtures:
     dependencies:
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@types/json-schema':
         specifier: catalog:dependencies
         version: 7.0.15
       openapi-sampler:
         specifier: catalog:dependencies
-        version: 1.7.5(patch_hash=e7fc77f22b4b562ed6d4cf3702456078ee8c70ba1a92f4840fbd1defd33d889d)
+        version: 1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0)
     devDependencies:
       ajv:
         specifier: catalog:devDependencies
@@ -169,9 +202,14 @@ importers:
       '@fixture-automation/openapi-fixtures':
         specifier: workspace:*
         version: link:../openapi-fixtures
+      '@fixture-automation/shared':
+        specifier: workspace:*
+        version: link:../shared
       openapi-typescript:
         specifier: catalog:dependencies
         version: 7.13.0(typescript@6.0.3)
+
+  packages/shared: {}
 
 packages:
 
@@ -6629,7 +6667,7 @@ snapshots:
       is-inside-container: 1.0.0
       is-wsl: 3.1.0
 
-  openapi-sampler@1.7.5(patch_hash=e7fc77f22b4b562ed6d4cf3702456078ee8c70ba1a92f4840fbd1defd33d889d):
+  openapi-sampler@1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0):
     dependencies:
       '@types/json-schema': 7.0.15
       fast-xml-parser: 5.11.1

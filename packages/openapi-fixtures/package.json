@@ -1,0 +1,29 @@
+{
+  "name": "@fixture-automation/openapi-fixtures",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Generate deterministic typed fixtures from an OpenAPI spec.",
+  "bin": {
+    "openapi-fixtures": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@types/json-schema": "catalog:dependencies",
+    "openapi-sampler": "catalog:dependencies"
+  },
+  "devDependencies": {
+    "ajv": "catalog:devDependencies"
+  }
+}

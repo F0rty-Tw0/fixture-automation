@@ -12,7 +12,7 @@ describe('FEATURE: OpenAPI document detection', (): void => {
     });
   });
 
-  describe.each([null, 42, 'openapi'])('GIVEN the non-object value %s', (value): void => {
+  describe.each([null, 42, 'openapi', []])('GIVEN the non-object value %s', (value): void => {
     it('WHEN checked THEN rejects it', (): void => {
       expect(isOpenApiDocument(value)).toBe(false);
     });

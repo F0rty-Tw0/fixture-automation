@@ -1,8 +1,9 @@
 import { parseArgs } from 'node:util';
 
-import { FixtureError } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
+import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { CORRUPT_USAGE, DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
+import { CORRUPT_USAGE, DIFF_INPUTS, DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
 import type { CorruptOptions, DiffOptions } from '../common/fixture-diff-cli.type.ts';
 
 const stringOption = { type: 'string' } as const;
@@ -11,12 +12,6 @@ const helpOption = { type: 'boolean', short: 'h' } as const;
 const corruptOptions = { drop: stringOption, help: helpOption };
 const diffOptions = { fixture: stringOption, 'out-dir': stringOption, 'required-only': booleanOption, help: helpOption };
 const DROP_USAGE = '--drop requires a comma separated list of fixture paths';
-
-const requiredValue = (value: string | undefined, message: string, fix?: string): string => {
-  if (!value) throw new FixtureError(message, fix);
-
-  return value;
-};
 
 const droppedPaths = (drop: string): string[] => {
   const paths = drop.split(',').map((path) => path.trim());
@@ -28,40 +23,40 @@ const droppedPaths = (drop: string): string[] => {
 };
 
 /** Parse the corrupt command line; `undefined` means the caller should print help. */
-export const parseCorruptArgs = (args: string[]): CorruptOptions | undefined => {
+export const parseCorruptArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<CorruptOptions | undefined> => {
   const { positionals, values } = parseArgs({ args, options: corruptOptions, allowPositionals: true });
 
   if (values.help === true) return undefined;
 
-  if (positionals.length !== 2) throw new FixtureError(CORRUPT_USAGE);
+  if (positionals.length > 2) throw new FixtureError(CORRUPT_USAGE);
 
-  const fixtureFile = requiredValue(positionals[0], CORRUPT_USAGE);
-  const outFile = requiredValue(positionals[1], CORRUPT_USAGE);
-  const paths = droppedPaths(requiredValue(values.drop, DROP_USAGE, 'example: --drop id,customer.email,lines[1].sku'));
+  const fixtureFile = await inputs.required(positionals[0], DIFF_INPUTS.fixtureFile, CORRUPT_USAGE);
+  const outFile = await inputs.required(positionals[1], DIFF_INPUTS.outFile, CORRUPT_USAGE);
+  const drop = await inputs.required(values.drop, DIFF_INPUTS.drop, DROP_USAGE, 'example: --drop id,customer.email,lines[1].sku');
+  const paths = droppedPaths(drop);
   const options: CorruptOptions = { fixtureFile, outFile, paths };
 
   return options;
 };
 
 /** Parse the diff command line; `undefined` means the caller should print help. */
-export const parseDiffArgs = (args: string[]): DiffOptions | undefined => {
+export const parseDiffArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<DiffOptions | undefined> => {
   const { positionals, values } = parseArgs({ args, options: diffOptions, allowPositionals: true });
 
   if (values.help === true) return undefined;
 
-  const isUsage = positionals.length === 0 || positionals.length > 2;
+  if (positionals.length > 2) throw new FixtureError(DIFF_USAGE);
 
-  if (isUsage) throw new FixtureError(DIFF_USAGE);
-
-  const specUrl = requiredValue(positionals[0], DIFF_USAGE);
-  const schemaName = positionals[1];
-  const fixtureFile = requiredValue(
+  const specUrl = await inputs.required(positionals[0], DIFF_INPUTS.specUrl, DIFF_USAGE);
+  const fixtureFile = await inputs.required(
     values.fixture,
+    DIFF_INPUTS.fixture,
     '--fixture requires an existing JSON fixture file',
     'pass the corrupt fixture written by corrupt'
   );
-  const outDir = requiredValue(values['out-dir'], '--out-dir requires a destination directory');
-  const requiredOnly = values['required-only'] === true;
+  const outDir = await inputs.required(values['out-dir'], DIFF_INPUTS.outDir, '--out-dir requires a destination directory');
+  const schemaName = await inputs.optional(positionals[1], DIFF_INPUTS.schemaName);
+  const requiredOnly = await inputs.flag(values['required-only'], DIFF_INPUTS.requiredOnly);
   const options: DiffOptions = { specUrl, schemaName, fixtureFile, outDir, requiredOnly };
 
   return options;

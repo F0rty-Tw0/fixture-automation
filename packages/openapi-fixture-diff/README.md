@@ -60,6 +60,8 @@ usage: openapi-fixture-diff <command> [options]
       defaults to the x-root-schema of a spec written by openapi-types
 ```
 
+**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`schema-name`, `--required-only`); Enter skips an optional. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
+
 `schema-name` is optional with a spec written by `openapi-types <spec-url> <schema-name> <out-file>`: that file carries `x-root-schema`, so `diff "$LOCAL" --fixture corrupt.json --out-dir out` reads the name from it. A plain spec still needs the name (`schema name required` otherwise).
 
 | Flag               | Required           | What it does                                                                                                                              |
@@ -103,7 +105,7 @@ Exit code `0`. No files are written.
 
 | You see                                                                           | It means                                                                 | Fix                                                       |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `usage: corrupt <fixture.json> <out.json> --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`.                                     | Use one of those two subcommands.                         |
+| `usage: corrupt <fixture.json> <out.json> --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`, or was missing (piped/CI run).      | Use one of those two subcommands.                         |
 | `--fixture file "<path>" does not exist`                                          | The `--fixture` path is wrong.                                           | Check the path; it resolves from the current directory.   |
 | `--fixture file "<path>" is not valid JSON: <parse error>`                        | The fixture file is not parseable JSON.                                  | Fix the file, or point at a real JSON fixture.            |
 | `--out-dir requires a destination directory`                                      | `diff` was run without `--out-dir`.                                      | Add `--out-dir <dir>`.                                    |
@@ -145,6 +147,7 @@ const files = await writeMissingFiles(diff, 'out');
 - **`anyOf`/`oneOf` branch choice is a heuristic.** Each branch resolves first; the branch whose properties overlap the value's keys most wins. Primitives and `null` never report missing fields.
 - **Large hub schemas can blow the 1 MiB AI input limit.** A schema reachable through a hub object (like Stripe's `account`) pulls its whole graph into `components`. Drop leaf fields only, or split hub-reaching fields across multiple `diff` runs, to keep the projection small.
 - **`additionalProperties` and `patternProperties` are ignored.**
+- **`openapi-fixture-diff > out.json` will not prompt.** Redirecting stdout makes the run non-interactive, so a missing command is the usage error. Pass the command and its args instead.
 
 ## Develop
 

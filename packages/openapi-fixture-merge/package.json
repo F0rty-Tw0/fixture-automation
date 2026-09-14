@@ -1,0 +1,26 @@
+{
+  "name": "@fixture-automation/openapi-fixture-merge",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Merge AI-populated missing fields into a fixture and write a validated JSON fixture.",
+  "bin": {
+    "openapi-fixture-merge": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@fixture-automation/openapi-ai-fixtures": "workspace:*",
+    "@fixture-automation/openapi-fixtures": "workspace:*"
+  }
+}

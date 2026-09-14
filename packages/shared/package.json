@@ -1,0 +1,19 @@
+{
+  "name": "@fixture-automation/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Pure helpers shared across the fixture-automation packages.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

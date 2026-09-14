@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Nested Fixture API", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "order": {
+        "type": "object",
+        "required": ["id", "created", "customer", "lines"],
+        "properties": {
+          "id": { "type": "string", "example": "or_1" },
+          "created": { "type": "integer", "format": "unix-time" },
+          "note": { "type": "string", "nullable": true },
+          "customer": { "$ref": "#/components/schemas/customer" },
+          "lines": { "type": "array", "items": { "$ref": "#/components/schemas/line" } },
+          "parent": { "$ref": "#/components/schemas/order" }
+        }
+      },
+      "customer": {
+        "allOf": [
+          { "$ref": "#/components/schemas/party" },
+          {
+            "type": "object",
+            "required": ["email"],
+            "properties": {
+              "email": { "type": "string" },
+              "vat": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "party": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "country": { "type": "string" }
+        }
+      },
+      "line": {
+        "type": "object",
+        "required": ["sku", "source"],
+        "properties": {
+          "sku": { "type": "string" },
+          "source": {
+            "anyOf": [{ "type": "string" }, { "$ref": "#/components/schemas/supplier" }],
+            "x-expansionResources": { "oneOf": [{ "$ref": "#/components/schemas/supplier" }] }
+          }
+        }
+      },
+      "supplier": {
+        "type": "object",
+        "required": ["supplierId"],
+        "properties": {
+          "supplierId": { "type": "string" },
+          "region": { "type": "string" }
+        }
+      }
+    }
+  }
+}

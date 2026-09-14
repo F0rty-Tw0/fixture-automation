@@ -1,0 +1,10 @@
+{
+  "id": "or_1",
+  "created": 1700000000,
+  "note": "first order",
+  "customer": { "name": "Ada", "country": "NL", "email": "ada@example.com", "vat": "NL01" },
+  "lines": [
+    { "sku": "sku_1", "source": { "supplierId": "sup_1", "region": "eu" } },
+    { "sku": "sku_2", "source": "internal" }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "components": {
+    "schemas": {
+      "EmptyIdentifierRoot": { "$ref": "#empty-id" },
+      "EmptyIdentifierNode": {
+        "$id": "",
+        "$anchor": "empty-id",
+        "type": "string",
+        "minLength": 3
+      },
+      "Coordinate": {
+        "type": "array",
+        "prefixItems": [{ "type": "string" }, { "type": "number" }],
+        "items": false
+      },
+      "OptionalText": { "type": ["string", "null"] },
+      "Root": { "$ref": "#/components/schemas/Node" },
+      "Node": {
+        "$id": "urn:node",
+        "$dynamicAnchor": "node",
+        "type": "object",
+        "required": ["value"],
+        "properties": {
+          "value": { "type": "string" },
+          "child": { "$dynamicRef": "#node" },
+          "self": { "$ref": "#" }
+        }
+      },
+      "External": { "$ref": "https://example.test/schema.json" },
+      "Nullable": { "nullable": true, "type": "string" },
+      "IncompatibleResourceDialect": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      },
+      "DocumentAnchorRoot": { "$ref": "#node" },
+      "DocumentAnchorNode": {
+        "$anchor": "node",
+        "type": "string",
+        "minLength": 3
+      },
+      "UnusedResourceAnchor": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "$id": "urn:unused",
+            "$anchor": "node",
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}

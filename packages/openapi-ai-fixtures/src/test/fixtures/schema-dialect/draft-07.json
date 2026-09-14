@@ -1,0 +1,61 @@
+{
+  "components": {
+    "schemas": {
+      "Invoice": {
+        "type": "object",
+        "examples": [{ "$ref": "#/components/schemas/ExamplePayload" }],
+        "additionalProperties": false,
+        "required": ["id", "status", "owner"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "status": { "enum": ["draft", "open"] },
+          "owner": { "$ref": "#/components/schemas/Owner" }
+        }
+      },
+      "Owner": {
+        "allOf": [
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "const": "person" } }
+          },
+          {
+            "type": "object",
+            "required": ["email"],
+            "properties": { "email": { "type": "string", "format": "email" } }
+          }
+        ]
+      },
+      "ExamplePayload": { "type": "object" },
+      "Unused": { "type": "string" },
+      "Root": { "$ref": "#/components/schemas/Child~1node" },
+      "Child/node": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "parent": { "$ref": "#/components/schemas/Root" }
+        }
+      },
+      "PrototypeRoot": { "$ref": "#/components/schemas/constructor" },
+      "constructor": { "$ref": "#/components/schemas/__proto__" },
+      "__proto__": { "type": "string", "minLength": 3 },
+      "Value": { "type": "number" },
+      "UnknownFormat": { "type": "integer", "format": "unix-time" },
+      "RefSibling": {
+        "$ref": "#/components/schemas/StringTarget",
+        "unevaluatedProperties": false
+      },
+      "StringTarget": { "type": "string", "minLength": 3 },
+      "FragmentRoot": { "$ref": "#node" },
+      "FragmentTarget": { "$id": "#node", "type": "string", "minLength": 3 },
+      "ModernUnevaluated": { "type": "object", "unevaluatedProperties": false },
+      "ModernPrefix": { "type": "array", "prefixItems": [{ "type": "string" }] },
+      "ModernDependent": {
+        "type": "object",
+        "dependentRequired": { "creditCard": ["billingAddress"] }
+      },
+      "Unresolved": { "$ref": "#/components/schemas/Missing" }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "openapi": "3.0.3",
+  "components": {
+    "schemas": {
+      "UnsupportedNullType": { "type": "null" },
+      "Balance": {
+        "type": "object",
+        "required": ["amount", "label", "status"],
+        "properties": {
+          "amount": { "type": "integer", "minimum": 0, "exclusiveMinimum": true },
+          "label": { "type": "string", "nullable": true, "enum": ["open", null] },
+          "status": { "type": "string", "nullable": true, "enum": ["open"] }
+        }
+      },
+      "NullableNoType": { "nullable": false, "enum": ["ready"] },
+      "NullableTrueNoType": { "nullable": true, "enum": ["ready"] },
+      "VendorExtension": { "type": "string", "x-validation-hint": "example" },
+      "ReferenceSibling": {
+        "$ref": "#/components/schemas/StringTarget",
+        "patternProperties": { ".*": { "type": "number" } }
+      },
+      "StringTarget": { "type": "string", "minLength": 3 },
+      "UnsupportedPatternProperties": {
+        "type": "object",
+        "patternProperties": { ".*": { "type": "string" } }
+      },
+      "UnsupportedDependencies": {
+        "type": "object",
+        "dependencies": { "creditCard": ["billingAddress"] }
+      },
+      "UnsupportedDefinitions": {
+        "definitions": { "value": { "type": "string" } }
+      },
+      "UnsupportedAdditionalItems": {
+        "type": "array",
+        "items": { "type": "string" },
+        "additionalItems": false
+      },
+      "UnsupportedTupleItems": {
+        "type": "array",
+        "items": [{ "type": "string" }]
+      },
+      "UnsupportedBooleanSubschema": { "allOf": [false] }
+    }
+  }
+}

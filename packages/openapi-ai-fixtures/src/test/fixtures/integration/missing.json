@@ -1,0 +1,27 @@
+{
+  "schemaName": "invoice",
+  "dialect": "openapi-30",
+  "paths": ["status"],
+  "schema": {
+    "type": "object",
+    "required": ["status"],
+    "properties": {
+      "status": { "type": "string", "enum": ["draft", "open"] }
+    }
+  },
+  "components": {
+    "schemas": {
+      "invoice": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "amount_due", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "amount_due": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["draft", "open"] },
+          "memo": { "type": "string" }
+        }
+      }
+    }
+  }
+}

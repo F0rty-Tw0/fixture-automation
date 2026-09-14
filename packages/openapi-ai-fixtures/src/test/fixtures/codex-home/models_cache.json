@@ -1,0 +1,21 @@
+{
+  "fetched_at": "2026-09-13T22:48:14.783706400Z",
+  "client_version": "0.154.0",
+  "models": [
+    {
+      "slug": "gpt-cache-a",
+      "display_name": "GPT Cache A",
+      "visibility": "list"
+    },
+    {
+      "slug": "gpt-cache-hidden",
+      "display_name": "GPT Cache Hidden",
+      "visibility": "hide"
+    },
+    {
+      "slug": "gpt-cache-b",
+      "display_name": "GPT Cache B",
+      "visibility": "list"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ES2024",
+    "strict": true,
+    "types": [],
+    "skipLibCheck": true,
+    "noEmitOnError": true,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist"
+  },
+  "files": ["consumer.ts", "generated.stub.ts"]
+}

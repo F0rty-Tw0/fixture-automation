@@ -1,0 +1,28 @@
+{
+  "name": "@fixture-automation/openapi-ai-fixtures",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Enrich existing OpenAPI fixtures with a selected coding tool and runtime schema validation.",
+  "bin": {
+    "openapi-ai-fixtures": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@fixture-automation/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@fixture-automation/openapi-fixtures": "workspace:*",
+    "ajv": "catalog:devDependencies",
+    "ajv-draft-04": "catalog:dependencies",
+    "ajv-formats": "catalog:dependencies"
+  }
+}

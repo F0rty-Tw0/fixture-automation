@@ -22,7 +22,7 @@ describe('FEATURE: Codex model passthrough', (): void => {
     it('WHEN the fixture is requested THEN sends -m ahead of the trailing stdin placeholder', async (): Promise<void> => {
       await codexFixture(modelRequest('codex', 'gpt-5.5'));
 
-      const args = agentArgs();
+      const args = agentArgs(vi.mocked(runAgent).mock.calls);
       const flag = args.indexOf('-m');
 
       expect(flag).toBeGreaterThan(-1);
@@ -36,7 +36,7 @@ describe('FEATURE: Codex model passthrough', (): void => {
     it('WHEN the model is omitted THEN sends the unchanged argument vector', async (): Promise<void> => {
       await codexFixture(modelRequest('codex'));
 
-      const args = agentArgs();
+      const args = agentArgs(vi.mocked(runAgent).mock.calls);
 
       expect(args).not.toContain('-m');
       expect(args.at(-1)).toBe('-');
@@ -45,7 +45,7 @@ describe('FEATURE: Codex model passthrough', (): void => {
     it('WHEN the harness default is selected THEN sends the unchanged argument vector', async (): Promise<void> => {
       await codexFixture(modelRequest('codex', 'default'));
 
-      const args = agentArgs();
+      const args = agentArgs(vi.mocked(runAgent).mock.calls);
 
       expect(args).not.toContain('-m');
       expect(args.at(-1)).toBe('-');

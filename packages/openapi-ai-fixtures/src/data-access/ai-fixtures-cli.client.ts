@@ -28,7 +28,7 @@ const listModels = async (tool: AiTool): Promise<void> => {
 };
 
 const modelSelection = (tool: AiTool, requested: string | undefined, discovery: ModelDiscovery): ModelSelection => {
-  const interactive = process.stdin.isTTY === true && process.stdout.isTTY === true;
+  const interactive = process.stdin.isTTY === true;
   const selection: ModelSelection = { tool, interactive, discovery };
 
   if (requested === undefined) return selection;

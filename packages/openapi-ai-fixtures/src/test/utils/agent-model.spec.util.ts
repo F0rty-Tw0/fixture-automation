@@ -1,14 +1,11 @@
-import { vi } from 'vitest';
-
-import type { AgentRequest } from '../../common/agent.type.ts';
+import type { AgentCommand, AgentRequest } from '../../common/agent.type.ts';
 import type { AiFixtureOptions, AiTool } from '../../common/ai-fixtures.type.ts';
-import { runAgent } from '../../data-access/agent-process.client.ts';
 
 const MODEL_PROMPT = 'Return a fixture.';
 
-/** Argument vector of the single mocked `runAgent` call, for adapter passthrough assertions. */
-export const agentArgs = (): string[] => {
-  const [call] = vi.mocked(runAgent).mock.calls;
+/** Argument vector of the single `runAgent` call, given its mock's recorded calls, for adapter passthrough assertions. */
+export const agentArgs = (calls: (readonly [AgentCommand, AiFixtureOptions])[]): string[] => {
+  const [call] = calls;
 
   if (call === undefined) throw new Error('runAgent was not called');
 

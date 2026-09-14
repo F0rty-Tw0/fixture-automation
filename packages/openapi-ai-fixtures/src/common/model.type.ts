@@ -16,7 +16,7 @@ export type ModelSelection = {
   readonly tool: AiTool;
   /** An explicit `--model` value; it is passed through even when it is not in `discovery.models`. */
   readonly requested?: string;
-  /** True only when both stdin and stdout are terminals, which is when prompting is allowed. */
+  /** True only when stdin is a terminal, which is when prompting is allowed. */
   readonly interactive: boolean;
   readonly discovery: ModelDiscovery;
   /** Overrides the built-in `node:readline/promises` prompt. */

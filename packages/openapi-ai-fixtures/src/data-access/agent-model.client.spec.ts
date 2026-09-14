@@ -29,7 +29,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await claudeFixture(modelRequest('claude', 'opus'));
 
-      expect(agentArgs().slice(-2)).toStrictEqual(['--model', 'opus']);
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).slice(-2)).toStrictEqual(['--model', 'opus']);
     });
 
     it('WHEN the harness default is selected THEN appends no model flag', async (): Promise<void> => {
@@ -37,7 +37,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await claudeFixture(modelRequest('claude', 'default'));
 
-      expect(agentArgs()).not.toContain('--model');
+      expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('--model');
     });
   });
 
@@ -47,7 +47,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await geminiFixture(modelRequest('gemini', 'gemini-3-pro'));
 
-      expect(agentArgs().slice(-2)).toStrictEqual(['-m', 'gemini-3-pro']);
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).slice(-2)).toStrictEqual(['-m', 'gemini-3-pro']);
     });
 
     it('WHEN the model is omitted THEN appends no model flag', async (): Promise<void> => {
@@ -55,7 +55,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await geminiFixture(modelRequest('gemini'));
 
-      expect(agentArgs()).not.toContain('-m');
+      expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('-m');
     });
   });
 
@@ -65,7 +65,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await copilotFixture(modelRequest('copilot', 'gpt-5'));
 
-      expect(agentArgs().at(-1)).toBe('--model=gpt-5');
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).at(-1)).toBe('--model=gpt-5');
     });
 
     it('WHEN the model is omitted THEN appends no model flag', async (): Promise<void> => {
@@ -73,7 +73,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await copilotFixture(modelRequest('copilot'));
 
-      expect(agentArgs().some(hasModelFlag)).toBe(false);
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).some(hasModelFlag)).toBe(false);
     });
   });
 
@@ -90,7 +90,7 @@ describe('FEATURE: AI model passthrough per harness', (): void => {
 
       await antigravityFixture(modelRequest('antigravity', 'default'));
 
-      expect(agentArgs().some(hasModelFlag)).toBe(false);
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).some(hasModelFlag)).toBe(false);
     });
   });
 });

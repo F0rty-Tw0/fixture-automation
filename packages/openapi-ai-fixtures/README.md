@@ -215,7 +215,7 @@ const invoice = await enrich('invoice', {
 
 ## Gotchas
 
-- **`openapi-ai-fixtures > out.json` will not prompt.** Redirecting stdout makes the run non-interactive, so a missing required input is the usage error instead of a prompt. Pass the args, or write with `[out-file]`.
+- **Prompts go to stderr.** `openapi-ai-fixtures ... > out.json` still prompts on stderr and keeps stdout clean.
 - **Not a sandbox.** The scratch working directory and provider tool/MCP restrictions are not an OS sandbox. Do not point `--executable` at code you have not reviewed.
 - **Credentials are inherited.** The normal credential environment passes through so a pre-authenticated CLI works — provider-managed credentials, policy, and quotas still apply.
 - **Gemini's MCP-disable setting is ineffective.** The staged `admin.mcp.enabled` file setting does not work in the reviewed Gemini CLI v0.59.0 release.

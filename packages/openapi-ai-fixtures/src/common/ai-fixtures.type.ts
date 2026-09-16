@@ -17,6 +17,8 @@ export type AiFixtureOptions = {
   readonly timeoutMs?: number;
   /** Cancels generation and terminates the child process tree. */
   readonly signal?: AbortSignal;
+  /** Base path for failed-response diagnostic sidecars; absent disables persistence. */
+  readonly recoveryFile?: string;
 };
 
 export type AiFixtureRequest<TFixture = Record<string, unknown>> = {

@@ -5,6 +5,12 @@ export type AgentRequest = {
   readonly options: AiFixtureOptions;
 };
 
+export type AgentFixture = {
+  readonly value: unknown;
+  readonly response: string;
+  readonly attempt: 1 | 2;
+};
+
 export type AgentFile = {
   readonly path: string;
   readonly content: string;

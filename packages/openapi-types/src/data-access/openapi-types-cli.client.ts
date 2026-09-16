@@ -1,8 +1,8 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { parseArgs } from 'node:util';
+import { parseArgs, styleText } from 'node:util';
 
-import { FixtureError, loadSpec, pruneSpec, silentInputs, writeTextFile } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, loadSpec, printHelp, pruneSpec, silentInputs, writeTextFile } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { generateTypes } from './openapi-types.client.ts';
@@ -102,14 +102,18 @@ const generatePruned = async (specUrl: string, schemaName: string, outFile: stri
   await writeTextFile(specFile, `${JSON.stringify(pruned, null, 2)}\n`);
   await writeTextFile(typesFile, types);
 
-  process.stderr.write(`wrote ${typesFile} and ${specFile} (${count} schemas reachable from ${schemaName})\n`);
+  const success = styleText('green', `wrote ${typesFile} and ${specFile} (${count} schemas reachable from ${schemaName})\n`, {
+    stream: process.stderr
+  });
+
+  process.stderr.write(success);
 };
 
 export const runTypesCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values.help === true) {
-    process.stdout.write(`${OPENAPI_TYPES_HELP}\n`);
+    printHelp(OPENAPI_TYPES_HELP);
 
     return;
   }

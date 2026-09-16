@@ -90,27 +90,32 @@ spec-url:
 
 ## Examples
 
-**List models** — deterministic, no provider call:
+**List models** — asks the installed provider CLI; sends no generation prompt:
 
 ```bash
 node packages/openapi-ai-fixtures/dist/cli.js --list-models --tool codex
 ```
 
-```
-gpt-6-astra
-gpt-5.6-sol
-gpt-5.6-terra
-gpt-5.6-luna
-gpt-5.5
-gpt-5.3-codex-spark
-source: codex-cache
-```
+Model IDs go to stdout, one per line. Provenance goes to stderr as `source: <tool>-cli`.
+All five tools use provider-owned discovery; this package contains no model catalog or static fallback.
 
-`source: codex-cache` means the list came from the Codex CLI's own `models_cache.json`
-(`$CODEX_HOME` or `~/.codex`). `source: curated` means it is this package's fallback list, used for
-every other tool and whenever that cache is missing or unreadable. Curated lists for `gemini`,
-`copilot`, and `antigravity` were not verified against an installed CLI. `antigravity` lists
-nothing — its CLI has no model switch.
+| Tool          | Discovery                                     |
+| ------------- | --------------------------------------------- |
+| `claude`      | Stream-JSON initialization's supported models |
+| `codex`       | App-server `model/list`, including every page |
+| `antigravity` | `agy --output-format json models`             |
+| `copilot`     | Headless SDK protocol `models.list`           |
+| `gemini`      | ACP session's available models                |
+
+Discovery reuses the CLI's existing authentication and supports `--executable` and `--timeout`.
+It may contact the provider; returned choices depend on the installed CLI, account, configuration,
+and provider-managed caches. An unavailable CLI, failed login, incompatible protocol, malformed
+response, or empty catalog fails instead of supplying guessed model names.
+
+The terminal picker and wizard use the same discovery. An explicit `--model` (including `default`)
+bypasses discovery and passes through unchanged; noninteractive generation without `--model`
+uses the harness default without a catalog lookup. Discovery starts provider processes, not an
+OS sandbox; see [provider contracts and startup restrictions](./PROVIDERS.md#model-discovery).
 
 **Fill only the missing fields, as a typed stub** — one live Codex (`gpt-5.5`) run, 2026-09-14, nondeterministic:
 
@@ -193,6 +198,7 @@ const invoice = await enrich('invoice', {
 - `schemaDialect(openapi, jsonSchemaDialect)` — maps a spec's version fields onto `'draft-07' | 'openapi-30' | 'openapi-31'`.
 - `compileFixtureSchema(schema, dialect)` — compiles one prepared document; formats outside `ajv-formats` register as pass-through.
 - `AiFixtureOptions` — `{ tool, executable?, model?, timeoutMs?, signal?, recoveryFile? }`. `tool` is required (no fallback). `executable` is an absolute path override. `model` omitted or `'default'` adds no model flag. `timeoutMs` defaults to `120000`, max `2147483647`. `signal` is an `AbortSignal`; an already-aborted signal rejects before the schema is prepared or a process starts. `recoveryFile` is the base path for failed-response sidecars; library calls without it do not save diagnostic files.
+- `discoverModels(tool, options?: ModelDiscoveryOptions): Promise<ModelDiscovery>` — returns `{ models, source }` from the installed provider. Options are `{ executable?, timeoutMs?, signal? }`; errors reject, with no hardcoded fallback.
 
 ### Validation and failure behavior
 

@@ -1,0 +1,9 @@
+{
+  // Gemini system settings support JSON comments.
+  "experimental": {
+    "autoMemory": false
+  },
+  "hooksConfig": {
+    "enabled": false
+  }
+}

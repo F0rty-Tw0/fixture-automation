@@ -2,7 +2,7 @@
 
 This is the provider/security reference for `@fixture-automation/openapi-ai-fixtures`. For the public API, see [README](./README.md); for CLI arguments, use the canonical [AI fixture CLI reference](./README.md#command).
 
-The adapter starts one installed, already-authenticated provider CLI in a new temporary working directory. It writes listed files there, pipes UTF-8 input to standard input, closes it, captures UTF-8 stdout and stderr, and deletes the directory after completion unless process-tree termination cannot be confirmed. It uses no shell. The request is limited to 1 MiB; combined stdout and stderr are limited to 8 MiB; the default timeout is 120 seconds.
+A generation adapter starts one installed, already-authenticated provider CLI in a new temporary working directory. It writes listed files there, pipes UTF-8 input to standard input, closes it, captures UTF-8 stdout and stderr, and deletes the directory after completion unless process-tree termination cannot be confirmed. It uses no shell. The request is limited to 1 MiB; combined stdout and stderr are limited to 8 MiB; the default timeout is 120 seconds.
 
 A scratch directory and model-tool restrictions are **not** an OS sandbox or a universal guarantee that an executable, its inherited configuration, extensions, hooks, MCP servers, or global instructions cannot run. The status and caveats below are provider-specific.
 
@@ -20,7 +20,7 @@ A scratch directory and model-tool restrictions are **not** an OS sandbox or a u
 
 ## Common process contract
 
-All five adapters inherit `process.env` by default. An overlay replaces or removes only explicitly named variables; on Windows matching environment-variable names are removed case-insensitively before the overlay is applied. Each adapter therefore keeps ordinary provider credential lookup unless its own overlay says otherwise. The process has a pipe for each standard stream; input is written as UTF-8 and immediately ended. A nonzero exit rejects before provider-specific stdout parsing; stderr is included in the error (up to 2,000 characters). Invalid UTF-8, output beyond the shared 8 MiB limit, timeout, or cancellation also fails the invocation.
+All five adapters inherit `process.env` by default. An overlay replaces or removes only explicitly named variables; on Windows matching environment-variable names are removed case-insensitively before the overlay is applied. Each adapter therefore keeps ordinary provider credential lookup unless its own overlay says otherwise. The process has a pipe for each standard stream. Generation input is written as UTF-8 and immediately ended; discovery can exchange protocol messages before closing stdin or intentionally terminating its server, as described below. An ordinary nonzero exit rejects before provider-specific stdout parsing; stderr is included in the error (up to 2,000 characters). Invalid UTF-8, output beyond the shared 8 MiB limit, timeout, or cancellation also fails the invocation.
 
 Argument-vector rows describe ordered values passed directly to the process, not shell command
 lines. Claude's `""` denotes an actual empty argument. Codex's `web_search="disabled"` includes
@@ -37,6 +37,58 @@ When fixture JSON is invalid, generation saves the exact response before making 
 A second invalid response is saved and fails. Malformed transport envelopes/events, provider errors, process failures, timeouts, and cancellation are not retried. Each attempt retains the process limits above, including its own timeout. An oversized repair prompt fails before another process starts, leaving the first saved response available.
 
 The parsed fixture, including a corrected response, subsequently undergoes local schema validation. Schema-invalid responses are saved without retrying, and normal output remains untouched. Antigravity's `structured_output` is serialized to JSON for diagnostics; response strings are preserved verbatim. See the [CLI reference](./README.md#validation-and-failure-behavior).
+
+## Model discovery
+
+`discoverModels` and `--list-models` query the installed CLI, never a package-maintained list.
+Each lookup uses the existing scratch-directory, output-limit, cancellation, and timeout handling.
+No provider generation prompt, login RPC, or persistent model-selection request is sent.
+CLI-owned authentication refresh, caches, and startup state still apply; these operations are not
+an OS sandbox or a guarantee of uncached remote entitlement validation.
+
+| Provider    | Discovery contract                                                                                     | Model ID field                            |
+| ----------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Claude      | Print-mode stream-JSON `initialize` control request; safe mode, no tools, no session persistence       | `response.response.models[].value`        |
+| Codex       | App-server `initialize`, `initialized`, then paginated `model/list` with `includeHidden: false`        | `result.data[].model`                     |
+| Antigravity | `agy --output-format json models`, with stdin closed immediately                                       | `command.data.models[].id`                |
+| Copilot     | Headless stdio SDK v3 handshake, `models.list`, then runtime shutdown; Content-Length framing          | `result.models[].id`                      |
+| Gemini      | ACP v1 `initialize` then `session/new` in the scratch directory; no `authenticate` or `session/prompt` | `result.models.availableModels[].modelId` |
+
+NDJSON discovery keeps stdin open until the correlated catalog reply, then closes it. Copilot's
+SDK server does not self-exit after runtime shutdown, so the owned process tree is explicitly
+terminated after its shutdown response. Protocol errors, missing results, and empty catalogs
+fail; they do not fall back to old model names. Explicit `--model` values and noninteractive
+default generation skip discovery altogether.
+
+The provider owns freshness and availability filtering. Claude can return aliases and custom
+picker entries; Codex manages its own cache refresh; Gemini combines installed/configured model
+definitions with account state. A catalog entry is not proof of a successful generation or quota.
+Keep provider CLIs updated. Claude safe mode still permits managed policy hooks.
+
+Gemini ACP initializes a session even without a prompt. Discovery disables ordinary hooks and
+Auto Memory in the trusted scratch workspace, disables extensions, and excludes inherited MCP
+servers with a per-run allowlist. It preserves managed system settings and refuses discovery if
+those settings can re-enable hooks or background Auto Memory generation. It also refuses a
+restricted-mode configuration that would prevent the scratch overrides from taking effect.
+`NO_BROWSER=true` prevents opening a login browser; missing authentication still fails or times out.
+The released [Auto Memory guide](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/docs/cli/auto-memory.md)
+documents why an unrestricted ACP startup is not a safe substitute for a no-generation catalog lookup.
+
+Gemini consumer-account eligibility is separate from discovery:
+[Google retired Gemini CLI access for individual/Google AI Pro and Ultra accounts](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/).
+A catalog response does not override that policy or guarantee that generation will work.
+
+Sources: [Claude initialization/models](https://code.claude.com/docs/en/agent-sdk/typescript#sdkcontrolinitializeresponse),
+[Codex model/list](https://developers.openai.com/codex/app-server/#list-models-modellist),
+[Antigravity command and JSON framing evidence](https://github.com/google-antigravity/antigravity-cli/issues/777),
+[Copilot SDK implementation](https://github.com/github/copilot-sdk/blob/main/nodejs/src/client.ts),
+and [Gemini released ACP session manager](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/acp/acpSessionManager.ts).
+
+Discovery verification: the compiled CLI returned catalogs from installed Claude and Codex
+executables. Antigravity, Copilot, and Gemini were exercised through real subprocess protocol
+fixtures, including discovery-to-generation selection for Antigravity. Those fixture results are
+not live provider verification: Antigravity was absent locally, Copilot had only an installation
+launcher, and the Gemini installation pointed to a missing package entry point.
 
 ## Claude Code
 
@@ -76,7 +128,7 @@ Implementation: [Codex adapter](./src/data-access/codex.client.ts).
 | stdin                 | The complete fixture-enrichment request as UTF-8 text; stdin is then closed.                                                                                                                                                                                                                                                              |
 | Files and environment | No files staged; no provider-specific environment overlay. Normal environment/authentication is inherited.                                                                                                                                                                                                                                |
 | Required capability   | An installed, authenticated Codex CLI supporting `exec`, JSON event output, stdin input, and the listed restricted configuration switches.                                                                                                                                                                                                |
-| Model selection       | `-m <slug>` is inserted immediately before the trailing `-` when a non-`default` model is selected. The selectable list is read from `$CODEX_HOME`/`~/.codex/models_cache.json`.                                                                                                                                                          |
+| Model selection       | `-m <slug>` is inserted immediately before the trailing `-` when a non-`default` model is selected. Discovery uses app-server `model/list`, not direct reads of an indefinitely stale cache file.                                                                                                                                         |
 
 ### Result and failure framing
 
@@ -98,15 +150,15 @@ Installation and inherited configuration references: [native installation](https
 
 ### Invocation and staged profile
 
-| Item                  | Adapter contract                                                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Executable            | `agy`                                                                                                                                        |
-| Exact argument vector | `--input-format stream-json --output-format stream-json --agent fixture-enricher --sandbox`                                                  |
-| stdin                 | Exactly one UTF-8, newline-terminated NDJSON event: `{ "event": "user", "message": { "content": "<request.prompt>" } }`; stdin then closes.  |
-| stdout                | Stream JSON / NDJSON events.                                                                                                                 |
-| Environment           | No overlay; normal environment, persisted settings, and authentication are inherited.                                                        |
-| Authentication        | Existing secure-keyring session or configured API-key mode is required for unattended use; no credential was checked or changed.             |
-| Model selection       | Unsupported. The argument vector has no model switch, so any model other than `default` rejects with `antigravity does not support --model`. |
+| Item                  | Adapter contract                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Executable            | `agy`                                                                                                                                                                       |
+| Exact argument vector | `--input-format stream-json --output-format stream-json --agent fixture-enricher --sandbox`                                                                                 |
+| stdin                 | Exactly one UTF-8, newline-terminated NDJSON event: `{ "event": "user", "message": { "content": "<request.prompt>" } }`; stdin then closes.                                 |
+| stdout                | Stream JSON / NDJSON events.                                                                                                                                                |
+| Environment           | No overlay; normal environment, persisted settings, and authentication are inherited.                                                                                       |
+| Authentication        | Existing secure-keyring session or configured API-key mode is required for unattended use; no credential was checked or changed.                                            |
+| Model selection       | `--model <slug>` is appended for a non-`default` selection. Discovery requires the machine-readable `models` command (added in 1.1.12); the provider rejects unknown slugs. |
 
 The following file is staged relative to the scratch working directory at `.agents/agents/fixture-enricher/agent.md`:
 
@@ -173,7 +225,7 @@ Primary sources: [programmatic use](https://docs.github.com/en/copilot/how-tos/c
 | stdout                | Raw, non-streaming text, which must itself be one JSON value. Do not substitute `--output-format=json`: its documented mode is JSONL, a different event protocol.       |
 | Environment           | No overlay; normal environment/authentication and user configuration are inherited.                                                                                     |
 | Authentication        | Existing valid Copilot authentication is required. Documented precedence includes token environment variables before stored credentials; no login was attempted.        |
-| Model selection       | `--model=<slug>` is appended when a non-`default` model is selected; this CLI uses the joined `=` form. The curated slug list is unverified.                            |
+| Model selection       | `--model=<slug>` is appended when a non-`default` model is selected; this CLI uses the joined `=` form. Model choices come from headless `models.list`.                 |
 
 The staged custom agent, `.github/agents/fixture-enricher.agent.md`, is:
 
@@ -245,7 +297,7 @@ Additional source anchors: [released trust selection](https://raw.githubusercont
 | stdout                | One JSON envelope. Its `response` field must be a string containing the fixture JSON value.                                                                                                                              |
 | Environment overlay   | `GEMINI_CLI_SYSTEM_SETTINGS_PATH=.gemini/system-settings.json`; remove inherited `GEMINI_CLI_TRUST_WORKSPACE`; remove inherited `GEMINI_SANDBOX`. All other environment values, including authentication, are inherited. |
 | Authentication        | Existing credentials may be reused in headless mode, but presence and usability were not checked.                                                                                                                        |
-| Model selection       | `-m <slug>` is appended when a non-`default` model is selected. The curated slug list is unverified against an installed CLI.                                                                                            |
+| Model selection       | `-m <slug>` is appended when a non-`default` model is selected. Model choices come from the CLI's ACP session catalog.                                                                                                   |
 
 The staged policy file, `.gemini/deny-tools.toml`, is:
 

@@ -20,6 +20,6 @@ export type { AiFixtureFactory, AiFixtureOptions, AiFixtureRequest, AiTool } fro
 
 export type { AiMissingFactory, AiMissingRequest, MissingFile, MissingPromptInput } from './common/missing.type.ts';
 
-export type { ModelDiscovery, ModelSelection } from './common/model.type.ts';
+export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './common/model.type.ts';
 
 export type { PreparedSchema, SchemaDialect } from './common/schema.type.ts';

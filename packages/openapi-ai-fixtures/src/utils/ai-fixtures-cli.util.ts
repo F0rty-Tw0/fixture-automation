@@ -6,7 +6,7 @@ import type { Inputs } from '@fixture-automation/openapi-fixtures';
 import { TOOL_FIX, parseAiTool } from './ai-tool.util.ts';
 import { AI_FIXTURES_INPUTS, AI_FIXTURES_USAGE, MISSING_SCENARIO } from '../common/ai-fixtures-cli.const.ts';
 import type { AiFixtureCliOptions, CliPositionals } from '../common/ai-fixtures-cli.type.ts';
-import type { AiFixtureOptions, AiTool } from '../common/ai-fixtures.type.ts';
+import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 
 const stringOption = { type: 'string' } as const;
 const booleanOption = { type: 'boolean' } as const;
@@ -104,13 +104,13 @@ const positionalsFor = async (positionals: string[], isMissingMode: boolean, inp
   return scenarioPositionals(positionals, inputs);
 };
 
-/** The harness whose models should be listed, or `undefined` when `--list-models` was not requested. */
-export const parseListModelsArgs = (args: string[]): AiTool | undefined => {
+/** Discovery options, or undefined when no model listing was requested. */
+export const parseListModelsArgs = (args: string[]): AiFixtureOptions | undefined => {
   const { values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values['list-models'] !== true) return undefined;
 
-  return parseAiTool(values.tool);
+  return toolOptions(values.tool, values.executable, values.timeout, undefined);
 };
 
 export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<AiFixtureCliOptions | undefined> => {

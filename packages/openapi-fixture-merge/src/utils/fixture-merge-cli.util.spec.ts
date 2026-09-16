@@ -22,6 +22,33 @@ describe('FEATURE: fixture merge argument parsing', (): void => {
     });
   });
 
+  describe('GIVEN a shaped merge and a subdirectory', (): void => {
+    it('WHEN parsing THEN it trims both optional values', async (): Promise<void> => {
+      const args = [
+        'a.json',
+        'b.json',
+        'fixtures',
+        '--endpoint-url',
+        ENDPOINT_URL,
+        '--object-shape',
+        ' body ',
+        '--subdirectory',
+        ' /savings/ '
+      ];
+
+      const input = await parseMergeArgs(args);
+
+      expect(input).toStrictEqual({
+        corruptFile: 'a.json',
+        populatedFile: 'b.json',
+        outDir: 'fixtures',
+        endpointUrl: ENDPOINT_URL,
+        objectShape: 'body',
+        subdirectory: '/savings/'
+      });
+    });
+  });
+
   describe('GIVEN a blank endpoint URL', (): void => {
     it('WHEN parsing THEN it rejects a merge without endpoint identity', async (): Promise<void> => {
       const args = ['a.json', 'b.json', 'fixtures', '--endpoint-url', ''];

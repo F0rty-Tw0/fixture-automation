@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { endpointArtifactFileName, sha256Content } from './merge-artifact-hashing.util.ts';
+import { endpointArtifactFileName, endpointIdentity, sha256Content } from './merge-artifact-hashing.util.ts';
 
 describe('FEATURE: merge artifact hashing', (): void => {
   describe('GIVEN an endpoint whose SHA-1 Base64 hash contains several slashes', (): void => {
@@ -10,6 +10,40 @@ describe('FEATURE: merge artifact hashing', (): void => {
       const fileName = endpointArtifactFileName(endpointUrl);
 
       expect(fileName).toBe('yBSv3yoqzkQxRnXYwxTIex7l8mI=.json');
+    });
+  });
+
+  describe('GIVEN an HTTP method endpoint and a slash-wrapped subdirectory', (): void => {
+    it('WHEN deriving the artifact identity THEN it prefixes only the endpoint path', (): void => {
+      const endpointUrl = 'GET, /custodies/v2';
+      const subdirectory = '/savings/';
+
+      const identity = endpointIdentity(endpointUrl, subdirectory);
+      const fileName = endpointArtifactFileName(identity);
+
+      expect(identity).toBe('GET, savings/custodies/v2');
+      expect(fileName).toBe('SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
+    });
+  });
+
+  describe('GIVEN a bare endpoint and a subdirectory', (): void => {
+    it('WHEN deriving the artifact identity THEN it prefixes the endpoint path', (): void => {
+      const endpointUrl = '/custodies/v2';
+      const subdirectory = '/savings/';
+
+      const identity = endpointIdentity(endpointUrl, subdirectory);
+
+      expect(identity).toBe('savings/custodies/v2');
+    });
+  });
+
+  describe('GIVEN an endpoint with no subdirectory', (): void => {
+    it('WHEN deriving the artifact identity THEN it keeps the endpoint bytes unchanged', (): void => {
+      const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
+
+      const identity = endpointIdentity(endpointUrl, undefined);
+
+      expect(identity).toBe(endpointUrl);
     });
   });
 

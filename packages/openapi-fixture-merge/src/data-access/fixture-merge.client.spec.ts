@@ -67,14 +67,73 @@ describe('FEATURE: fixture merge', (): void => {
     });
   });
 
-  describe('GIVEN a populated value the schema rejects', (): void => {
-    it('WHEN merging THEN it reports the ajv path and writes neither artifact', async (): Promise<void> => {
-      const populatedFile = await project.write('invalid.json', '{ "status": "paid" }');
-      const input = mergeInput(project, populatedFile, invoiceSpec(project));
+  describe('GIVEN a populated envelope that completes the body payload', (): void => {
+    it('WHEN merging with an object shape THEN it validates the payload and preserves corrupt envelope siblings', async (): Promise<void> => {
+      const corruptSource = '{ "request_id": "req_1", "body": { "id": "in_1", "amount_due": 100 }, "trace": { "source": "corrupt" } }';
+      const populatedSource = '{ "body": { "status": "open" }, "trace": { "source": "populated" }, "ignored": true }';
+      const corruptFile = await project.write('enveloped-corrupt.json', corruptSource);
+      const populatedFile = await project.write('enveloped-populated.json', populatedSource);
+      const base = mergeInput(project, populatedFile, invoiceSpec(project));
+      const input: MergeInput = { ...base, corruptFile, objectShape: ' body ' };
+      const body = { id: 'in_1', amount_due: 100, status: 'open' };
+      const trace = { source: 'corrupt' };
+      const expected = {
+        request_id: 'req_1',
+        body,
+        trace
+      };
+
+      const result = await mergeFixture(input);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['body.status']);
+    });
+
+    it('WHEN the body violates the schema THEN it reports the payload path and writes neither artifact', async (): Promise<void> => {
+      const corruptSource = '{ "body": { "id": "in_1", "amount_due": 100 } }';
+      const populatedSource = '{ "body": { "status": "paid" } }';
+      const corruptFile = await project.write('invalid-enveloped-corrupt.json', corruptSource);
+      const populatedFile = await project.write('invalid-enveloped-populated.json', populatedSource);
+      const base = mergeInput(project, populatedFile, invoiceSpec(project));
+      const input: MergeInput = { ...base, corruptFile, objectShape: 'body' };
 
       await expect(mergeFixture(input)).rejects.toThrow('/status: must be equal to one of the allowed values');
       await expect(access(project.outFile)).rejects.toThrow();
       await expect(access(project.provenanceFile)).rejects.toThrow();
+    });
+  });
+
+  describe('GIVEN an envelope whose payload is a root array', (): void => {
+    it('WHEN merging with an object shape THEN it prefixes filled element paths without an extra dot', async (): Promise<void> => {
+      const corruptFile = await project.write('array-corrupt.json', '{ "body": [{ "id": "in_1" }] }');
+      const populatedFile = await project.write('array-populated.json', '{ "body": [{ "status": "open" }] }');
+      const base = mergeInput(project, populatedFile, undefined);
+      const input: MergeInput = { ...base, corruptFile, objectShape: 'body' };
+
+      const result = await mergeFixture(input);
+
+      expect(result.filled).toStrictEqual(['body[0].status']);
+    });
+  });
+
+  describe('GIVEN a corrupt fixture without the configured envelope', (): void => {
+    it('WHEN merging THEN it rejects the missing object shape', async (): Promise<void> => {
+      const corruptFile = await project.write('root-corrupt.json', '{ "id": "in_1", "amount_due": 100 }');
+      const base = mergeInput(project, project.populatedFile, undefined);
+      const input: MergeInput = { ...base, corruptFile, objectShape: 'body' };
+
+      await expect(mergeFixture(input)).rejects.toThrow('fixture has no own property "body" for object-shape');
+    });
+  });
+
+  describe('GIVEN a populated fixture without the configured envelope', (): void => {
+    it('WHEN merging THEN it rejects the missing object shape', async (): Promise<void> => {
+      const corruptFile = await project.write('body-corrupt.json', '{ "body": { "id": "in_1", "amount_due": 100 } }');
+      const populatedFile = await project.write('root-populated.json', '{ "status": "open" }');
+      const base = mergeInput(project, populatedFile, undefined);
+      const input: MergeInput = { ...base, corruptFile, objectShape: 'body' };
+
+      await expect(mergeFixture(input)).rejects.toThrow('fixture has no own property "body" for object-shape');
     });
   });
 

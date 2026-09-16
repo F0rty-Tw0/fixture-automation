@@ -19,8 +19,12 @@ export type MergeInput = {
   readonly populatedFile: string;
   /** Directory receiving the endpoint-named JSON and its provenance sidecar. */
   readonly outDir: string;
-  /** Exact endpoint URL whose UTF-8 bytes determine the SHA-1 Base64 filename. */
+  /** Endpoint identity (URL or METHOD, path), optionally prefixed by subdirectory before hashing. */
   readonly endpointUrl: string;
+  /** Optional literal top-level property containing the merge and validation payload. */
+  readonly objectShape?: string | undefined;
+  /** Optional path segment prefixed to the endpoint identity before hashing. */
+  readonly subdirectory?: string | undefined;
   /** Absent means the merged fixture is written without schema validation. */
   readonly spec?: MergeSpec;
 };

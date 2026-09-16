@@ -1,4 +1,5 @@
 import { access, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -42,6 +43,49 @@ describe('FEATURE: fixture merge command', (): void => {
 
       expect(result.stderr).toContain('filled 1 path(s)');
       await expect(readFile(project.outFile, 'utf8')).resolves.toBe(`${JSON.stringify(expected, null, 2)}\n`);
+    }, 30000);
+  });
+
+  describe('GIVEN shaped fixture envelopes and an endpoint subdirectory', (): void => {
+    it('WHEN merging against the spec THEN it writes the shaped fixture with the prefixed endpoint identity', async (): Promise<void> => {
+      const corruptSource = '{ "request_id": "req_1", "body": { "id": "in_1", "amount_due": 100 }, "trace": { "source": "corrupt" } }';
+      const populatedSource = '{ "body": { "status": "open" }, "trace": { "source": "populated" } }';
+      const corruptFile = await project.write('enveloped-corrupt.json', corruptSource);
+      const populatedFile = await project.write('enveloped-populated.json', populatedSource);
+      const args = [
+        corruptFile,
+        populatedFile,
+        project.directory,
+        '--endpoint-url',
+        'GET, /custodies/v2',
+        '--subdirectory',
+        '/savings/',
+        '--object-shape',
+        'body',
+        '--spec',
+        project.specUrl,
+        '--schema',
+        'invoice'
+      ];
+      const body = { id: 'in_1', amount_due: 100, status: 'open' };
+      const trace = { source: 'corrupt' };
+      const expected = {
+        request_id: 'req_1',
+        body,
+        trace
+      };
+      const identity = 'GET, savings/custodies/v2';
+      const expectedProvenance = {
+        endpointUrl: identity,
+        sha256: '1e68104af60cb8844dba4915e58f09bc092e24d7a2a82b9634f9df954197904c'
+      };
+      const outFile = join(project.directory, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
+      const provenanceFile = join(project.directory, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.provenance.json');
+
+      await project.run(args);
+
+      await expect(readFile(outFile, 'utf8')).resolves.toBe(`${JSON.stringify(expected, null, 2)}\n`);
+      await expect(readFile(provenanceFile, 'utf8')).resolves.toBe(`${JSON.stringify(expectedProvenance, null, 2)}\n`);
     }, 30000);
   });
 
@@ -156,6 +200,8 @@ describe('FEATURE: fixture merge command', (): void => {
       const result = await project.run(['--help']);
 
       expect(result.stdout).toContain('usage: openapi-fixture-merge');
+      expect(result.stdout).toContain('--object-shape <property>');
+      expect(result.stdout).toContain('--subdirectory <path>');
     }, 30000);
   });
 });

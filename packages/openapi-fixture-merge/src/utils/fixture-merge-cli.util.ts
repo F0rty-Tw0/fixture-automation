@@ -10,6 +10,8 @@ const stringOption = { type: 'string' } as const;
 const helpOption = { type: 'boolean', short: 'h' } as const;
 const cliOptions = {
   'endpoint-url': stringOption,
+  'object-shape': stringOption,
+  subdirectory: stringOption,
   spec: stringOption,
   schema: stringOption,
   help: helpOption
@@ -30,6 +32,12 @@ const validationSpec = (url: string | undefined, schemaName: string | undefined)
   return spec;
 };
 
+const optionalValue = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+
+  return trimmed === '' ? undefined : trimmed;
+};
+
 /** Parse the merge command line; `undefined` means the caller should print usage. */
 export const parseMergeArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<MergeInput | undefined> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
@@ -42,13 +50,17 @@ export const parseMergeArgs = async (args: string[], inputs: Inputs = silentInpu
   const populatedFile = await inputs.required(positionals[1], MERGE_INPUTS.populatedFile, MERGE_USAGE);
   const outDir = await inputs.required(positionals[2], MERGE_INPUTS.outDir, MERGE_USAGE);
   const endpointUrl = await inputs.required(values['endpoint-url'], MERGE_INPUTS.endpointUrl, MERGE_USAGE);
+  const subdirectoryAnswer = await inputs.optional(values.subdirectory, MERGE_INPUTS.subdirectory);
+  const objectShapeAnswer = await inputs.optional(values['object-shape'], MERGE_INPUTS.objectShape);
+  const subdirectory = optionalValue(subdirectoryAnswer);
+  const objectShape = optionalValue(objectShapeAnswer);
   const specUrl = await inputs.optional(values.spec, MERGE_INPUTS.spec);
   let schemaName = values.schema;
 
   if (specUrl !== undefined) schemaName = await inputs.optional(values.schema, MERGE_INPUTS.schema);
 
   const spec = validationSpec(specUrl, schemaName);
-  const base: MergeInput = { corruptFile, populatedFile, outDir, endpointUrl };
+  const base: MergeInput = { corruptFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory };
 
   if (spec === undefined) return base;
 

@@ -9,8 +9,8 @@ This is the last step in the [corrupt → diff → fill → merge pipeline](../.
 - **Fills** only the keys missing from the corrupt fixture; present keys are left untouched.
 - **Reads** the populated data from JSON, or from a `.ts`/`.mts`/`.js`/`.mjs` module with one export (the AI package writes these).
 - **Validates** the merged result against an OpenAPI schema when `--spec` is given (`--schema` names the schema, or a spec written by `openapi-types <spec-url> <schema-name> <out-file>` supplies it through `x-root-schema`).
-- **Names** only merged outputs using SHA-1 Base64 of the exact endpoint URL, replacing every `/` with `x` and appending `.json`.
-- **Records** the endpoint URL and a lowercase hexadecimal SHA-256 checksum of the merged file in a sibling `.provenance.json`.
+- **Names** only merged outputs using SHA-1 Base64 of the endpoint identity, replacing every `/` with `x` and appending `.json`. An optional subdirectory prefixes its path before hashing.
+- **Records** the effective endpoint identity and a lowercase hexadecimal SHA-256 checksum of the merged file in a sibling `.provenance.json`.
 
 ## Quick start
 
@@ -65,24 +65,35 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
   <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
-  --endpoint-url <url> exact endpoint URL hashed with SHA-1 Base64; / becomes x (required)
+  --endpoint-url <url> endpoint identity: a URL or METHOD, path (required)
+  --object-shape <key> literal top-level property to merge and validate; defaults to the fixture root
+  --subdirectory <path> prefix inserted into the endpoint path before hashing
   --spec <url>         http(s):// or file:// URL of the spec used to validate the result
   --schema <name>      a key under components.schemas; defaults to the x-root-schema of a spec
                        written by openapi-types <spec-url> <schema-name> <out-file>; needs --spec
   -h, --help           print this help
 ```
 
-| Flag                   | Required      | What it does                                                                     |
-| ---------------------- | ------------- | -------------------------------------------------------------------------------- |
-| `<corrupt.json>`       | Yes           | Fixture with fields removed, resolved from the current directory.                |
-| `<populated>`          | Yes           | `.json` file, or a `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value. |
-| `<out-dir>`            | Yes           | Directory receiving the endpoint-named JSON and its provenance sidecar.          |
-| `--endpoint-url <url>` | Yes           | Exact endpoint URL whose UTF-8 bytes determine the filename.                     |
-| `--spec <url>`         | No            | Spec URL to validate the merged result against.                                  |
-| `--schema <name>`      | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.   |
-| `-h, --help`           | No            | Print this usage and exit 0.                                                     |
+| Flag                    | Required      | What it does                                                                                |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| `<corrupt.json>`        | Yes           | Fixture with fields removed, resolved from the current directory.                           |
+| `<populated>`           | Yes           | `.json` file, or a `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value.            |
+| `<out-dir>`             | Yes           | Directory receiving the endpoint-named JSON and its provenance sidecar.                     |
+| `--endpoint-url <url>`  | Yes           | Endpoint identity whose UTF-8 bytes determine the filename. Accepts URLs or `METHOD, path`. |
+| `--object-shape <key>`  | No            | Merge the same top-level payload property in both inputs and validate only that payload.    |
+| `--subdirectory <path>` | No            | Prefix the endpoint path before hashing; blank or omitted leaves the identity unchanged.    |
+| `--spec <url>`          | No            | Spec URL to validate the merged result against.                                             |
+| `--schema <name>`       | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.              |
+| `-h, --help`            | No            | Print this usage and exit 0.                                                                |
 
 **Interactive:** in a terminal, a missing required input starts a prompt session on stderr that asks for it and every unset optional; Enter skips an optional. Piped/CI runs get the usage error instead.
+
+For `{ "statusCode": 200, "body": { ... } }`, select `--object-shape body`.
+Both corrupt and populated inputs must have a `body` property. Only their payloads
+are merged; the corrupt fixture's other fields remain unchanged, and populated
+siblings are ignored. Validation applies to the merged body, not its envelope.
+The key is literal, not a dotted path; blank or omitted keeps root-level behavior.
+Diff's `--object-shape body` produces the matching wrapped Missing schema and stub.
 
 ## Filenames and provenance
 
@@ -91,22 +102,26 @@ The third positional argument is now an **output directory**, not a filename.
 The library likewise takes `outDir` and `endpointUrl` instead of `outFile`.
 
 ```text
-stem = Base64(SHA1(UTF8(endpointUrl))).replaceAll("/", "x")
+stem = Base64(SHA1(UTF8(effectiveEndpointIdentity))).replaceAll("/", "x")
 merged file = <out-dir>/<stem>.json
 provenance = <out-dir>/<stem>.provenance.json
 ```
 
-This is standard Base64, not Base64url: `+` and `=` are retained. The endpoint is
-not normalized; differences in spelling, query parameters, or trailing slashes
-produce different hash inputs. Interactive answers use the shared prompt's
-whitespace trimming. The filename does not depend on fixture content, schema name,
-output directory, or HTTP method.
+This is standard Base64, not Base64url: `+` and `=` are retained. With no subdirectory,
+the endpoint is not normalized; differences in spelling, query parameters, or trailing
+slashes produce different hash inputs. Interactive answers use the shared prompt's
+whitespace trimming. With a subdirectory, its leading/trailing slashes and the
+endpoint path's leading slashes are removed at the join. A method prefix stays outside
+the path: `GET, /custodies/v2` plus `/savings/` becomes exactly
+`GET, savings/custodies/v2`, hashed to `SyDyiBXH0INxJLx3y+UqNPhAJKc=.json`.
+The method is part of the hash when supplied in the identity. Fixture content, schema
+name and output directory do not affect the filename.
 
 The sidecar has two fields:
 
 | Field         | Meaning                                                                                                        |
 | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `endpointUrl` | The supplied endpoint URL.                                                                                     |
+| `endpointUrl` | The effective endpoint identity after applying any subdirectory.                                               |
 | `sha256`      | Lowercase, 64-character hexadecimal SHA-256 of the exact merged JSON UTF-8 bytes, including the final newline. |
 
 The fixture stays plain two-space JSON; metadata never changes its schema.
@@ -131,6 +146,12 @@ filled 2 path(s)
 warning: result not validated (no --spec)
 wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.json
 wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.provenance.json
+```
+
+**Method and subdirectory** — hash `GET, savings/custodies/v2`:
+
+```bash
+node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json fixtures --endpoint-url "GET, custodies/v2" --subdirectory savings
 ```
 
 **`.stub.ts` module input** — [`openapi-ai-fixtures --missing`](../openapi-ai-fixtures/README.md#examples)
@@ -218,7 +239,7 @@ console.log(`filled ${result.filled.length} path(s)`);
 console.log(result.outFile, result.provenanceFile, result.provenance.sha256);
 ```
 
-- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
+- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Optional `objectShape` selects the same literal top-level payload key in both inputs; optional `subdirectory` prefixes the endpoint path before hashing. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
 - `deepFill(base: unknown, fill: unknown): FillResult` — copies values from `fill` into keys `base` does not already have, recursing into objects and zipping arrays by index. Returns `{ value, filled }` (`filled` is the list of paths it supplied).
 - `loadPopulated(file: string): Promise<unknown>` — reads a `.json` file, or `import()`s a `.ts`/`.mts`/`.js`/`.mjs` module and returns its single export.
 - Types: `FillResult`, `MergeInput`, `MergeProvenance`, `MergeResult`, `MergeSpec`.
@@ -228,7 +249,7 @@ console.log(result.outFile, result.provenanceFile, result.provenance.sha256);
 - **Fills absent keys only.** A key already present in the corrupt fixture is never overwritten, even if the populated file holds a different value.
 - **Objects recurse, arrays zip by index.** A populated array longer than the corrupt one appends its extra elements.
 - **`.ts` modules load via Node's native `import()`.** Your build must emit real `.ts`/`.js` output; type-only imports are erased at runtime and only the exported value matters.
-- **Extra keys survive.** `additionalProperties` and any extra keys in the populated file are preserved in the merged result.
+- **Extra payload keys survive.** `additionalProperties` and extra keys in the populated payload are preserved in the merged payload. With `objectShape`, populated envelope siblings are ignored.
 - **Validation needs `--spec`.** Without it, the merged file is written unvalidated and a warning goes to stderr. `--schema` is only needed when the spec carries no `x-root-schema`.
 - **Prompts go to stderr.** `openapi-fixture-merge … > out` still prompts on stderr and keeps stdout clean.
 

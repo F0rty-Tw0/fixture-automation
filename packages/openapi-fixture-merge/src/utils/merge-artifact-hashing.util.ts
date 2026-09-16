@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
 
+const HTTP_METHOD_TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u;
+
 const slashBoundaries = (value: string): string => {
-  const withoutLeadingSlashes = value.replace(/^\/+/, '');
+  const trimmed = value.trim();
+  const withoutLeadingSlashes = trimmed.replace(/^\/+/, '');
   const withoutBoundaries = withoutLeadingSlashes.replace(/\/+$/, '');
 
   return withoutBoundaries;
@@ -12,28 +15,35 @@ const endpointPath = (endpointUrl: string): [string | undefined, string] => {
 
   if (commaIndex === -1) return [undefined, endpointUrl];
 
-  const prefix = endpointUrl.slice(0, commaIndex + 1);
+  const method = endpointUrl.slice(0, commaIndex).trim();
+  const isMethod = HTTP_METHOD_TOKEN.test(method);
+
+  if (!isMethod) return [undefined, endpointUrl];
+
+  const prefix = method.toUpperCase();
   const path = endpointUrl.slice(commaIndex + 1).trimStart();
 
   return [prefix, path];
 };
 
-export const endpointIdentity = (endpointUrl: string, subdirectory: string | undefined): string => {
-  const trimmedSubdirectory = subdirectory?.trim();
+const prefixedEndpointPath = (path: string, subdirectory: string | undefined): string => {
+  const normalizedSubdirectory = slashBoundaries(subdirectory ?? '');
 
-  if (!trimmedSubdirectory) return endpointUrl;
+  if (!normalizedSubdirectory) return path;
 
-  const normalizedSubdirectory = slashBoundaries(trimmedSubdirectory);
-
-  if (!normalizedSubdirectory) return endpointUrl;
-
-  const [methodPrefix, path] = endpointPath(endpointUrl);
   const normalizedPath = path.replace(/^\/+/, '');
   const prefixedPath = `${normalizedSubdirectory}/${normalizedPath}`;
 
+  return prefixedPath;
+};
+
+export const endpointIdentity = (endpointUrl: string, subdirectory: string | undefined): string => {
+  const [methodPrefix, path] = endpointPath(endpointUrl);
+  const prefixedPath = prefixedEndpointPath(path, subdirectory);
+
   if (methodPrefix === undefined) return prefixedPath;
 
-  const identity = `${methodPrefix} ${prefixedPath}`;
+  const identity = `${methodPrefix},${prefixedPath}`;
 
   return identity;
 };

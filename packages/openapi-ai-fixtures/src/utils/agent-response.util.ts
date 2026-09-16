@@ -1,6 +1,14 @@
 import { AgentJsonError } from './agent-json.error.ts';
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 
+const JSON_CODE_FENCE = /^[\t \r\n]*```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```[\t \r\n]*$/iu;
+
+const jsonResponseText = (text: string): string => {
+  const match = JSON_CODE_FENCE.exec(text);
+
+  return match?.[1] ?? text;
+};
+
 const isEnvelope = (value: unknown): value is Record<string, unknown> => {
   const isArray = Array.isArray(value);
 
@@ -18,8 +26,10 @@ const jsonValue = (_key: string, value: unknown): unknown => {
 };
 
 export const parseAgentJson = (text: string, tool: AiTool): unknown => {
+  const source = jsonResponseText(text);
+
   try {
-    const value: unknown = JSON.parse(text, jsonValue);
+    const value: unknown = JSON.parse(source, jsonValue);
 
     return value;
   } catch (cause: unknown) {

@@ -149,9 +149,12 @@ SPEC=https://raw.githubusercontent.com/stripe/openapi/master/latest/openapi.spec
 **Wrapped responses.** Compare and merge accept `--object-shape body` to operate on
 `{ "body": { ... } }` while preserving envelope metadata. Blank or omitted keeps the
 whole-object behavior. The wizard asks once and reuses the shape for merging.
-At the merge hashing step, `--endpoint-url "GET, custodies/v2" --subdirectory savings`
-hashes exactly `GET, savings/custodies/v2`. Interactive runs offer the same optional
-subdirectory prompt; blank keeps existing filenames unchanged.
+At the merge hashing step, `--endpoint-url "get, custodies/v2" --subdirectory savings-v2`
+hashes exactly `GET,savings-v2/custodies/v2`, producing `pr3BjNLuLB11QZrlaK508hgrGXY=.json`.
+Method names are uppercased and whitespace around the comma is removed. Interactive runs
+offer the same optional subdirectory prompt; blank skips the path prefix. URL identities
+without a subdirectory remain unchanged. Previously generated method-based files are not
+renamed automatically; rerun the merge step to generate their canonical names.
 
 ## AI providers and security
 

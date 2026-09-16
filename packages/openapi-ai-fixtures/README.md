@@ -230,8 +230,10 @@ const invoice = await enrich('invoice', {
 - Prompts go over stdin, limited to **1 MiB per attempt**. Combined stdout/stderr is limited to **8 MiB per attempt**.
 - A timeout terminates the owned process tree. If tree termination cannot be confirmed, the call
   fails and the temporary scratch directory is **kept**, not deleted under a possibly running process.
-- The final response must be strict JSON, not markdown or surrounding prose, and must pass local
-  schema validation. The validator does not coerce types, insert defaults, or remove properties.
+- The final response must contain one JSON value. A single complete triple-backtick code fence,
+  labelled `json` or unlabelled, is unwrapped before parsing; it does not trigger a repair by itself.
+  Surrounding prose, multiple blocks, incomplete fences, and malformed JSON remain invalid.
+  Local schema validation still runs without coercing types, inserting defaults, or removing properties.
 - Validation completes before writing normal output. Output is staged beside the destination and renamed
   atomically; a failed or invalid response leaves an existing destination unchanged. Diagnostic sidecars are separate.
 - Output paths are made absolute before validation. Existing destinations are resolved through symlinks;

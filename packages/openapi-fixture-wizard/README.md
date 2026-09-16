@@ -73,11 +73,11 @@ extra-prompt (Enter to skip): what the missing values should describe; Enter kee
 extra-prompt:
 merge (y/N): merge the filled values into the existing fixture and validate the result
 merge: y
-endpoint-url: endpoint identity whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and provenance
+endpoint-url: endpoint identity (URL or METHOD,path); method names are uppercased before hashing
   e.g. GET, custodies/v2
 endpoint-url: https://api.stripe.com/v1/invoices/in_1
-subdirectory (Enter to skip): optional endpoint prefix for hashing; Enter keeps the endpoint identity unchanged
-  e.g. savings (GET, custodies/v2 becomes GET, savings/custodies/v2)
+subdirectory (Enter to skip): optional endpoint path prefix for hashing; Enter skips the prefix
+  e.g. savings (get, custodies/v2 becomes GET,savings/custodies/v2)
 subdirectory:
 filled 3 path(s)
 wrote E:\work\fixtures\invoice.spec.json
@@ -110,8 +110,8 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | `model number`     | choice   | Models the harness offers; `0` keeps the harness default.                                     |
 | `extra-prompt`     | optional | Scenario for the missing values. Enter keeps the default missing-field scenario.              |
 | `merge`            | y/N      | Merge the filled values into the existing fixture.                                            |
-| `endpoint-url`     | required | Asked only after accepting merge. Endpoint identity: a URL or `METHOD, path`.                 |
-| `subdirectory`     | optional | Prefix inserted into the endpoint path before hashing. Enter keeps the identity unchanged.    |
+| `endpoint-url`     | required | Asked only after accepting merge. URL or method identity; methods normalize to uppercase `METHOD,path`. |
+| `subdirectory`     | optional | Prefix inserted into the endpoint path before hashing. Enter skips the prefix.                |
 
 Every required prompt and every choice allows three attempts before the run fails.
 
@@ -134,7 +134,22 @@ All paths are under `<out-dir>`. The run ends with one `wrote <file>` line per f
 | AI fill       | `missing/populated.json`                                                                         |
 | merge         | `<hash>.json`, validated against the spec, and `<hash>.provenance.json`                          |
 
-`<hash>` is SHA-1 of the endpoint identity's UTF-8 bytes, encoded as standard Base64 with every `/` replaced by lowercase `x`; `+` and `=` are retained. With a blank subdirectory the identity is unchanged and is not inferred from the spec URL, schema, or route. With `endpoint-url: GET, custodies/v2` and `subdirectory: savings`, the exact hash input is `GET, savings/custodies/v2`, producing `SyDyiBXH0INxJLx3y+UqNPhAJKc=.json`. Leading/trailing subdirectory slashes and leading endpoint slashes are removed at the join. The merged fixture stays plain JSON. Its sidecar records the effective identity as `endpointUrl` and a lowercase hexadecimal `sha256` checksum of the exact merged file bytes, including the final newline. Repeating an identity overwrites the same pair of files; changing content changes the checksum, not the name.
+`<hash>` is SHA-1 of the endpoint identity's UTF-8 bytes, encoded as standard Base64 with
+every `/` replaced by lowercase `x`; `+` and `=` are retained. Method identities normalize
+to uppercase `METHOD,path` with no whitespace around the comma. A blank subdirectory
+skips the prefix, not method normalization. Plain URL identities without a subdirectory
+remain unchanged. The identity is never inferred from the spec URL, schema, or route.
+
+With `endpoint-url: get, custodies/v2` and `subdirectory: savings-v2`, the exact hash input
+is `GET,savings-v2/custodies/v2`, producing `pr3BjNLuLB11QZrlaK508hgrGXY=.json`.
+Leading/trailing subdirectory slashes and leading endpoint slashes are removed at the join.
+The merged fixture stays plain JSON. Its sidecar records the canonical identity as
+`endpointUrl` and a lowercase hexadecimal `sha256` checksum of the exact merged file bytes,
+including the final newline. Repeating an identity overwrites the same pair of files;
+changing content changes the checksum, not the name.
+
+Old filenames based on lowercase methods or comma whitespace are not renamed automatically.
+Rerun the merge step with the existing inputs to create the canonical output files.
 
 The sidecar is a content fingerprint and a declared endpoint association, not a signed origin attestation. It stores the endpoint URL in plain text; do not include credentials or secret query parameters.
 

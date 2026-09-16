@@ -43,7 +43,7 @@ tool payloads. Copilot progress is raw response text. Other providers forward th
 These streams are unvalidated and may contain sensitive fixture data or provider diagnostics; capturing
 stderr requires the same care as capturing the fixture itself. Final stdout/output files remain validated.
 
-Provider envelopes and events remain strictly parsed. Adapters extract the model's fixture text unchanged; the shared generation layer parses that text as JSON without stripping Markdown fences, scraping prose, or repairing syntax locally.
+Provider envelopes and events remain strictly parsed. Adapters extract the model's fixture text unchanged. The shared generation layer accepts plain JSON or one complete whole-response triple-backtick fence labelled `json` or unlabelled, with LF or CRLF line endings and optional surrounding whitespace. Only that outer fence is removed before strict JSON parsing; prose, multiple blocks, incomplete fences, and invalid JSON are not repaired locally. Literal backticks inside JSON strings remain unchanged. Original response text is retained for diagnostics, and schema validation still applies.
 
 When fixture JSON is invalid, generation saves the exact response before making one repair attempt with the same provider/model. The repair prompt encodes the failed response, parser diagnostic, and original request as JSON data; the original schema and tool restrictions remain authoritative. CLI and wizard calls enable persistence automatically; library calls opt in with `recoveryFile`. The saved path is reported on stderr. Existing recovery files are never overwritten.
 
@@ -267,7 +267,7 @@ The documented stdin mode is intentional: Copilot documents that piped input is 
 
 ### Result and failure framing
 
-A zero-exit stdout string must parse directly as fixture JSON. There is no Copilot response-envelope parser in this adapter. A nonzero exit rejects before parsing; the provider’s general error/exit behavior is not a single documented JSON-envelope contract. Raw prose or Markdown on stdout fails strict JSON parsing.
+A zero-exit stdout string must contain one fixture JSON value, optionally in the single whole-response code fence accepted by the shared parser. There is no Copilot response-envelope parser in this adapter. A nonzero exit rejects before parsing; the provider’s general error/exit behavior is not a single documented JSON-envelope contract. Surrounding prose and other Markdown remain invalid.
 
 ### Evidence, contradictions, and unresolved work
 
@@ -370,6 +370,8 @@ Released v0.59.0 source supports the command identity, stdin-plus-prompt composi
 ### Result and failure framing
 
 The adapter parses newline-delimited events, requires an initial `init`, concatenates `message` content only for assistant deltas, and requires one terminal `result` with `status: "success"`. It rejects unknown event types, duplicate initialization, events after completion, incomplete streams, failed results, and empty assistant output. User messages and tool events do not become fixture text. Streamed text is still parsed strictly as fixture JSON: `--output-format stream-json` guarantees the event framing, not JSON inside assistant content. Nonzero exits fail before this parser runs.
+
+The shared JSON parser accepts one complete outer `json` or unlabelled code fence in assistant text, on either the initial response or a repair. The underlying value still undergoes strict JSON and schema validation. A controlled Gemini subprocess verified that a valid fenced response avoids repair, a fenced correction succeeds, and a fenced schema-invalid response leaves the destination unchanged.
 
 ### Evidence, released/source conflict, and unresolved work
 

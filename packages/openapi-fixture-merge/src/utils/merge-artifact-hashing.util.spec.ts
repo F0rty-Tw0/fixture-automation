@@ -21,8 +21,28 @@ describe('FEATURE: merge artifact hashing', (): void => {
       const identity = endpointIdentity(endpointUrl, subdirectory);
       const fileName = endpointArtifactFileName(identity);
 
-      expect(identity).toBe('GET, savings/custodies/v2');
-      expect(fileName).toBe('SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
+      expect(identity).toBe('GET,savings/custodies/v2');
+      expect(fileName).toBe('A1eWVIW3jNsYQIoF4+npW9FHXp0=.json');
+    });
+  });
+
+  describe('GIVEN a lowercase method endpoint and the savings-v2 subdirectory', (): void => {
+    it('WHEN deriving the artifact filename THEN hashes the canonical method and compact comma separator', (): void => {
+      const identity = endpointIdentity('get, custodies/v2', 'savings-v2');
+      const fileName = endpointArtifactFileName(identity);
+
+      expect(identity).toBe('GET,savings-v2/custodies/v2');
+      expect(fileName).toBe('pr3BjNLuLB11QZrlaK508hgrGXY=.json');
+    });
+  });
+
+  describe('GIVEN a method endpoint without a usable subdirectory', (): void => {
+    it.each([undefined, ' / '])('WHEN the prefix is %s THEN still canonicalizes method casing and spacing', (prefix): void => {
+      const identity = endpointIdentity('get , custodies/v2', prefix);
+      const fileName = endpointArtifactFileName(identity);
+
+      expect(identity).toBe('GET,custodies/v2');
+      expect(fileName).toBe('U1Jw5lHsb+ZLFXUQyBdFG4ibeK4=.json');
     });
   });
 
@@ -39,7 +59,7 @@ describe('FEATURE: merge artifact hashing', (): void => {
 
   describe('GIVEN an endpoint with no subdirectory', (): void => {
     it('WHEN deriving the artifact identity THEN it keeps the endpoint bytes unchanged', (): void => {
-      const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
+      const endpointUrl = 'https://Api.Example.com/v1/invoices/in_2?fields=id,status';
 
       const identity = endpointIdentity(endpointUrl, undefined);
 

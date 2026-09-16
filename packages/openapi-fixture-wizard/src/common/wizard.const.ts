@@ -68,13 +68,13 @@ const merge: InputSpec = {
 };
 const endpointUrl: InputSpec = {
   label: 'endpoint-url',
-  description: 'endpoint identity whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and provenance',
+  description: 'endpoint identity (URL or METHOD,path); method names are uppercased before hashing',
   example: 'GET, custodies/v2'
 };
 const subdirectory: InputSpec = {
   label: 'subdirectory',
-  description: 'optional endpoint prefix for hashing; Enter keeps the endpoint identity unchanged',
-  example: 'savings (GET, custodies/v2 becomes GET, savings/custodies/v2)'
+  description: 'optional endpoint path prefix for hashing; Enter skips the prefix',
+  example: 'savings (get, custodies/v2 becomes GET,savings/custodies/v2)'
 };
 
 /** What each prompt says, in the order the wizard asks. */
@@ -111,6 +111,6 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
   model             numbered list from the harness; 0 = harness default
   extra-prompt      scenario for the missing values; Enter keeps the default
   merge             y/N, merge the filled values into the existing fixture
-  endpoint-url      required after merge; endpoint identity, e.g. GET, custodies/v2, drives the hashed JSON basename
-  subdirectory      optional hash prefix, e.g. savings gives GET, savings/custodies/v2; Enter leaves it unchanged
+  endpoint-url      required after merge; method identities normalize to uppercase METHOD,path before hashing
+  subdirectory      optional hash prefix, e.g. savings gives GET,savings/custodies/v2; Enter skips the prefix
   -h, --help        print this help`;

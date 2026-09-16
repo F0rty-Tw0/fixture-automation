@@ -20,6 +20,8 @@ Fill the corrupt fixture and write endpoint-named JSON with SHA-256 provenance.
                        written by openapi-types <spec-url> <schema-name> <out-file>; needs --spec
   -h, --help           print this help
 
+Method identities use uppercase METHOD,path with no whitespace around the comma.
+
 Files: <hash>.json and <hash>.provenance.json (hex SHA-256 of the merged file).`;
 
 export const MODULE_EXTENSIONS = ['.ts', '.mts', '.js', '.mjs'];
@@ -41,7 +43,7 @@ const outDir: InputSpec = {
 };
 const endpointUrl: InputSpec = {
   label: '--endpoint-url',
-  description: 'endpoint identity (URL or METHOD, path) used to derive the deterministic merged JSON filename',
+  description: 'endpoint identity (URL or METHOD,path); method names are uppercased before hashing',
   example: 'GET, custodies/v2'
 };
 const objectShape: InputSpec = {

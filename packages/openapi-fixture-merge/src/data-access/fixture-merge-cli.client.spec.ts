@@ -57,9 +57,9 @@ describe('FEATURE: fixture merge command', (): void => {
         populatedFile,
         project.directory,
         '--endpoint-url',
-        'GET, /custodies/v2',
+        'get, custodies/v2',
         '--subdirectory',
-        '/savings/',
+        'savings-v2',
         '--object-shape',
         'body',
         '--spec',
@@ -74,13 +74,13 @@ describe('FEATURE: fixture merge command', (): void => {
         body,
         trace
       };
-      const identity = 'GET, savings/custodies/v2';
+      const identity = 'GET,savings-v2/custodies/v2';
       const expectedProvenance = {
         endpointUrl: identity,
         sha256: '1e68104af60cb8844dba4915e58f09bc092e24d7a2a82b9634f9df954197904c'
       };
-      const outFile = join(project.directory, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
-      const provenanceFile = join(project.directory, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.provenance.json');
+      const outFile = join(project.directory, 'pr3BjNLuLB11QZrlaK508hgrGXY=.json');
+      const provenanceFile = join(project.directory, 'pr3BjNLuLB11QZrlaK508hgrGXY=.provenance.json');
 
       await project.run(args);
 

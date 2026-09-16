@@ -181,14 +181,14 @@ describe('FEATURE: fixture wizard', (): void => {
           '1',
           '',
           'y',
-          'GET, custodies/v2',
-          'savings'
+          'get, custodies/v2',
+          'savings-v2'
         );
         const enrichBody: AiMissingFactory = async (): Promise<Record<string, unknown>> => Promise.resolve(populated);
         const fillBody = (): AiMissingFactory => enrichBody;
         const deps: WizardDeps = { question, discover, fill: fillBody };
-        const mergedFile = join(outDir, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
-        const provenanceFile = join(outDir, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.provenance.json');
+        const mergedFile = join(outDir, 'pr3BjNLuLB11QZrlaK508hgrGXY=.json');
+        const provenanceFile = join(outDir, 'pr3BjNLuLB11QZrlaK508hgrGXY=.provenance.json');
 
         await writeFile(fixtureFile, JSON.stringify(fixture));
         await runWizard(promptedInputs(question), deps);
@@ -197,7 +197,7 @@ describe('FEATURE: fixture wizard', (): void => {
         const provenance: unknown = JSON.parse(await readFile(provenanceFile, 'utf8'));
 
         expect(merged).toStrictEqual(expected);
-        expect(provenance).toMatchObject({ endpointUrl: 'GET, savings/custodies/v2' });
+        expect(provenance).toMatchObject({ endpointUrl: 'GET,savings-v2/custodies/v2' });
       },
       TIMEOUT
     );

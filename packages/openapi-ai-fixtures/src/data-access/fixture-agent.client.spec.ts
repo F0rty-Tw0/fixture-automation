@@ -17,12 +17,12 @@ describe('FEATURE: fixture JSON recovery', (): void => {
     vi.resetAllMocks();
   });
 
-  describe('GIVEN a provider returns malformed fixture JSON and then a valid correction', (): void => {
+  describe('GIVEN a provider returns malformed fixture JSON and then a fenced correction', (): void => {
     it.each<AiTool>(['claude', 'codex', 'antigravity', 'copilot', 'gemini'])(
       'WHEN generating with %s THEN returns the parsed correction and its exact response',
       async (tool: AiTool): Promise<void> => {
         const malformed = '{"id":';
-        const corrected = '{\n  "id": "recovered"\n}';
+        const corrected = '```json\n{\n  "id": "recovered"\n}\n```';
 
         vi.mocked(runAgent).mockResolvedValueOnce(agentResponse(tool, malformed));
         vi.mocked(runAgent).mockResolvedValueOnce(agentResponse(tool, corrected));
@@ -37,13 +37,13 @@ describe('FEATURE: fixture JSON recovery', (): void => {
     );
   });
 
-  describe('GIVEN the initial provider response contains valid JSON', (): void => {
+  describe('GIVEN Gemini wraps a valid initial response in a JSON code fence', (): void => {
     it('WHEN generating THEN returns the parsed value and the exact first response', async (): Promise<void> => {
-      const response = '{\n  "id": "first"\n}';
+      const response = '```json\n{\n  "id": "first"\n}\n```';
 
-      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', response));
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('gemini', response));
 
-      const result = await generateFixture(modelRequest('claude'));
+      const result = await generateFixture(modelRequest('gemini'));
 
       expect(result.value).toStrictEqual({ id: 'first' });
       expect(result.response).toBe(response);

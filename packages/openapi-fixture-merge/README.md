@@ -9,7 +9,7 @@ This is the last step in the [corrupt → diff → fill → merge pipeline](../.
 - **Fills** only the keys missing from the corrupt fixture; present keys are left untouched.
 - **Reads** the populated data from JSON, or from a `.ts`/`.mts`/`.js`/`.mjs` module with one export (the AI package writes these).
 - **Validates** the merged result against an OpenAPI schema when `--spec` is given (`--schema` names the schema, or a spec written by `openapi-types <spec-url> <schema-name> <out-file>` supplies it through `x-root-schema`).
-- **Names** only merged outputs using SHA-1 Base64 of the endpoint identity, replacing every `/` with `x` and appending `.json`. An optional subdirectory prefixes its path before hashing.
+- **Names** only merged outputs using SHA-1 Base64 of the endpoint identity, replacing every `/` with `x` and appending `.json`. Method identities normalize to uppercase `METHOD,path`; an optional subdirectory prefixes the path before hashing.
 - **Records** the effective endpoint identity and a lowercase hexadecimal SHA-256 checksum of the merged file in a sibling `.provenance.json`.
 
 ## Quick start
@@ -81,7 +81,7 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
 | `<out-dir>`             | Yes           | Directory receiving the endpoint-named JSON and its provenance sidecar.                     |
 | `--endpoint-url <url>`  | Yes           | Endpoint identity whose UTF-8 bytes determine the filename. Accepts URLs or `METHOD, path`. |
 | `--object-shape <key>`  | No            | Merge the same top-level payload property in both inputs and validate only that payload.    |
-| `--subdirectory <path>` | No            | Prefix the endpoint path before hashing; blank or omitted leaves the identity unchanged.    |
+| `--subdirectory <path>` | No            | Prefix the endpoint path before hashing; blank or omitted skips the prefix.                 |
 | `--spec <url>`          | No            | Spec URL to validate the merged result against.                                             |
 | `--schema <name>`       | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.              |
 | `-h, --help`            | No            | Print this usage and exit 0.                                                                |
@@ -107,21 +107,30 @@ merged file = <out-dir>/<stem>.json
 provenance = <out-dir>/<stem>.provenance.json
 ```
 
-This is standard Base64, not Base64url: `+` and `=` are retained. With no subdirectory,
-the endpoint is not normalized; differences in spelling, query parameters, or trailing
-slashes produce different hash inputs. Interactive answers use the shared prompt's
-whitespace trimming. With a subdirectory, its leading/trailing slashes and the
-endpoint path's leading slashes are removed at the join. A method prefix stays outside
-the path: `GET, /custodies/v2` plus `/savings/` becomes exactly
-`GET, savings/custodies/v2`, hashed to `SyDyiBXH0INxJLx3y+UqNPhAJKc=.json`.
-The method is part of the hash when supplied in the identity. Fixture content, schema
-name and output directory do not affect the filename.
+This is standard Base64, not Base64url: `+` and `=` are retained. Method identities
+normalize to uppercase `METHOD,path` with no whitespace around the comma, whether or
+not a subdirectory is supplied. Path casing, query parameters, and trailing slashes
+are not otherwise normalized. Plain URL identities without a subdirectory keep their
+bytes, including commas in query values. Interactive answers use the shared prompt's
+whitespace trimming.
+
+With a subdirectory, its leading/trailing slashes and the endpoint path's leading
+slashes are removed at the join. The method stays outside the path:
+`get, custodies/v2` plus `savings-v2` becomes exactly `GET,savings-v2/custodies/v2`,
+hashed to `pr3BjNLuLB11QZrlaK508hgrGXY=.json`. Similarly, `GET, /custodies/v2` plus
+`/savings/` becomes `GET,savings/custodies/v2`, hashed to `A1eWVIW3jNsYQIoF4+npW9FHXp0=.json`.
+The method is part of the hash when supplied. Fixture content, schema name, and output
+directory do not affect the filename.
+
+Existing files whose names included lowercase methods or comma whitespace are not
+renamed automatically. Rerun the merge step with the existing inputs to generate the
+canonical filename and provenance; no new AI generation is required.
 
 The sidecar has two fields:
 
 | Field         | Meaning                                                                                                        |
 | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `endpointUrl` | The effective endpoint identity after applying any subdirectory.                                               |
+| `endpointUrl` | The canonical endpoint identity after normalizing a method prefix and applying any subdirectory.             |
 | `sha256`      | Lowercase, 64-character hexadecimal SHA-256 of the exact merged JSON UTF-8 bytes, including the final newline. |
 
 The fixture stays plain two-space JSON; metadata never changes its schema.
@@ -148,7 +157,7 @@ wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.json
 wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.provenance.json
 ```
 
-**Method and subdirectory** — hash `GET, savings/custodies/v2`:
+**Method and subdirectory** — hash `GET,savings/custodies/v2`:
 
 ```bash
 node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json fixtures --endpoint-url "GET, custodies/v2" --subdirectory savings

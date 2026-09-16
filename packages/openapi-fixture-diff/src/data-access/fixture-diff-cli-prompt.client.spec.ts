@@ -48,14 +48,20 @@ describe('FEATURE: fixture diff command line in a terminal', (): void => {
     });
   });
 
-  describe('GIVEN spec-url, --fixture and --out-dir as arguments', (): void => {
-    it('WHEN parsing diff args THEN never asks', async (): Promise<void> => {
+  describe('GIVEN spec-url, --fixture, --out-dir and --object-shape as arguments', (): void => {
+    it('WHEN parsing diff args THEN never asks and retains the object shape', async (): Promise<void> => {
       const question = vi.fn(answering('unused'));
-      const args = ['file:///spec.json', '--fixture', 'corrupt.json', '--out-dir', 'out'];
+      const args = ['file:///spec.json', '--fixture', 'corrupt.json', '--out-dir', 'out', '--object-shape', 'body'];
 
       const parsed = await parseDiffArgs(args, promptedInputs(question));
 
-      expect(parsed).toMatchObject({ specUrl: 'file:///spec.json', fixtureFile: 'corrupt.json', outDir: 'out', requiredOnly: false });
+      expect(parsed).toMatchObject({
+        specUrl: 'file:///spec.json',
+        fixtureFile: 'corrupt.json',
+        outDir: 'out',
+        objectShape: 'body',
+        requiredOnly: false
+      });
       expect(question).not.toHaveBeenCalled();
     });
   });
@@ -69,9 +75,9 @@ describe('FEATURE: fixture diff command line in a terminal', (): void => {
   });
 
   describe('GIVEN a terminal missing spec-url, --fixture and --out-dir', (): void => {
-    it('WHEN schema-name is skipped and required-only is confirmed THEN resolves the rest', async (): Promise<void> => {
+    it('WHEN schema-name and object-shape are skipped and required-only is confirmed THEN resolves the rest', async (): Promise<void> => {
       vi.spyOn(console, 'error').mockImplementation(silence);
-      const question = answering('file:///spec.json', 'corrupt.json', 'out', '', 'y');
+      const question = answering('file:///spec.json', 'corrupt.json', 'out', '', '', 'y');
 
       const parsed = await parseDiffArgs([], promptedInputs(question));
 
@@ -80,6 +86,7 @@ describe('FEATURE: fixture diff command line in a terminal', (): void => {
         fixtureFile: 'corrupt.json',
         outDir: 'out',
         schemaName: undefined,
+        objectShape: undefined,
         requiredOnly: true
       });
     });

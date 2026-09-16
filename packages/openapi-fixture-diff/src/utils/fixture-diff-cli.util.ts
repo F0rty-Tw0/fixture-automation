@@ -10,7 +10,13 @@ const stringOption = { type: 'string' } as const;
 const booleanOption = { type: 'boolean' } as const;
 const helpOption = { type: 'boolean', short: 'h' } as const;
 const corruptOptions = { drop: stringOption, help: helpOption };
-const diffOptions = { fixture: stringOption, 'out-dir': stringOption, 'required-only': booleanOption, help: helpOption };
+const diffOptions = {
+  fixture: stringOption,
+  'object-shape': stringOption,
+  'out-dir': stringOption,
+  'required-only': booleanOption,
+  help: helpOption
+};
 const DROP_USAGE = '--drop requires a comma separated list of fixture paths';
 
 const droppedPaths = (drop: string): string[] => {
@@ -56,8 +62,11 @@ export const parseDiffArgs = async (args: string[], inputs: Inputs = silentInput
   );
   const outDir = await inputs.required(values['out-dir'], DIFF_INPUTS.outDir, '--out-dir requires a destination directory');
   const schemaName = await inputs.optional(positionals[1], DIFF_INPUTS.schemaName);
+  const objectShapeAnswer = await inputs.optional(values['object-shape'], DIFF_INPUTS.objectShape);
+  const trimmedShape = objectShapeAnswer?.trim();
+  const objectShape = trimmedShape === '' ? undefined : trimmedShape;
   const requiredOnly = await inputs.flag(values['required-only'], DIFF_INPUTS.requiredOnly);
-  const options: DiffOptions = { specUrl, schemaName, fixtureFile, outDir, requiredOnly };
+  const options: DiffOptions = { specUrl, schemaName, fixtureFile, outDir, requiredOnly, objectShape };
 
   return options;
 };

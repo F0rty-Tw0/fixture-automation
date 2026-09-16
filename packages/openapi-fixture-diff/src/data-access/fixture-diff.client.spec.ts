@@ -42,6 +42,67 @@ describe('FEATURE: missing-field diff against an OpenAPI schema', (): void => {
     });
   });
 
+  describe('GIVEN a fixture whose schema payload is wrapped in body', (): void => {
+    it('WHEN diffing required fields only THEN present body fields stay present and the missing schema keeps the body envelope', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const body = dropPaths(await nestedOrder(), DROPPED);
+      const fixture = { body };
+      const expectedPaths = DROPPED.map((path) => `body.${path}`);
+
+      const request = { spec, schemaName: 'order', fixture, requiredOnly: true, objectShape: 'body' };
+      const bodyProjection = { type: 'object', required: ['id', 'customer', 'lines'] };
+      const properties = { body: bodyProjection };
+      const expected = { type: 'object', required: ['body'], properties };
+
+      const diff = diffFixture(request);
+
+      expect(diff.paths).toStrictEqual(expectedPaths);
+      expect(diff.schema).toMatchObject(expected);
+    });
+
+    it('WHEN the envelope key includes dots THEN the projected schema keeps that literal property key', async (): Promise<void> => {
+      const objectShape = 'response.body';
+      const spec = await nestedSpec();
+      const payload = dropPaths(await nestedOrder(), ['id']);
+      const fixture = { [objectShape]: payload };
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, objectShape });
+      const properties = diff.schema.properties ?? {};
+
+      expect(diff.paths).toStrictEqual(['response.body.id']);
+      expect(Object.keys(properties)).toStrictEqual([objectShape]);
+    });
+
+    it('WHEN the body envelope is absent THEN the diff fails instead of comparing the root fixture', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const fixture = await nestedOrder();
+
+      expect((): unknown => diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, objectShape: 'body' })).toThrow();
+    });
+
+    it('WHEN body is an array THEN paths and the missing schema preserve array indices', async (): Promise<void> => {
+      const source = await nestedSpec();
+      const id: SpecSchema = { type: 'string' };
+      const properties = { id };
+      const items: SpecSchema = { type: 'object', required: ['id'], properties };
+      const rows: SpecSchema = { type: 'array', items };
+      const schemas = { rows };
+      const components = { schemas };
+      const spec = { ...source, components };
+      const body = [{}];
+      const fixture = { body };
+      const request = { spec, schemaName: 'rows', fixture, requiredOnly: true, objectShape: 'body' };
+      const bodyProjection = { type: 'array', items };
+      const envelopeProperties = { body: bodyProjection };
+      const expected = { type: 'object', required: ['body'], properties: envelopeProperties };
+
+      const diff = diffFixture(request);
+
+      expect(diff.paths).toStrictEqual(['body[0].id']);
+      expect(diff.schema).toMatchObject(expected);
+    });
+  });
+
   describe('GIVEN a missing property whose sub-schema references another component', (): void => {
     it('WHEN diffing THEN components carries that schema and the ones it references in turn', async (): Promise<void> => {
       const spec = await nestedSpec();
@@ -117,6 +178,15 @@ describe('FEATURE: missing-field diff against an OpenAPI schema', (): void => {
       const fixture = await nestedOrder();
 
       const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true });
+
+      expect(diff.paths).toStrictEqual([]);
+    });
+
+    it('WHEN a blank object shape is supplied THEN the fixture root remains the payload', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const fixture = await nestedOrder();
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, objectShape: '   ' });
 
       expect(diff.paths).toStrictEqual([]);
     });

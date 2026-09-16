@@ -41,11 +41,11 @@ const runDiff = async (args: string[], inputs: Inputs): Promise<void> => {
     return;
   }
 
-  const { specUrl, fixtureFile, outDir, requiredOnly } = parsed;
+  const { specUrl, fixtureFile, outDir, requiredOnly, objectShape } = parsed;
   const spec = await loadSpec(specUrl);
   const schemaName = resolveSchemaName(spec, parsed.schemaName);
   const fixture = await readJsonFile('--fixture', fixtureFile);
-  const diff = diffFixture({ spec, schemaName, fixture, requiredOnly });
+  const diff = diffFixture({ spec, schemaName, fixture, requiredOnly, objectShape });
 
   await writeMissingFiles(diff, outDir);
 

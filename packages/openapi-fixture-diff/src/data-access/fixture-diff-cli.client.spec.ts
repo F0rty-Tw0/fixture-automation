@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { DiffProject } from '../test/common/diff-project.type.ts';
 import { diffProject } from '../test/utils/diff-project.spec.util.ts';
+import { dropPaths } from '../utils/drop-path.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const TIMEOUT = 60000;
@@ -43,6 +44,41 @@ describe('FEATURE: fixture diff command line', (): void => {
         expect(missing).toMatchObject(expected);
         expect(stub).toContain('MISSING_STUB');
         expect(types).toContain('missing:');
+      },
+      TIMEOUT
+    );
+
+    it(
+      'WHEN diffing a body-wrapped corrupted fixture THEN missing.json retains the body envelope and prefixes the paths',
+      async (): Promise<void> => {
+        const active = await started();
+        const complete: unknown = JSON.parse(await readFile(active.fixtureFile, 'utf8'));
+        const body = dropPaths(complete, DROPPED);
+        const fixture = { body };
+        const expectedPaths = DROPPED.map((path) => `body.${path}`);
+        const diffArgs = [
+          'diff',
+          active.specUrl,
+          'order',
+          '--fixture',
+          active.corruptFile,
+          '--out-dir',
+          active.directory,
+          '--object-shape',
+          'body',
+          '--required-only'
+        ];
+
+        await writeFile(active.corruptFile, JSON.stringify(fixture));
+        await active.run(diffArgs);
+
+        const missing: unknown = JSON.parse(await readFile(join(active.directory, 'missing.json'), 'utf8'));
+        const bodySchema = { type: 'object' };
+        const properties = { body: bodySchema };
+        const schema = { type: 'object', required: ['body'], properties };
+        const expected = { paths: expectedPaths, schema };
+
+        expect(missing).toMatchObject(expected);
       },
       TIMEOUT
     );

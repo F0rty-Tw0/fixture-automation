@@ -11,4 +11,5 @@ export type DiffOptions = {
   readonly fixtureFile: string;
   readonly outDir: string;
   readonly requiredOnly: boolean;
+  readonly objectShape?: string | undefined;
 };

@@ -60,17 +60,18 @@ usage: openapi-fixture-diff <command> [options]
       defaults to the x-root-schema of a spec written by openapi-types
 ```
 
-**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`schema-name`, `--required-only`); Enter skips an optional. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
+**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`schema-name`, `object-shape`, `--required-only`); Enter skips an optional. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
 
 `schema-name` is optional with a spec written by `openapi-types <spec-url> <schema-name> <out-file>`: that file carries `x-root-schema`, so `diff "$LOCAL" --fixture corrupt.json --out-dir out` reads the name from it. A plain spec still needs the name (`schema name required` otherwise).
 
-| Flag               | Required           | What it does                                                                                                                              |
-| ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `--drop <paths>`   | Yes, for `corrupt` | Comma separated fixture paths to delete, e.g. `id,customer.email,lines[1].sku`.                                                           |
-| `--fixture <file>` | Yes, for `diff`    | Corrupt JSON fixture to compare against the schema.                                                                                       |
-| `--out-dir <dir>`  | Yes, for `diff`    | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`.                                                              |
-| `--required-only`  | No                 | Report only fields the schema lists in `required` (schema marks these mandatory). Without it, every optional missing property counts too. |
-| `-h, --help`       | No                 | Print this usage and exit 0.                                                                                                              |
+| Flag                   | Required           | What it does                                                                                                                              |
+| ---------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `--drop <paths>`       | Yes, for `corrupt` | Comma separated fixture paths to delete, e.g. `id,customer.email,lines[1].sku`.                                                           |
+| `--fixture <file>`     | Yes, for `diff`    | Corrupt JSON fixture to compare against the schema.                                                                                       |
+| `--out-dir <dir>`      | Yes, for `diff`    | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`.                                                              |
+| `--object-shape <key>` | No                 | Compare the schema against one literal top-level property, e.g. `body`. Blank or omitted compares the whole fixture.                      |
+| `--required-only`      | No                 | Report only fields the schema lists in `required` (schema marks these mandatory). Without it, every optional missing property counts too. |
+| `-h, --help`           | No                 | Print this usage and exit 0.                                                                                                              |
 
 ## Examples
 
@@ -87,6 +88,17 @@ node -p "require('./out-full/missing.json').paths"
 
 Four extra paths appear: `note`, `customer.country`, `customer.vat`, and `parent` were never in the
 `--required-only` sample to begin with, so a full diff reports them as missing too.
+
+**Wrapped response** — for `{ "statusCode": 200, "body": { ... } }`:
+
+```bash
+node packages/openapi-fixture-diff/dist/cli.js diff "$SPEC" order --fixture response.json --out-dir out --object-shape body
+```
+
+Only `response.body` is compared. Missing paths retain their prefix (for example
+`body.customer.email`), and the generated Missing schema and stub retain the `body`
+wrapper so AI fill and merge use the same shape. The key must exist as an own property;
+it is not a dotted path. Pass the same `--object-shape body` to merge.
 
 **Nothing missing** — diff a fixture that already has every field:
 
@@ -134,7 +146,7 @@ const diff = diffFixture({ spec, schemaName: 'order', fixture: corrupt, required
 const files = await writeMissingFiles(diff, 'out');
 ```
 
-- `diffFixture(request: FixtureDiffRequest): FixtureDiff` — compares `request.fixture` against `request.schemaName` in `request.spec` and returns `{ schemaName, dialect, paths, schema, components }`.
+- `diffFixture(request: FixtureDiffRequest): FixtureDiff` — compares `request.fixture` against `request.schemaName` in `request.spec` and returns `{ schemaName, dialect, paths, schema, components }`. Optional `request.objectShape` selects a literal top-level payload key; returned paths and schema retain the wrapper.
 - `writeMissingFiles(diff: FixtureDiff, outDir: string): Promise<MissingFiles>` — writes `missing.json`, `missing.d.ts`, `missing.stub.ts` into `outDir` and returns their paths.
 - `dropPaths(fixture: unknown, paths: string[]): unknown` — deep-copies `fixture` with the listed paths removed. Throws (and never mutates the input) on an unknown path.
 - Types: `FixtureDiff`, `FixtureDiffRequest`, `MissingEntry`, `MissingFiles`, `WalkInput`, `SchemaComponents`, `SpecSchema`, `SpecSchemas`.

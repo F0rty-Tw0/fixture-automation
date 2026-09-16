@@ -24,6 +24,7 @@ export type FixtureDiffRequest = {
   readonly schemaName: string;
   readonly fixture: unknown;
   readonly requiredOnly: boolean;
+  readonly objectShape?: string | undefined;
 };
 
 export type FixtureDiff = {

@@ -1,3 +1,4 @@
+import { AgentJsonError } from './agent-json.error.ts';
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 
 const isEnvelope = (value: unknown): value is Record<string, unknown> => {
@@ -21,13 +22,19 @@ export const parseAgentJson = (text: string, tool: AiTool): unknown => {
     const value: unknown = JSON.parse(text, jsonValue);
 
     return value;
-  } catch {
-    throw new Error(`${tool} returned invalid JSON`);
+  } catch (cause: unknown) {
+    throw new AgentJsonError(`${tool} returned invalid JSON`, text, { cause });
   }
 };
 
 export const parseAgentEnvelope = (text: string, tool: AiTool): Record<string, unknown> => {
-  const value = parseAgentJson(text, tool);
+  let value: unknown;
+
+  try {
+    value = JSON.parse(text, jsonValue);
+  } catch (cause: unknown) {
+    throw new Error(`${tool} returned invalid JSON`, { cause });
+  }
 
   if (!isEnvelope(value)) throw new Error(`${tool} returned an invalid response envelope`);
 

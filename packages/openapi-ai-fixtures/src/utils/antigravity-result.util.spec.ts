@@ -4,26 +4,26 @@ import { parseAntigravityResult } from './antigravity-result.util.ts';
 import { antigravityStream } from '../test/utils/antigravity-stream.spec.util.ts';
 
 describe('FEATURE: Antigravity result stream parsing', (): void => {
-  describe('GIVEN a successful terminal result with response JSON', (): void => {
-    it('WHEN the stream is parsed THEN returns the complete fixture value', (): void => {
-      const fixture = { id: 'invoice-1', amount: 42 };
+  describe('GIVEN a successful terminal result with response text', (): void => {
+    it('WHEN the stream is parsed THEN returns the complete fixture text unchanged', (): void => {
+      const fixtureText = '{"id":"invoice-1","amount":42}';
       const initPayload = { tools: [] };
       const initEvent = { event: 'init', init: initPayload };
       const resultPayload = {
         status: 'SUCCESS',
-        response: JSON.stringify(fixture)
+        response: fixtureText
       };
       const resultEvent = { event: 'result', result: resultPayload };
       const stream = antigravityStream([initEvent, resultEvent]);
 
       const result = parseAntigravityResult(stream);
 
-      expect(result).toStrictEqual(fixture);
+      expect(result).toBe(fixtureText);
     });
   });
 
   describe('GIVEN a successful terminal result with structured output', (): void => {
-    it('WHEN the stream is parsed THEN returns the parsed structured output', (): void => {
+    it('WHEN the stream is parsed THEN serializes the structured output as fixture text', (): void => {
       const fixture = { id: 'invoice-2', amount: 84 };
       const resultPayload = {
         status: 'SUCCESS',
@@ -35,7 +35,7 @@ describe('FEATURE: Antigravity result stream parsing', (): void => {
 
       const result = parseAntigravityResult(stream);
 
-      expect(result).toStrictEqual(fixture);
+      expect(result).toBe(JSON.stringify(fixture));
     });
   });
 
@@ -93,17 +93,18 @@ describe('FEATURE: Antigravity result stream parsing', (): void => {
   });
 
   describe('GIVEN a successful result with fenced fixture text', (): void => {
-    it('WHEN the stream is parsed THEN rejects text outside the JSON value', (): void => {
+    it('WHEN the stream is parsed THEN preserves the text for central JSON validation', (): void => {
+      const fixtureText = '```json\n{"id":"invoice-3"}\n```';
       const resultPayload = {
         status: 'SUCCESS',
-        response: '```json\n{"id":"invoice-3"}\n```'
+        response: fixtureText
       };
       const resultEvent = { event: 'result', result: resultPayload };
       const stream = antigravityStream([resultEvent]);
 
-      const parse = (): unknown => parseAntigravityResult(stream);
+      const result = parseAntigravityResult(stream);
 
-      expect(parse).toThrow('antigravity returned invalid JSON');
+      expect(result).toBe(fixtureText);
     });
   });
 

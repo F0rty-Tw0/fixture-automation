@@ -1,4 +1,4 @@
-import { parseAgentEnvelope, parseAgentJson } from './agent-response.util.ts';
+import { parseAgentEnvelope } from './agent-response.util.ts';
 
 const antigravityEvents = (text: string): Record<string, unknown>[] => {
   const isEmptyStream = text.trim().length === 0;
@@ -36,7 +36,7 @@ const terminalResult = (events: Record<string, unknown>[]): unknown => {
 };
 
 /** Extract the fixture from one complete Antigravity stream-json turn. */
-export const parseAntigravityResult = (text: string): unknown => {
+export const parseAntigravityResult = (text: string): string => {
   const events = antigravityEvents(text);
   const result = terminalResult(events);
   const isObject = typeof result === 'object' && result !== null;
@@ -54,8 +54,7 @@ export const parseAntigravityResult = (text: string): unknown => {
 
   const hasStructuredOutput = 'structured_output' in result;
 
-  if (hasStructuredOutput) return result.structured_output;
-
+  if (hasStructuredOutput) return JSON.stringify(result.structured_output);
   const response = 'response' in result ? result.response : undefined;
 
   if (typeof response !== 'string') {
@@ -64,5 +63,5 @@ export const parseAntigravityResult = (text: string): unknown => {
     throw new Error(message);
   }
 
-  return parseAgentJson(response, 'antigravity');
+  return response;
 };

@@ -61,7 +61,7 @@ const geminiCommand = (respond: AgentRespond): AgentCommand => {
   const clientCapabilities = {};
   const initializeParams = { clientCapabilities, protocolVersion: 1 };
   const input = modelRpcRequest(INITIALIZE_ID, 'initialize', initializeParams);
-  const args = ['--acp', '--extensions', 'none', '--allowed-mcp-server-names', ''];
+  const args = ['--acp', '--extensions', 'none'];
   const settingsFile: AgentFile = {
     path: '.gemini/settings.json',
     content: GEMINI_SETTINGS_CONTENT

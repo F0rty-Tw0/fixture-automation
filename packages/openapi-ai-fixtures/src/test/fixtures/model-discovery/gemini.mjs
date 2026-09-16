@@ -2,12 +2,23 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { parseArgs } from 'node:util';
 
-const args = process.argv.slice(2);
+const { values } = parseArgs({
+  options: {
+    acp: { type: 'boolean' },
+    extensions: { type: 'string', multiple: true },
+    'allowed-mcp-server-names': { type: 'string', multiple: true }
+  }
+});
 
-assert.equal(args.length, 5);
-assert.deepEqual(args.slice(0, 4), ['--acp', '--extensions', 'none', '--allowed-mcp-server-names']);
-assert.equal(args[4], '');
+// Gemini's policy engine rejects an empty mcpName, even when it comes from a CLI allowlist.
+for (const mcpName of values['allowed-mcp-server-names'] ?? []) {
+  assert.notEqual(mcpName, '', 'Invalid policy rule: mcpName is required if specified (cannot be empty).');
+}
+
+assert.equal(values.acp, true);
+assert.deepEqual(values.extensions, ['none']);
 assert.equal(process.env.NO_BROWSER, 'true');
 assert.equal(process.env.GEMINI_CLI_TRUST_WORKSPACE, 'true');
 assert.notEqual(process.env.GEMINI_RESTRICTED_MODE, 'true');

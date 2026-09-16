@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 
-import { MISSING_SCENARIO, parseMissingFile, selectModel } from '@fixture-automation/openapi-ai-fixtures';
+import { MISSING_SCENARIO, createAiProgressReporter, parseMissingFile, selectModel } from '@fixture-automation/openapi-ai-fixtures';
 import type { AiFixtureOptions, AiMissingRequest, ModelSelection } from '@fixture-automation/openapi-ai-fixtures';
 import { readTextFile, writeTextFile } from '@fixture-automation/openapi-fixtures';
 
@@ -30,7 +30,8 @@ export const fillMissing = async (context: WizardContext, diffed: DiffResult): P
   const missing = parseMissingFile(await readTextFile('missing', diffed.jsonFile));
   const request: AiMissingRequest = { fixture: diffed.fixture, missing, scenario };
   const populatedFile = join(dirname(diffed.jsonFile), POPULATED_FILE);
-  const recoveryOptions: AiFixtureOptions = { ...options, recoveryFile: populatedFile };
+  const onProgress = createAiProgressReporter();
+  const recoveryOptions: AiFixtureOptions = { ...options, recoveryFile: populatedFile, onProgress };
   const filled = await deps.fill(recoveryOptions)(schemaName, request);
 
   await writeTextFile(populatedFile, `${JSON.stringify(filled, null, 2)}\n`);

@@ -12,6 +12,16 @@ It calls the other five packages in-process and asks every question on stderr. E
 - **Fills** the missing fields with a local coding harness (`claude`, `codex`, `antigravity`, `copilot` or `gemini`) into `missing/populated.json`.
 - **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar.
 
+During AI fill, the wizard displays the child process PID and deadline, provider output, and
+quiet-period heartbeats on stderr. Gemini assistant text and Copilot response text stream as they
+arrive; no second terminal is needed. A heartbeat confirms the process is still running, not that
+the remote model is advancing. Progress may contain sensitive, incomplete fixture data; only the
+validated result is written to `missing/populated.json`.
+
+Each generation process defaults to **15 minutes**, including a repair attempt. Model discovery
+keeps its 2-minute default. For a custom generation limit, use the individual
+[`openapi-ai-fixtures` CLI](../openapi-ai-fixtures/README.md#command) with `--timeout <ms>`.
+
 ## Quick start
 
 ```bash

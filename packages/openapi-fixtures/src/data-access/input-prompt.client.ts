@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline/promises';
+import { styleText } from 'node:util';
 
 import { FixtureError } from '../common/fixture.error.ts';
 import type { InputSpec, Inputs, Question } from '../common/input.type.ts';
@@ -10,16 +11,19 @@ const YES = /^y(es)?$/i;
 /** Asks on stderr so a piped stdout keeps only the tool's output. */
 export const terminalQuestion: Question = async (prompt: string): Promise<string> => {
   const reader = createInterface({ input: process.stdin, output: process.stderr });
+  const styledPrompt = styleText(['bold', 'cyan'], prompt, { stream: process.stderr });
 
   try {
-    return await reader.question(prompt);
+    return await reader.question(styledPrompt);
   } finally {
     reader.close();
   }
 };
 
 const printIntro = (input: InputSpec, hint: string, withExample: boolean): void => {
-  console.error(`${input.label}${hint}: ${input.description}`);
+  const label = styleText(['bold', 'cyan'], input.label, { stream: process.stderr });
+
+  console.error(`${label}${hint}: ${input.description}`);
 
   if (withExample) console.error(`  e.g. ${input.example}`);
 };
@@ -45,7 +49,7 @@ export const promptedInputs = (question: Question = terminalQuestion): Inputs =>
 
       if (answer !== '') return answer;
 
-      console.error(`${input.label} is required`);
+      console.error(styleText('yellow', `${input.label} is required`, { stream: process.stderr }));
     }
 
     throw new FixtureError(`no ${input.label} given after ${PROMPT_ATTEMPTS} attempts`, usage);

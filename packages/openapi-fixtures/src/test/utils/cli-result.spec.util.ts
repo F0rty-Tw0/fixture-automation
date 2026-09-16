@@ -19,12 +19,17 @@ const exitCode = (error: ExecFileException | null): number => {
 export const spawnFixturesCli = async (args: string[], cwd: string): Promise<CliResult> => {
   const cliFile = fileURLToPath(new URL('../../cli.ts', import.meta.url));
   const commandArgs = ['--conditions=@fixture-automation/source', cliFile, ...args];
+  const env = { ...process.env };
+
+  delete env['FORCE_COLOR'];
+  env['NO_COLOR'] = '1';
+
   const spawn = (settle: (result: CliResult) => void): void => {
     const done = (error: ExecFileException | null, stdout: string, stderr: string): void => {
       settle({ stdout, stderr, code: exitCode(error) });
     };
 
-    execFile(process.execPath, commandArgs, { cwd, timeout: CLI_TIMEOUT }, done);
+    execFile(process.execPath, commandArgs, { cwd, env, timeout: CLI_TIMEOUT }, done);
   };
 
   return new Promise(spawn);

@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import { isMissingFile } from '@fixture-automation/shared';
 
 import { FixtureError } from '../common/fixture.error.ts';
@@ -60,11 +62,19 @@ export const runCli = async (tool: string, run: () => Promise<void>): Promise<vo
   } catch (error: unknown) {
     const fix = failureFix(error);
 
-    process.stderr.write(`${tool}: ${failureMessage(error)}\n`);
+    const message = styleText('red', `${tool}: ${failureMessage(error)}`, { stream: process.stderr });
 
-    if (fix !== undefined) process.stderr.write(`  fix: ${fix}\n`);
+    process.stderr.write(`${message}\n`);
 
-    process.stderr.write(`  see: ${tool} --help\n`);
+    if (fix !== undefined) {
+      const hint = styleText('yellow', `  fix: ${fix}`, { stream: process.stderr });
+
+      process.stderr.write(`${hint}\n`);
+    }
+
+    const help = styleText('cyan', `  see: ${tool} --help`, { stream: process.stderr });
+
+    process.stderr.write(`${help}\n`);
     process.exitCode = 1;
   }
 };

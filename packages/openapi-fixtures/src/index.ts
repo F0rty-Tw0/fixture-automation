@@ -2,6 +2,8 @@ export { loadSpec, parseSpecUrl } from './data-access/openapi-spec.client.ts';
 
 export { fixtures } from './data-access/fixtures.client.ts';
 
+export { printHelp } from './data-access/cli-help.client.ts';
+
 export { runCli } from './data-access/cli-runner.client.ts';
 
 export { cliInputs, promptedInputs, terminalQuestion } from './data-access/input-prompt.client.ts';

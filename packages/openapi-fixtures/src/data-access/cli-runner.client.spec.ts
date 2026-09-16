@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './cli-runner.client.ts';
 import { FixtureError } from '../common/fixture.error.ts';
@@ -23,8 +23,14 @@ const failing = (error: unknown): (() => Promise<void>) => {
 };
 
 describe('FEATURE: command line failure reporting', (): void => {
+  beforeEach((): void => {
+    vi.stubEnv('FORCE_COLOR', undefined);
+    vi.stubEnv('NO_COLOR', '1');
+  });
+
   afterEach((): void => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     process.exitCode = 0;
   });
 

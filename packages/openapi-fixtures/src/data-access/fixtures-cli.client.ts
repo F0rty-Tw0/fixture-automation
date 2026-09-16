@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { printHelp } from './cli-help.client.ts';
 import { fixtures } from './fixtures.client.ts';
 import { writeTextFile } from './json-file.client.ts';
 import { loadSpec } from './openapi-spec.client.ts';
@@ -41,7 +42,7 @@ export const runFixturesCli = async (args: string[], inputs: Inputs = silentInpu
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
   if (values.help === true) {
-    process.stdout.write(`${FIXTURES_HELP}\n`);
+    printHelp(FIXTURES_HELP);
 
     return;
   }

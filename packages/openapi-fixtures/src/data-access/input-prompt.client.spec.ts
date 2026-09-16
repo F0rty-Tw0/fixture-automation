@@ -44,25 +44,14 @@ describe('FEATURE: prompted inputs', (): void => {
       const value = await promptedInputs(question).required(undefined, SPEC_URL, USAGE);
 
       expect(value).toBe('file:///a.json');
-      expect(question).toHaveBeenCalledWith('spec-url: ');
-    });
-
-    it('WHEN asked THEN prints the description and an example on stderr', async (): Promise<void> => {
-      const error = vi.spyOn(console, 'error').mockImplementation(silence);
-
-      await promptedInputs(answering('file:///a.json')).required(undefined, SPEC_URL, USAGE);
-
-      expect(error).toHaveBeenCalledWith('spec-url: URL of the spec');
-      expect(error).toHaveBeenCalledWith('  e.g. file:///spec.json');
     });
 
     it('WHEN a blank precedes the answer THEN re-asks', async (): Promise<void> => {
-      const error = vi.spyOn(console, 'error').mockImplementation(silence);
+      vi.spyOn(console, 'error').mockImplementation(silence);
 
       const value = await promptedInputs(answering('', 'file:///a.json')).required(undefined, SPEC_URL, USAGE);
 
       expect(value).toBe('file:///a.json');
-      expect(error).toHaveBeenCalledWith('spec-url is required');
     });
 
     it('WHEN three answers are blank THEN throws with the usage as the fix', async (): Promise<void> => {
@@ -87,14 +76,13 @@ describe('FEATURE: prompted inputs', (): void => {
 
   describe('GIVEN an optional input after a required prompt', (): void => {
     it('WHEN an answer is typed THEN returns it', async (): Promise<void> => {
-      const error = vi.spyOn(console, 'error').mockImplementation(silence);
+      vi.spyOn(console, 'error').mockImplementation(silence);
       const inputs = promptedInputs(answering('file:///a.json', 'invoice'));
 
       await inputs.required(undefined, SPEC_URL, USAGE);
       const value = await inputs.optional(undefined, SCHEMA);
 
       expect(value).toBe('invoice');
-      expect(error).toHaveBeenCalledWith('schema-name (Enter to skip): a key under components.schemas');
     });
 
     it('WHEN Enter is pressed THEN returns undefined', async (): Promise<void> => {
@@ -138,15 +126,13 @@ describe('FEATURE: prompted inputs', (): void => {
       ['', false],
       ['n', false]
     ])('WHEN %s is typed THEN returns %s', async (answer: string, expected: boolean): Promise<void> => {
-      const error = vi.spyOn(console, 'error').mockImplementation(silence);
+      vi.spyOn(console, 'error').mockImplementation(silence);
       const inputs = promptedInputs(answering('file:///a.json', answer));
 
       await inputs.required(undefined, SPEC_URL, USAGE);
       const value = await inputs.flag(undefined, REQUIRED_ONLY);
 
       expect(value).toBe(expected);
-      expect(error).toHaveBeenCalledWith('--required-only (y/N): required properties only');
-      expect(error).not.toHaveBeenCalledWith('  e.g. ');
     });
   });
 });

@@ -19,16 +19,15 @@ const MISSING_DIR = 'missing';
 
 const defaultDeps: WizardDeps = { question: terminalQuestion, discover: discoverModels, fill: aiMissingFixture };
 
-const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string> => {
-  const { inputs, specUrl, schemaName, outDir, fixtureFile } = context;
-  const answer = await inputs.optional(undefined, WIZARD_INPUTS.mergedFile);
-  const outFile = answer ?? join(outDir, `${schemaName}.fixed.json`);
+const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string[]> => {
+  const { fixtureFile, inputs, outDir, schemaName, specUrl } = context;
+  const endpointUrl = await inputs.required(undefined, WIZARD_INPUTS.endpointUrl, WIZARD_USAGE);
   const spec: MergeSpec = { url: specUrl, schemaName };
-  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outFile, spec };
+  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outDir, endpointUrl, spec };
+  const result = await mergeFixture(input);
+  const mergedFiles = [result.outFile, result.provenanceFile];
 
-  await mergeFixture(input);
-
-  return outFile;
+  return mergedFiles;
 };
 
 /** After the diff found missing fields: fill with a harness, then merge, each behind a y/N. */
@@ -44,9 +43,9 @@ const fillAndMerge = async (context: WizardContext, diffed: DiffResult): Promise
 
   if (!wantsMerge) return [...missingFiles, populatedFile];
 
-  const mergedFile = await mergeFilled(context, populatedFile);
+  const mergedFiles = await mergeFilled(context, populatedFile);
 
-  return [...missingFiles, populatedFile, mergedFile];
+  return [...missingFiles, populatedFile, ...mergedFiles];
 };
 
 const checkExisting = async (context: WizardContext): Promise<string[]> => {
@@ -71,7 +70,6 @@ const checkExisting = async (context: WizardContext): Promise<string[]> => {
 const runSteps = async (inputs: Inputs, deps: WizardDeps): Promise<string[]> => {
   const specUrl = await inputs.required(undefined, WIZARD_INPUTS.specUrl, WIZARD_USAGE);
   const outDirAnswer = await inputs.optional(undefined, WIZARD_INPUTS.outDir);
-  // ponytail: absolute so every `wrote` line matches the absolute paths the diff step returns
   const outDir = resolve(outDirAnswer ?? DEFAULT_OUT_DIR);
   const spec = await loadSpec(specUrl);
   const target = await inputs.required(undefined, WIZARD_INPUTS.target, WIZARD_USAGE);

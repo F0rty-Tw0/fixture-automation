@@ -139,12 +139,12 @@ SPEC=https://raw.githubusercontent.com/stripe/openapi/master/latest/openapi.spec
 7. **Merge and validate.**
 
    ```bash
-   node packages/openapi-fixture-merge/dist/cli.js tmp/corrupt.json tmp/populated.stub.ts tmp/invoice.fixed.json --spec $LOCAL
+   node packages/openapi-fixture-merge/dist/cli.js tmp/corrupt.json tmp/populated.stub.ts tmp --endpoint-url https://api.stripe.com/v1/invoices/in_1 --spec $LOCAL
    ```
 
-   Fills only the absent keys, validates the merged result against `invoice` (read from the pruned spec), writes `tmp/invoice.fixed.json`. Stderr reports how many paths got filled.
+   Fills only the absent keys, validates the merged result against `invoice` (read from the pruned spec), and writes `tmp/VtG1yi3hV6d7VOQZTf4OuvUuyfM=.json`. The filename is SHA-1 Base64 of the exact endpoint URL with every `/` replaced by `x`. Its sibling `.provenance.json` records the endpoint URL and the merged file's lowercase hexadecimal SHA-256 checksum, including the final newline. Stderr reports the filled count and both output paths. Only merged outputs use hashed names; earlier pipeline files keep their names.
 
-**Explicit forms still work.** Every tool accepts the schema name spelled out, against the full spec or the pruned one: `openapi-fixtures $SPEC invoice tmp/invoice.json`, `diff $SPEC invoice --fixture …`, `openapi-ai-fixtures $SPEC invoice tmp/populated.stub.ts --missing …` (spec and name ignored), `openapi-fixture-merge … --spec $SPEC --schema invoice`.
+**Explicit schema names still work.** Every tool accepts the schema name spelled out, against the full spec or the pruned one: `openapi-fixtures $SPEC invoice tmp/invoice.json`, `diff $SPEC invoice --fixture …`, `openapi-ai-fixtures $SPEC invoice tmp/populated.stub.ts --missing …` (spec and name ignored), `openapi-fixture-merge … --endpoint-url <endpoint-url> --spec $SPEC --schema invoice`.
 
 ## AI providers and security
 

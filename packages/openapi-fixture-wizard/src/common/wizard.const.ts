@@ -61,10 +61,10 @@ const merge: InputSpec = {
   description: 'merge the filled values into the existing fixture and validate the result',
   example: 'y'
 };
-const mergedFile: InputSpec = {
-  label: 'merged-file',
-  description: 'destination for the merged fixture; defaults to <out-dir>/<schema>.fixed.json',
-  example: 'fixtures/invoice.fixed.json'
+const endpointUrl: InputSpec = {
+  label: 'endpoint-url',
+  description: 'exact URL whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and SHA-256 provenance sidecar',
+  example: 'https://api.example.com/v1/invoices/in_2'
 };
 
 /** What each prompt says, in the order the wizard asks. */
@@ -79,7 +79,7 @@ export const WIZARD_INPUTS = {
   tool,
   extraPrompt,
   merge,
-  mergedFile
+  endpointUrl
 };
 
 export const WIZARD_HELP = `usage: openapi-fixture-wizard
@@ -98,5 +98,5 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
   model             numbered list from the harness; 0 = harness default
   extra-prompt      scenario for the missing values; Enter keeps the default
   merge             y/N, merge the filled values into the existing fixture
-  merged-file       Enter = <out-dir>/<schema>.fixed.json
+  endpoint-url      required after merge; exact URL drives the SHA-1 Base64 (/ -> x) JSON basename and SHA-256 provenance sidecar
   -h, --help        print this help`;

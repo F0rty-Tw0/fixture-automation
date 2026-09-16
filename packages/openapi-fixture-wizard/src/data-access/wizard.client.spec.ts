@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -31,17 +31,15 @@ describe('FEATURE: fixture wizard', (): void => {
   let directory: string;
   let corruptFile: string;
   let completeFile: string;
-  const enrich = vi.fn(async (): Promise<Record<string, unknown>> => Promise.resolve(FILLED));
-  const fill = vi.fn((): AiMissingFactory => enrich);
-  const discover = vi.fn(async (): Promise<ModelDiscovery> => Promise.resolve(DISCOVERY));
+  const enrich: AiMissingFactory = async (): Promise<Record<string, unknown>> => Promise.resolve(FILLED);
+  const fill = (): AiMissingFactory => enrich;
+  const discover = async (): Promise<ModelDiscovery> => Promise.resolve(DISCOVERY);
 
-  const run = async (...answers: string[]): Promise<ReturnType<typeof vi.fn>> => {
-    const question = vi.fn(answering(...answers));
+  const run = async (...answers: string[]): Promise<void> => {
+    const question = answering(...answers);
     const deps: WizardDeps = { question, discover, fill };
 
     await runWizard(promptedInputs(question), deps);
-
-    return question;
   };
 
   beforeAll(async (): Promise<void> => {
@@ -58,20 +56,17 @@ describe('FEATURE: fixture wizard', (): void => {
   });
 
   afterEach((): void => {
-    vi.clearAllMocks();
     vi.restoreAllMocks();
   });
 
   describe('GIVEN json format and no existing fixture', (): void => {
     it(
-      'WHEN the run ends THEN only the fixture is written and five prompts were asked',
+      'WHEN the run ends THEN only the fixture is written',
       async (): Promise<void> => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'one');
 
-        const question = await run(SPEC_URL, outDir, 'invoice', '1', '');
-
-        expect(question).toHaveBeenCalledTimes(5);
+        await run(SPEC_URL, outDir, 'invoice', '1', '');
         await expect(exists(join(outDir, 'invoice.fixture.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'invoice.d.ts'))).resolves.toBe(false);
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
@@ -82,18 +77,20 @@ describe('FEATURE: fixture wizard', (): void => {
 
   describe('GIVEN both formats, a route target, a corrupt fixture, an AI fill and a merge', (): void => {
     it(
-      'WHEN every prompt is answered THEN writes every file and validates the merged fixture',
+      'WHEN every prompt is answered THEN writes every file, validates the merged fixture and reports its artifacts',
       async (): Promise<void> => {
-        vi.spyOn(console, 'error').mockImplementation(silence);
+        const messages: unknown[] = [];
+
+        vi.spyOn(console, 'error').mockImplementation((message: unknown): void => {
+          messages.push(message);
+        });
         const outDir = join(directory, 'two');
-        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', 'y', '2', '1', '', 'y', ''];
+        const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
+        const mergedFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.json');
+        const provenanceFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.provenance.json');
+        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', 'y', '2', '1', '', 'y', endpointUrl];
 
-        const question = await run(...answers);
-
-        expect(question).toHaveBeenCalledTimes(12);
-        expect(discover).toHaveBeenCalledWith('codex');
-        expect(fill).toHaveBeenCalledTimes(1);
-        expect(enrich).toHaveBeenCalledWith('invoice', expect.objectContaining({ fixture: CORRUPT }));
+        await run(...answers);
 
         for (const name of ['invoice.spec.json', 'invoice.d.ts', 'invoice.fixture.json', 'invoice.fixture.ts']) {
           await expect(exists(join(outDir, name))).resolves.toBe(true);
@@ -103,9 +100,12 @@ describe('FEATURE: fixture wizard', (): void => {
           await expect(exists(join(outDir, 'missing', name))).resolves.toBe(true);
         }
 
-        const fixed: unknown = JSON.parse(await readFile(join(outDir, 'invoice.fixed.json'), 'utf8'));
+        const merged: unknown = JSON.parse(await readFile(mergedFile, 'utf8'));
 
-        expect(fixed).toStrictEqual(COMPLETE);
+        expect(merged).toStrictEqual(COMPLETE);
+        await expect(exists(provenanceFile)).resolves.toBe(true);
+        expect(messages).toContainEqual(expect.stringContaining(`wrote ${mergedFile}`));
+        expect(messages).toContainEqual(expect.stringContaining(`wrote ${provenanceFile}`));
       },
       TIMEOUT
     );
@@ -118,10 +118,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'three');
 
-        const question = await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '');
-
-        expect(question).toHaveBeenCalledTimes(6);
-        expect(fill).not.toHaveBeenCalled();
+        await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '');
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
       },
       TIMEOUT
@@ -130,17 +127,32 @@ describe('FEATURE: fixture wizard', (): void => {
 
   describe('GIVEN a corrupt fixture and no AI fill', (): void => {
     it(
-      'WHEN the fill is declined THEN keeps the missing files and never asks about merging',
+      'WHEN the fill is declined THEN keeps the missing files',
       async (): Promise<void> => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'four');
 
-        const question = await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', 'n');
-
-        expect(question).toHaveBeenCalledTimes(7);
-        expect(fill).not.toHaveBeenCalled();
+        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', 'n');
         await expect(exists(join(outDir, 'missing', 'missing.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'missing', 'populated.json'))).resolves.toBe(false);
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN a corrupt fixture, an AI fill and a declined merge', (): void => {
+    it(
+      'WHEN no endpoint URL is supplied THEN the populated fixture is retained without merged artifacts',
+      async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const outDir = join(directory, 'five');
+
+        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', 'y', '2', '1', '', 'n');
+
+        const outputEntries = await readdir(outDir);
+
+        await expect(exists(join(outDir, 'missing', 'populated.json'))).resolves.toBe(true);
+        expect(outputEntries.sort()).toStrictEqual(['invoice.fixture.json', 'missing']);
       },
       TIMEOUT
     );

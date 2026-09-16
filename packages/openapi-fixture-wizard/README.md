@@ -10,7 +10,7 @@ It calls the other five packages in-process and asks every question on stderr. E
 - **Targets** a schema by name, or by route: `GET /v1/invoices/{id}` is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints).
 - **Diffs** one existing fixture against the schema and writes `missing/missing.json`, `missing/missing.d.ts` and `missing/missing.stub.ts` when fields are absent.
 - **Fills** the missing fields with a local coding harness (`claude`, `codex`, `antigravity`, `copilot` or `gemini`) into `missing/populated.json`.
-- **Merges** the filled values into the existing fixture and validates the result against the spec.
+- **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar.
 
 ## Quick start
 
@@ -60,9 +60,9 @@ extra-prompt (Enter to skip): what the missing values should describe; Enter kee
 extra-prompt:
 merge (y/N): merge the filled values into the existing fixture and validate the result
 merge: y
-merged-file (Enter to skip): destination for the merged fixture; defaults to <out-dir>/<schema>.fixed.json
-  e.g. fixtures/invoice.fixed.json
-merged-file:
+endpoint-url: exact URL whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and SHA-256 provenance sidecar
+  e.g. https://api.example.com/v1/invoices/in_2
+endpoint-url: https://api.stripe.com/v1/invoices/in_1
 filled 3 path(s)
 wrote E:\work\fixtures\invoice.spec.json
 wrote E:\work\fixtures\invoice.d.ts
@@ -72,7 +72,8 @@ wrote E:\work\fixtures\missing\missing.json
 wrote E:\work\fixtures\missing\missing.d.ts
 wrote E:\work\fixtures\missing\missing.stub.ts
 wrote E:\work\fixtures\missing\populated.json
-wrote E:\work\fixtures\invoice.fixed.json
+wrote E:\work\fixtures\VtG1yi3hV6d7VOQZTf4OuvUuyfM=.json
+wrote E:\work\fixtures\VtG1yi3hV6d7VOQZTf4OuvUuyfM=.provenance.json
 ```
 
 ## Prompts
@@ -92,7 +93,7 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | `model number`     | choice   | Models the harness offers; `0` keeps the harness default.                                     |
 | `extra-prompt`     | optional | Scenario for the missing values. Enter keeps the default missing-field scenario.              |
 | `merge`            | y/N      | Merge the filled values into the existing fixture.                                            |
-| `merged-file`      | optional | Destination for the merged fixture. Enter = `<out-dir>/<schema>.fixed.json`.                  |
+| `endpoint-url`     | required | Asked only after accepting merge. Exact endpoint URL used to derive the merged JSON filename. |
 
 Every required prompt and every choice allows three attempts before the run fails.
 
@@ -107,7 +108,11 @@ All paths are under `<out-dir>`. The run ends with one `wrote <file>` line per f
 | `ts`/`both`   | `<schema>.fixture.ts` (stub importing `<schema>.d.ts`)                                           |
 | diff          | `missing/missing.json`, `missing/missing.d.ts`, `missing/missing.stub.ts`                        |
 | AI fill       | `missing/populated.json`                                                                         |
-| merge         | `<schema>.fixed.json`, validated against the spec                                                |
+| merge         | `<hash>.json`, validated against the spec, and `<hash>.provenance.json`                          |
+
+`<hash>` is SHA-1 of the endpoint URL's UTF-8 bytes, encoded as standard Base64 with every `/` replaced by lowercase `x`; `+` and `=` are retained. The URL is not normalized or inferred from the spec URL, schema, or route. The merged fixture stays plain JSON. Its sidecar records `endpointUrl` and `sha256`, a lowercase hexadecimal SHA-256 checksum of the exact merged file bytes, including the final newline. Repeating an endpoint overwrites the same pair of files; changing content changes the checksum, not the name.
+
+The sidecar is a content fingerprint and a declared endpoint association, not a signed origin attestation. It stores the endpoint URL in plain text; do not include credentials or secret query parameters.
 
 If AI returns invalid JSON, the wizard saves its exact response to
 `missing/populated.json.failed-attempt-1.txt` before asking the same agent to repair it.

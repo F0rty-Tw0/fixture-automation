@@ -1,4 +1,6 @@
-import { loadSpec, readJsonFile, readTextFile, schemaTarget, silentInputs } from '@fixture-automation/openapi-fixtures';
+import { styleText } from 'node:util';
+
+import { loadSpec, printHelp, readJsonFile, readTextFile, schemaTarget, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { aiFixtures } from './ai-fixtures.client.ts';
@@ -22,9 +24,17 @@ const listModels = async (tool: AiTool): Promise<void> => {
 
   const isEmpty = discovery.models.length === 0;
 
-  if (isEmpty) process.stderr.write(`${tool} has no model switch; only its harness default is available\n`);
+  if (isEmpty) {
+    const warning = styleText('yellow', `${tool} has no model switch; only its harness default is available\n`, {
+      stream: process.stderr
+    });
 
-  process.stderr.write(`source: ${discovery.source}\n`);
+    process.stderr.write(warning);
+  }
+
+  const source = styleText('cyan', `source: ${discovery.source}\n`, { stream: process.stderr });
+
+  process.stderr.write(source);
 };
 
 const modelSelection = (tool: AiTool, requested: string | undefined, discovery: ModelDiscovery): ModelSelection => {
@@ -99,7 +109,7 @@ export const runAiFixturesCli = async (args: string[], inputs: Inputs = silentIn
   const options = await parseAiFixtureArgs(args, inputs);
 
   if (options === undefined) {
-    process.stdout.write(`${AI_FIXTURES_HELP}\n`);
+    printHelp(AI_FIXTURES_HELP);
 
     return;
   }

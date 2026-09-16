@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { styleText } from 'node:util';
 
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 
@@ -27,5 +28,7 @@ export const saveFailedResponse = async (options: AiFixtureOptions, response: st
     throw new Error(`Could not save failed AI response to ${file}: ${String(cause)}`, { cause });
   }
 
-  process.stderr.write(`saved failed AI response: ${file}\n`);
+  const notice = styleText('yellow', `saved failed AI response: ${file}\n`, { stream: process.stderr });
+
+  process.stderr.write(notice);
 };

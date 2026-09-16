@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import { terminalQuestion } from '@fixture-automation/openapi-fixtures';
 
 import type { AiTool } from '../common/ai-fixtures.type.ts';
@@ -8,13 +10,18 @@ const PROMPT_ATTEMPTS = 3;
 const QUESTION = 'model number: ';
 
 const printModels = (tool: AiTool, models: string[]): void => {
-  console.error(`${tool} models:`);
-  console.error('  0) harness default');
+  const heading = styleText(['bold', 'cyan'], `${tool} models:`, { stream: process.stderr });
+  const defaultChoice = styleText('cyan', '0', { stream: process.stderr });
+
+  console.error(heading);
+  console.error(`  ${defaultChoice}) harness default`);
 
   let position = 1;
 
   for (const model of models) {
-    console.error(`  ${position}) ${model}`);
+    const choice = styleText('cyan', String(position), { stream: process.stderr });
+
+    console.error(`  ${choice}) ${model}`);
     position += 1;
   }
 };
@@ -43,7 +50,11 @@ const askForModel = async (selection: ModelSelection): Promise<string> => {
 
     if (model !== undefined) return model;
 
-    console.error('enter a listed number, or 0 for the harness default');
+    const retry = styleText('yellow', 'enter a listed number, or 0 for the harness default', {
+      stream: process.stderr
+    });
+
+    console.error(retry);
   }
 
   throw new Error(`no model was selected after ${PROMPT_ATTEMPTS} attempts`);
@@ -55,7 +66,11 @@ const warnUnlisted = (tool: AiTool, requested: string, models: string[]): void =
 
   if (isKnown) return;
 
-  console.error(`unlisted ${tool} model "${requested}"; passing it to the CLI unchanged`);
+  const warning = styleText('yellow', `unlisted ${tool} model "${requested}"; passing it to the CLI unchanged`, {
+    stream: process.stderr
+  });
+
+  console.error(warning);
 };
 
 /** Resolve the model to pass to a harness: an explicit request, an interactive pick, or its default. */
@@ -70,7 +85,11 @@ export const selectModel = async (selection: ModelSelection): Promise<string> =>
 
   if (selection.interactive) return askForModel(selection);
 
-  console.error(`no --model given; using the ${tool} harness default`);
+  const notice = styleText('yellow', `no --model given; using the ${tool} harness default`, {
+    stream: process.stderr
+  });
+
+  console.error(notice);
 
   return DEFAULT_MODEL;
 };

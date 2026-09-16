@@ -146,6 +146,13 @@ SPEC=https://raw.githubusercontent.com/stripe/openapi/master/latest/openapi.spec
 
 **Explicit schema names still work.** Every tool accepts the schema name spelled out, against the full spec or the pruned one: `openapi-fixtures $SPEC invoice tmp/invoice.json`, `diff $SPEC invoice --fixture …`, `openapi-ai-fixtures $SPEC invoice tmp/populated.stub.ts --missing …` (spec and name ignored), `openapi-fixture-merge … --endpoint-url <endpoint-url> --spec $SPEC --schema invoice`.
 
+**Wrapped responses.** Compare and merge accept `--object-shape body` to operate on
+`{ "body": { ... } }` while preserving envelope metadata. Blank or omitted keeps the
+whole-object behavior. The wizard asks once and reuses the shape for merging.
+At the merge hashing step, `--endpoint-url "GET, custodies/v2" --subdirectory savings`
+hashes exactly `GET, savings/custodies/v2`. Interactive runs offer the same optional
+subdirectory prompt; blank keeps existing filenames unchanged.
+
 ## AI providers and security
 
 - **Scratch directory is not a sandbox.** Provider-specific tool restrictions do not fully isolate an untrusted executable.

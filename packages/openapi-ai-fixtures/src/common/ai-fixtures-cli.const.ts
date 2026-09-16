@@ -46,8 +46,8 @@ const executable: InputSpec = {
 };
 const timeout: InputSpec = {
   label: '--timeout',
-  description: 'harness timeout in milliseconds',
-  example: '600000'
+  description: 'harness timeout in milliseconds; default 900000 (15 minutes)',
+  example: '1800000'
 };
 
 /** What each prompt says when a terminal run is missing the input. */
@@ -71,11 +71,12 @@ Ask a local coding harness to enrich a fixture, then validate the answer against
   --model <slug>          harness model, or "default" for the harness default
   --ts <types-file>       write a typed .ts stub; requires an out-file
   --executable <path>     absolute path to the harness binary
-  --timeout <ms>          harness timeout in milliseconds
-  --list-models           print the models the harness offers
+  --timeout <ms>          harness timeout in milliseconds (default 900000: 15 minutes)
+  --list-models           print the models the harness offers (default timeout 120000ms)
   -h, --help              print this help
 
-Without --model a terminal prompts for one and a pipe uses the harness default.`;
+Without --model a terminal prompts for one and a pipe uses the harness default.
+Live provider output and quiet-period status updates go to stderr; fixture JSON stays on stdout.`;
 
 /** Scenario used for `--missing` when the caller gives none. */
 export const MISSING_SCENARIO = 'Fill every missing field with realistic values coherent with the baseline';

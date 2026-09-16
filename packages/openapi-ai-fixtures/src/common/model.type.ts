@@ -2,6 +2,7 @@ import type { AiFixtureOptions, AiTool } from './ai-fixtures.type.ts';
 
 type ModelSource = `${AiTool}-cli`;
 
+/** Catalog queries retain a 120000 ms default; timeoutMs overrides it. */
 export type ModelDiscoveryOptions = Pick<AiFixtureOptions, 'executable' | 'signal' | 'timeoutMs'>;
 
 /** Reads one answer from the operator. Injected so selection can be tested without a terminal. */

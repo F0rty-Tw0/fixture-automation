@@ -2,6 +2,11 @@ import type { SchemaMap } from '@fixture-automation/openapi-fixtures';
 
 export type AiTool = 'claude' | 'codex' | 'antigravity' | 'copilot' | 'gemini';
 
+export type AiFixtureProgress = {
+  readonly stream: 'stdout' | 'stderr' | 'status';
+  readonly text: string;
+};
+
 export type AiFixtureOptions = {
   /** Installed coding tool to invoke; there is no automatic fallback. */
   readonly tool: AiTool;
@@ -12,8 +17,10 @@ export type AiFixtureOptions = {
    * literal `'default'`, adds no model flag and leaves the harness default in place.
    */
   readonly model?: string;
-  /** Tool timeout: integer milliseconds from 1 to 2147483647. Defaults to 120000. */
+  /** Generation timeout: integer milliseconds from 1 to 2147483647. Defaults to 900000 (15 minutes). */
   readonly timeoutMs?: number;
+  /** Receives live provider output and lifecycle status. Throwing cancels the operation. Omitted means no progress output. */
+  readonly onProgress?: (progress: AiFixtureProgress) => void;
   /** Cancels generation and terminates the child process tree. */
   readonly signal?: AbortSignal;
   /** Base path for failed-response diagnostic sidecars; absent disables persistence. */

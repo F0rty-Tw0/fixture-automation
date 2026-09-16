@@ -10,7 +10,6 @@ export type AiFixtureOptions = {
   /**
    * Model slug passed straight to the selected tool. Omitting it, or passing the
    * literal `'default'`, adds no model flag and leaves the harness default in place.
-   * Antigravity rejects every value other than `'default'`; its CLI has no model switch.
    */
   readonly model?: string;
   /** Tool timeout: integer milliseconds from 1 to 2147483647. Defaults to 120000. */

@@ -45,9 +45,22 @@ export const mergeProject = async (): Promise<MergeProject> => {
 
     const corruptFile = await write('corrupt.json', CORRUPT_FIXTURE);
     const populatedFile = await write('populated.json', POPULATED_FIXTURE);
-    const outFile = join(directory, 'invoice.fixed.json');
+    const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
+    const outFile = join(directory, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.json');
+    const provenanceFile = join(directory, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.provenance.json');
     const specUrl = invoiceSpecUrl();
-    const project: MergeProject = { directory, corruptFile, populatedFile, outFile, specUrl, write, run, dispose };
+    const project: MergeProject = {
+      directory,
+      corruptFile,
+      populatedFile,
+      endpointUrl,
+      outFile,
+      provenanceFile,
+      specUrl,
+      write,
+      run,
+      dispose
+    };
 
     return project;
   } catch (error: unknown) {

@@ -1,6 +1,6 @@
 # @fixture-automation/openapi-fixture-merge
 
-Fill a corrupt fixture from a populated file, and optionally validate the result against its schema.
+Fill a corrupt fixture from a populated file, optionally validate the result, and write endpoint-named JSON with a SHA-256 provenance sidecar.
 
 This is the last step in the [corrupt → diff → fill → merge pipeline](../../README.md#full-pipeline-walkthrough).
 
@@ -9,11 +9,14 @@ This is the last step in the [corrupt → diff → fill → merge pipeline](../.
 - **Fills** only the keys missing from the corrupt fixture; present keys are left untouched.
 - **Reads** the populated data from JSON, or from a `.ts`/`.mts`/`.js`/`.mjs` module with one export (the AI package writes these).
 - **Validates** the merged result against an OpenAPI schema when `--spec` is given (`--schema` names the schema, or a spec written by `openapi-types <spec-url> <schema-name> <out-file>` supplies it through `x-root-schema`).
+- **Names** only merged outputs using SHA-1 Base64 of the exact endpoint URL, replacing every `/` with `x` and appending `.json`.
+- **Records** the endpoint URL and a lowercase hexadecimal SHA-256 checksum of the merged file in a sibling `.provenance.json`.
 
 ## Quick start
 
 ```bash
 SPEC=$(node -p "require('node:url').pathToFileURL('packages/openapi-fixture-diff/src/test/fixtures/nested/spec.json').href")
+ENDPOINT=https://api.example.com/orders/or_1
 
 cat > corrupt.json <<'JSON'
 {
@@ -31,16 +34,11 @@ cat > populated.json <<'JSON'
 }
 JSON
 
-node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json merged.json --spec "$SPEC" --schema order
+node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json fixtures --endpoint-url "$ENDPOINT" --spec "$SPEC" --schema order
 ```
 
-stderr:
-
-```
-filled 2 path(s)
-```
-
-`merged.json`:
+Stderr reports `filled 2 path(s)` and both output paths. The merged fixture is
+`fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.json`:
 
 ```text
 {
@@ -62,39 +60,77 @@ filled 2 path(s)
 ## Command
 
 ```
-usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <out.json> [options]
+usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <out-dir> --endpoint-url <url> [options]
 
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
-  <out.json>           destination for the merged fixture (required)
+  <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
+  --endpoint-url <url> exact endpoint URL hashed with SHA-1 Base64; / becomes x (required)
   --spec <url>         http(s):// or file:// URL of the spec used to validate the result
   --schema <name>      a key under components.schemas; defaults to the x-root-schema of a spec
                        written by openapi-types <spec-url> <schema-name> <out-file>; needs --spec
   -h, --help           print this help
 ```
 
-| Flag              | Required      | What it does                                                                     |
-| ----------------- | ------------- | -------------------------------------------------------------------------------- |
-| `<corrupt.json>`  | Yes           | Fixture with fields removed, resolved from the current directory.                |
-| `<populated>`     | Yes           | `.json` file, or a `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value. |
-| `<out.json>`      | Yes           | Destination for the merged fixture.                                              |
-| `--spec <url>`    | No            | Spec URL to validate the merged result against.                                  |
-| `--schema <name>` | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.   |
-| `-h, --help`      | No            | Print this usage and exit 0.                                                     |
+| Flag                   | Required      | What it does                                                                     |
+| ---------------------- | ------------- | -------------------------------------------------------------------------------- |
+| `<corrupt.json>`       | Yes           | Fixture with fields removed, resolved from the current directory.                |
+| `<populated>`          | Yes           | `.json` file, or a `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value. |
+| `<out-dir>`            | Yes           | Directory receiving the endpoint-named JSON and its provenance sidecar.          |
+| `--endpoint-url <url>` | Yes           | Exact endpoint URL whose UTF-8 bytes determine the filename.                     |
+| `--spec <url>`         | No            | Spec URL to validate the merged result against.                                  |
+| `--schema <name>`      | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.   |
+| `-h, --help`           | No            | Print this usage and exit 0.                                                     |
 
 **Interactive:** in a terminal, a missing required input starts a prompt session on stderr that asks for it and every unset optional; Enter skips an optional. Piped/CI runs get the usage error instead.
+
+## Filenames and provenance
+
+The third positional argument is now an **output directory**, not a filename.
+`--endpoint-url` is required; it is not the spec URL and is never inferred from the schema name.
+The library likewise takes `outDir` and `endpointUrl` instead of `outFile`.
+
+```text
+stem = Base64(SHA1(UTF8(endpointUrl))).replaceAll("/", "x")
+merged file = <out-dir>/<stem>.json
+provenance = <out-dir>/<stem>.provenance.json
+```
+
+This is standard Base64, not Base64url: `+` and `=` are retained. The endpoint is
+not normalized; differences in spelling, query parameters, or trailing slashes
+produce different hash inputs. Interactive answers use the shared prompt's
+whitespace trimming. The filename does not depend on fixture content, schema name,
+output directory, or HTTP method.
+
+The sidecar has two fields:
+
+| Field         | Meaning                                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `endpointUrl` | The supplied endpoint URL.                                                                                     |
+| `sha256`      | Lowercase, 64-character hexadecimal SHA-256 of the exact merged JSON UTF-8 bytes, including the final newline. |
+
+The fixture stays plain two-space JSON; metadata never changes its schema.
+Rerunning the same endpoint overwrites the same two files. Changed content changes
+the SHA-256 checksum, not the filename. Validation happens before either write.
+
+SHA-1 and the lossy `/`→`x` encoding are for naming, not collision-proof identity
+or integrity. The SHA-256 checksum is a content fingerprint, not a signature or
+proof of origin. The sidecar stores the endpoint URL in plain text: do not include
+credentials or secret query parameters.
 
 ## Examples
 
 **No `--spec`** — same inputs as Quick start, validation is skipped:
 
 ```bash
-node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json merged.json
+node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.json fixtures --endpoint-url "$ENDPOINT"
 ```
 
 ```
 filled 2 path(s)
 warning: result not validated (no --spec)
+wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.json
+wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.provenance.json
 ```
 
 **`.stub.ts` module input** — [`openapi-ai-fixtures --missing`](../openapi-ai-fixtures/README.md#examples)
@@ -118,18 +154,20 @@ export const MISSING_STUB: components["schemas"]["missing"] = {
 ```
 
 ```bash
-node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.stub.ts merged.json
+node packages/openapi-fixture-merge/dist/cli.js corrupt.json populated.stub.ts fixtures --endpoint-url "$ENDPOINT"
 ```
 
 ```
 filled 2 path(s)
 warning: result not validated (no --spec)
+wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.json
+wrote fixtures/XR2lRB+kbknhCCQzmKfkiOpfUVE=.provenance.json
 ```
 
 **Schema-violation failure** — the populated file contains a value the schema rejects:
 
 ```bash
-node packages/openapi-fixture-merge/dist/cli.js corrupt.json bad-populated.json merged.json --spec "$SPEC" --schema order
+node packages/openapi-fixture-merge/dist/cli.js corrupt.json bad-populated.json fixtures --endpoint-url "$ENDPOINT" --spec "$SPEC" --schema order
 ```
 
 ```
@@ -139,21 +177,21 @@ openapi-fixture-merge: merged fixture violates schema "order": /customer/email: 
   see: openapi-fixture-merge --help
 ```
 
-Exit code `1`. Nothing is written to `out.json`.
+Exit code `1`. Neither the merged JSON nor its provenance sidecar is written.
 
 ## Errors
 
-| You see                                                                                                 | It means                                             | Fix                                                                                                  |
-| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `usage: <corrupt.json> <populated.json\|populated.stub.ts> <out.json> [--spec <url> [--schema <name>]]` | Missing positional arguments.                        | Pass all three files.                                                                                |
-| `--schema requires --spec`                                                                              | `--schema` was given without `--spec`.               | Add `--spec <url>`.                                                                                  |
-| `schema name required`                                                                                  | `--spec` alone, and the spec has no `x-root-schema`. | Add `--schema <name>`, or use a spec written by `openapi-types <spec-url> <schema-name> <out-file>`. |
-| `corrupt fixture file "<path>" does not exist`                                                          | The `<corrupt.json>` path is wrong.                  | Check the path; it resolves from the current directory.                                              |
-| `populated file "<path>" does not exist`                                                                | The `<populated>` path is wrong.                     | Check the path; it resolves from the current directory.                                              |
-| `populated file must be .json, .ts, .mts, .js, or .mjs`                                                 | The populated file has an unsupported extension.     | Rename it, or use one of those extensions.                                                           |
-| `merged fixture violates schema "<name>": <path>: <message>`                                            | The merged result fails schema validation.           | Fix the listed paths in the populated file, or re-run the AI fill.                                   |
-| `schema "<name>" is unavailable`                                                                        | `--schema` names a key not in `components.schemas`.  | The message lists the available schema names; pick one.                                              |
-| Any other error                                                                                         | See the shared error format and exit codes.          | [Root README](../../README.md#rules-every-tool-shares).                                              |
+| You see                                                      | It means                                             | Fix                                                                                                  |
+| ------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `usage: <corrupt.json> … <out-dir> --endpoint-url <url> …`   | Missing required inputs.                             | Pass both input files, the output directory, and the endpoint URL.                                   |
+| `--schema requires --spec`                                   | `--schema` was given without `--spec`.               | Add `--spec <url>`.                                                                                  |
+| `schema name required`                                       | `--spec` alone, and the spec has no `x-root-schema`. | Add `--schema <name>`, or use a spec written by `openapi-types <spec-url> <schema-name> <out-file>`. |
+| `corrupt fixture file "<path>" does not exist`               | The `<corrupt.json>` path is wrong.                  | Check the path; it resolves from the current directory.                                              |
+| `populated file "<path>" does not exist`                     | The `<populated>` path is wrong.                     | Check the path; it resolves from the current directory.                                              |
+| `populated file must be .json, .ts, .mts, .js, or .mjs`      | The populated file has an unsupported extension.     | Rename it, or use one of those extensions.                                                           |
+| `merged fixture violates schema "<name>": <path>: <message>` | The merged result fails schema validation.           | Fix the listed paths in the populated file, or re-run the AI fill.                                   |
+| `schema "<name>" is unavailable`                             | `--schema` names a key not in `components.schemas`.  | The message lists the available schema names; pick one.                                              |
+| Any other error                                              | See the shared error format and exit codes.          | [Root README](../../README.md#rules-every-tool-shares).                                              |
 
 ## Library
 
@@ -171,17 +209,19 @@ import { mergeFixture } from '@fixture-automation/openapi-fixture-merge';
 const result = await mergeFixture({
   corruptFile: 'corrupt.json',
   populatedFile: 'populated.json',
-  outFile: 'merged.json',
+  outDir: 'fixtures',
+  endpointUrl: 'https://api.example.com/v1/invoices/in_2',
   spec: { url: 'https://example.com/openapi.json', schemaName: 'invoice' }
 });
 
 console.log(`filled ${result.filled.length} path(s)`);
+console.log(result.outFile, result.provenanceFile, result.provenance.sha256);
 ```
 
-- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the merged JSON. Skips validation when `input.spec` is omitted.
+- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
 - `deepFill(base: unknown, fill: unknown): FillResult` — copies values from `fill` into keys `base` does not already have, recursing into objects and zipping arrays by index. Returns `{ value, filled }` (`filled` is the list of paths it supplied).
 - `loadPopulated(file: string): Promise<unknown>` — reads a `.json` file, or `import()`s a `.ts`/`.mts`/`.js`/`.mjs` module and returns its single export.
-- Types: `FillResult`, `MergeInput`, `MergeResult`, `MergeSpec`.
+- Types: `FillResult`, `MergeInput`, `MergeProvenance`, `MergeResult`, `MergeSpec`.
 
 ## Gotchas
 

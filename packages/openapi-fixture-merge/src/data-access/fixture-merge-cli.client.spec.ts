@@ -10,7 +10,17 @@ import { STUB_SOURCE } from '../test/utils/populated-module.spec.util.ts';
 const MISSING_TYPES = 'export type components = { schemas: { missing: { status: string } } };\n';
 
 const validatedArgs = (project: MergeProject, populatedFile: string): string[] => {
-  return [project.corruptFile, populatedFile, project.outFile, '--spec', project.specUrl, '--schema', 'invoice'];
+  return [
+    project.corruptFile,
+    populatedFile,
+    project.directory,
+    '--endpoint-url',
+    project.endpointUrl,
+    '--spec',
+    project.specUrl,
+    '--schema',
+    'invoice'
+  ];
 };
 
 describe('FEATURE: fixture merge command', (): void => {
@@ -51,7 +61,7 @@ describe('FEATURE: fixture merge command', (): void => {
 
   describe('GIVEN no spec option', (): void => {
     it('WHEN merging THEN it warns and still writes the fixture', async (): Promise<void> => {
-      const args = [project.corruptFile, project.populatedFile, project.outFile];
+      const args = [project.corruptFile, project.populatedFile, project.directory, '--endpoint-url', project.endpointUrl];
 
       const result = await project.run(args);
 
@@ -62,7 +72,15 @@ describe('FEATURE: fixture merge command', (): void => {
 
   describe('GIVEN a plain spec without a schema name', (): void => {
     it('WHEN merging THEN it fails without writing', async (): Promise<void> => {
-      const args = [project.corruptFile, project.populatedFile, project.outFile, '--spec', project.specUrl];
+      const args = [
+        project.corruptFile,
+        project.populatedFile,
+        project.directory,
+        '--endpoint-url',
+        project.endpointUrl,
+        '--spec',
+        project.specUrl
+      ];
       const failure = project.run(args);
 
       await expect(failure).rejects.toMatchObject({ code: 1 });
@@ -77,7 +95,15 @@ describe('FEATURE: fixture merge command', (): void => {
       const spec = JSON.parse(await readFile(new URL(project.specUrl), 'utf8')) as object;
       const pruned = { ...spec, 'x-root-schema': 'invoice' };
       const prunedFile = await project.write('pruned.json', JSON.stringify(pruned));
-      const args = [project.corruptFile, project.populatedFile, project.outFile, '--spec', pathToFileURL(prunedFile).href];
+      const args = [
+        project.corruptFile,
+        project.populatedFile,
+        project.directory,
+        '--endpoint-url',
+        project.endpointUrl,
+        '--spec',
+        pathToFileURL(prunedFile).href
+      ];
 
       const result = await project.run(args);
 
@@ -109,9 +135,19 @@ describe('FEATURE: fixture merge command', (): void => {
 
   describe('GIVEN a corrupt fixture that does not exist', (): void => {
     it('WHEN merging THEN it names the missing file', async (): Promise<void> => {
-      const args = ['absent.json', project.populatedFile, project.outFile];
+      const args = ['absent.json', project.populatedFile, project.directory, '--endpoint-url', project.endpointUrl];
 
       await expect(project.run(args)).rejects.toThrow('corrupt fixture file "absent.json" does not exist');
+    }, 30000);
+  });
+
+  describe('GIVEN no endpoint URL', (): void => {
+    it('WHEN merging THEN it fails without writing a fixture', async (): Promise<void> => {
+      const args = [project.corruptFile, project.populatedFile, project.directory];
+      const failure = project.run(args);
+
+      await expect(failure).rejects.toMatchObject({ code: 1 });
+      await expect(access(project.outFile)).rejects.toThrow();
     }, 30000);
   });
 

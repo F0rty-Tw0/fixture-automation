@@ -17,14 +17,24 @@ export type MergeInput = {
   readonly corruptFile: string;
   /** `.json` fixture or `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value. */
   readonly populatedFile: string;
-  /** Destination for the merged fixture. */
-  readonly outFile: string;
+  /** Directory receiving the endpoint-named JSON and its provenance sidecar. */
+  readonly outDir: string;
+  /** Exact endpoint URL whose UTF-8 bytes determine the SHA-1 Base64 filename. */
+  readonly endpointUrl: string;
   /** Absent means the merged fixture is written without schema validation. */
   readonly spec?: MergeSpec;
+};
+
+export type MergeProvenance = {
+  readonly endpointUrl: string;
+  /** Lowercase hexadecimal SHA-256 of the merged file's exact UTF-8 bytes, including its final newline. */
+  readonly sha256: string;
 };
 
 export type MergeResult = {
   readonly value: unknown;
   readonly filled: string[];
   readonly outFile: string;
+  readonly provenanceFile: string;
+  readonly provenance: MergeProvenance;
 };

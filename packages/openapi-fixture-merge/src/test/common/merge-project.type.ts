@@ -8,7 +8,10 @@ export type MergeProject = {
   readonly directory: string;
   readonly corruptFile: string;
   readonly populatedFile: string;
+  /** Exact endpoint URL used to derive the merged artifact filename. */
+  readonly endpointUrl: string;
   readonly outFile: string;
+  readonly provenanceFile: string;
   /** `file://` URL of the shared invoice spec used for validation. */
   readonly specUrl: string;
   /** Writes a file into the directory and returns its absolute path. */

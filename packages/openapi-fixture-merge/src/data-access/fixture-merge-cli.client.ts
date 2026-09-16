@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import { printHelp, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
@@ -14,5 +16,8 @@ export const runFixtureMergeCli = async (args: string[], inputs: Inputs = silent
     return;
   }
 
-  await mergeFixture(input);
+  const result = await mergeFixture(input);
+
+  console.error(styleText('green', `wrote ${result.outFile}`, { stream: process.stderr }));
+  console.error(styleText('green', `wrote ${result.provenanceFile}`, { stream: process.stderr }));
 };

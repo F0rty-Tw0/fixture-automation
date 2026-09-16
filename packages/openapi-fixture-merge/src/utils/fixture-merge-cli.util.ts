@@ -9,6 +9,7 @@ import type { MergeInput, MergeSpec } from '../common/fixture-merge.type.ts';
 const stringOption = { type: 'string' } as const;
 const helpOption = { type: 'boolean', short: 'h' } as const;
 const cliOptions = {
+  'endpoint-url': stringOption,
   spec: stringOption,
   schema: stringOption,
   help: helpOption
@@ -39,15 +40,15 @@ export const parseMergeArgs = async (args: string[], inputs: Inputs = silentInpu
 
   const corruptFile = await inputs.required(positionals[0], MERGE_INPUTS.corruptFile, MERGE_USAGE);
   const populatedFile = await inputs.required(positionals[1], MERGE_INPUTS.populatedFile, MERGE_USAGE);
-  const outFile = await inputs.required(positionals[2], MERGE_INPUTS.outFile, MERGE_USAGE);
+  const outDir = await inputs.required(positionals[2], MERGE_INPUTS.outDir, MERGE_USAGE);
+  const endpointUrl = await inputs.required(values['endpoint-url'], MERGE_INPUTS.endpointUrl, MERGE_USAGE);
   const specUrl = await inputs.optional(values.spec, MERGE_INPUTS.spec);
-  // ponytail: --schema is only asked once --spec is settled, matching the flags' own dependency
   let schemaName = values.schema;
 
   if (specUrl !== undefined) schemaName = await inputs.optional(values.schema, MERGE_INPUTS.schema);
 
   const spec = validationSpec(specUrl, schemaName);
-  const base: MergeInput = { corruptFile, populatedFile, outFile };
+  const base: MergeInput = { corruptFile, populatedFile, outDir, endpointUrl };
 
   if (spec === undefined) return base;
 

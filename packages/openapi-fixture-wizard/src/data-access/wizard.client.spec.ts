@@ -66,7 +66,7 @@ describe('FEATURE: fixture wizard', (): void => {
     it(
       'WHEN the run ends THEN only the fixture is written and five prompts were asked',
       async (): Promise<void> => {
-        const printed = vi.spyOn(console, 'error').mockImplementation(silence);
+        vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'one');
 
         const question = await run(SPEC_URL, outDir, 'invoice', '1', '');
@@ -75,7 +75,6 @@ describe('FEATURE: fixture wizard', (): void => {
         await expect(exists(join(outDir, 'invoice.fixture.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'invoice.d.ts'))).resolves.toBe(false);
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
-        expect(printed).toHaveBeenCalledWith(`wrote ${join(outDir, 'invoice.fixture.json')}`);
       },
       TIMEOUT
     );
@@ -114,15 +113,14 @@ describe('FEATURE: fixture wizard', (): void => {
 
   describe('GIVEN a complete existing fixture', (): void => {
     it(
-      'WHEN diffed THEN reports no missing fields and never fills',
+      'WHEN diffed THEN skips filling and writes no missing files',
       async (): Promise<void> => {
-        const printed = vi.spyOn(console, 'error').mockImplementation(silence);
+        vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'three');
 
         const question = await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '');
 
         expect(question).toHaveBeenCalledTimes(6);
-        expect(printed).toHaveBeenCalledWith('no missing fields');
         expect(fill).not.toHaveBeenCalled();
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
       },

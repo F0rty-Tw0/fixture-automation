@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 import type { InputSpec, Question } from '@fixture-automation/openapi-fixtures';
 
@@ -6,12 +8,12 @@ import { parseChoice } from '../utils/choice.util.ts';
 const PROMPT_ATTEMPTS = 3;
 
 const printOptions = (input: InputSpec, options: string[]): void => {
-  console.error(`${input.label}: ${input.description}`);
+  console.error(`${styleText(['bold', 'cyan'], input.label, { stream: process.stderr })}: ${input.description}`);
 
   let position = 1;
 
   for (const option of options) {
-    console.error(`  ${position}) ${option}`);
+    console.error(`  ${styleText('cyan', position.toString(), { stream: process.stderr })}) ${option}`);
     position += 1;
   }
 };
@@ -28,7 +30,7 @@ export const choose = async <TOption extends string>(question: Question, input: 
 
     if (option !== undefined) return option;
 
-    console.error(`enter ${range}`);
+    console.error(styleText('yellow', `enter ${range}`, { stream: process.stderr }));
   }
 
   throw new FixtureError(`no ${input.label} chosen after ${PROMPT_ATTEMPTS} attempts`, `answer ${range}`);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { FixtureError, promptedInputs, runCli } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, printHelp, promptedInputs, runCli } from '@fixture-automation/openapi-fixtures';
 
 import { WIZARD_HELP } from './common/wizard.const.ts';
 import { runWizard } from './data-access/wizard.client.ts';
@@ -9,7 +9,7 @@ const run = async (): Promise<void> => {
   const isHelp = firstArg === '--help' || firstArg === '-h';
 
   if (isHelp) {
-    process.stdout.write(`${WIZARD_HELP}\n`);
+    printHelp(WIZARD_HELP);
 
     return;
   }

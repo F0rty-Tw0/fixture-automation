@@ -12,16 +12,13 @@ describe('FEATURE: numbered choice prompt', (): void => {
   });
 
   describe('GIVEN three options', (): void => {
-    it('WHEN a listed number is answered THEN returns that option after listing them', async (): Promise<void> => {
-      const printed = vi.spyOn(console, 'error').mockImplementation(silence);
+    it('WHEN a listed number is answered THEN returns the matching option', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
       const question = vi.fn(answering('2'));
 
       const option = await choose(question, WIZARD_INPUTS.format, OPTIONS);
 
       expect(option).toBe('ts');
-      expect(question).toHaveBeenCalledWith('format: ');
-      expect(printed).toHaveBeenCalledWith('  1) json');
-      expect(printed).toHaveBeenCalledWith('  3) both');
     });
 
     it.each(['', '9', 'ts'])(

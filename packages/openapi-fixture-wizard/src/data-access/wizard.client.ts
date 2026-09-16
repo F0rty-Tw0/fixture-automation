@@ -1,4 +1,5 @@
 import { join, resolve } from 'node:path';
+import { styleText } from 'node:util';
 
 import { aiMissingFixture, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
 import { mergeFixture } from '@fixture-automation/openapi-fixture-merge';
@@ -55,12 +56,14 @@ const checkExisting = async (context: WizardContext): Promise<string[]> => {
   const diffed = await diffExisting({ spec, schemaName, fixtureFile, outDir: missingDir, requiredOnly });
 
   if (diffed === undefined) {
-    console.error('no missing fields');
+    console.error(styleText('green', 'no missing fields', { stream: process.stderr }));
 
     return [];
   }
 
-  console.error(`${diffed.diff.paths.length} missing field(s): ${diffed.diff.paths.join(', ')}`);
+  console.error(
+    styleText('yellow', `${diffed.diff.paths.length} missing field(s): ${diffed.diff.paths.join(', ')}`, { stream: process.stderr })
+  );
 
   return fillAndMerge(context, diffed);
 };
@@ -89,5 +92,5 @@ const runSteps = async (inputs: Inputs, deps: WizardDeps): Promise<string[]> => 
 export const runWizard = async (inputs: Inputs, deps: WizardDeps = defaultDeps): Promise<void> => {
   const written = await runSteps(inputs, deps);
 
-  for (const file of written) console.error(`wrote ${file}`);
+  for (const file of written) console.error(styleText('green', `wrote ${file}`, { stream: process.stderr }));
 };

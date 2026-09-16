@@ -12,7 +12,7 @@ import { answering, silence } from '../test/utils/answering.spec.util.ts';
 
 const TIMEOUT = 30000;
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;
-const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'curated' };
+const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'codex-cli' };
 const FILLED = { amount_due: 4200, status: 'open', memo: 'paid by card' };
 const CORRUPT = { id: 'in_1' };
 const COMPLETE = { ...CORRUPT, ...FILLED };

@@ -123,6 +123,9 @@ SPEC=https://raw.githubusercontent.com/stripe/openapi/master/latest/openapi.spec
    node packages/openapi-ai-fixtures/dist/cli.js --list-models --tool codex
    ```
 
+   Model IDs come from the installed provider CLI, not a bundled catalog. Listing may contact the
+   provider and requires its existing login; discovery errors never fall back to hardcoded names.
+
 6. **Fill the gaps with AI.**
 
    ```bash

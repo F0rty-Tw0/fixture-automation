@@ -67,7 +67,7 @@ openapi-fixtures: spec must be a URL, got bare path "invoice.fixture.json"
   see: openapi-fixtures --help
 ```
 
-No stack trace on a handled error. **Nothing is written on failure** if the failure happens before the write step (bad args, bad spec, schema not found, failed validation all leave any existing destination file untouched).
+No stack trace on a handled error. **Normal output is never written on failure** if the failure happens before the write step (bad args, bad spec, schema not found, failed validation all leave any existing destination file untouched). AI generation can save separate failed-response diagnostics for manual repair; see [AI failure behavior](./packages/openapi-ai-fixtures/README.md#validation-and-failure-behavior).
 
 ## Full pipeline walkthrough
 

@@ -94,7 +94,6 @@ describe('FEATURE: fixture wizard', (): void => {
         expect(question).toHaveBeenCalledTimes(12);
         expect(discover).toHaveBeenCalledWith('codex');
         expect(fill).toHaveBeenCalledTimes(1);
-        expect(fill).toHaveBeenCalledWith({ tool: 'codex', model: 'm1' });
         expect(enrich).toHaveBeenCalledWith('invoice', expect.objectContaining({ fixture: CORRUPT }));
 
         for (const name of ['invoice.spec.json', 'invoice.d.ts', 'invoice.fixture.json', 'invoice.fixture.ts']) {

@@ -27,11 +27,11 @@ export const fillMissing = async (context: WizardContext, diffed: DiffResult): P
   const options = await chooseHarness(context);
   const extraPrompt = await inputs.optional(undefined, WIZARD_INPUTS.extraPrompt);
   const scenario = extraPrompt ?? MISSING_SCENARIO;
-  // ponytail: re-read the file just written so the fill sees exactly what the diff CLI would hand it
   const missing = parseMissingFile(await readTextFile('missing', diffed.jsonFile));
   const request: AiMissingRequest = { fixture: diffed.fixture, missing, scenario };
-  const filled = await deps.fill(options)(schemaName, request);
   const populatedFile = join(dirname(diffed.jsonFile), POPULATED_FILE);
+  const recoveryOptions: AiFixtureOptions = { ...options, recoveryFile: populatedFile };
+  const filled = await deps.fill(recoveryOptions)(schemaName, request);
 
   await writeTextFile(populatedFile, `${JSON.stringify(filled, null, 2)}\n`);
 

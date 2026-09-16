@@ -6,7 +6,7 @@ Send an existing JSON fixture, its schema, and a scenario to one installed codin
 
 - **Enriches** an existing fixture using one installed, authenticated coding CLI (`claude`, `codex`, `antigravity`, `copilot`, or `gemini`). No automatic fallback between tools.
 - **Fills only the gaps** [`openapi-fixture-diff`](../openapi-fixture-diff/README.md) found, with `--missing`, instead of regenerating the whole fixture.
-- **Validates** every response locally against the schema before writing it. Nothing is written on failure, and there is no retry.
+- **Validates** every parsed response locally against the schema before writing normal output. Failed responses are saved separately for inspection, and invalid model JSON gets one repair attempt.
 
 ## Quick start
 
@@ -192,18 +192,24 @@ const invoice = await enrich('invoice', {
 - `prepareSchema(spec, name)` — resolves a schema's local dependency graph into a self-contained document and compiles a validator.
 - `schemaDialect(openapi, jsonSchemaDialect)` — maps a spec's version fields onto `'draft-07' | 'openapi-30' | 'openapi-31'`.
 - `compileFixtureSchema(schema, dialect)` — compiles one prepared document; formats outside `ajv-formats` register as pass-through.
-- `AiFixtureOptions` — `{ tool, executable?, model?, timeoutMs?, signal? }`. `tool` is required (no fallback). `executable` is an absolute path override. `model` omitted or `'default'` adds no model flag. `timeoutMs` defaults to `120000`, max `2147483647`. `signal` is an `AbortSignal`; an already-aborted signal rejects before the schema is prepared or a process starts.
+- `AiFixtureOptions` — `{ tool, executable?, model?, timeoutMs?, signal?, recoveryFile? }`. `tool` is required (no fallback). `executable` is an absolute path override. `model` omitted or `'default'` adds no model flag. `timeoutMs` defaults to `120000`, max `2147483647`. `signal` is an `AbortSignal`; an already-aborted signal rejects before the schema is prepared or a process starts. `recoveryFile` is the base path for failed-response sidecars; library calls without it do not save diagnostic files.
 
 ### Validation and failure behavior
 
-- One call runs one process. **No retry, fallback tool, or result cache.**
-- Prompts go over stdin, limited to **1 MiB**. Combined stdout/stderr is limited to **8 MiB**.
+- Invalid model JSON triggers **one repair attempt** using the exact failed response, its parser error, and the original request with the same tool/model: at most two processes per call. No fallback tool or result cache.
+- Malformed transport envelopes, provider errors, process failures, timeouts, cancellation, and schema-validation failures are **not retried**. A second invalid model response fails with an error reporting both attempts.
+- Before repair, the CLI saves the failed response verbatim to `<output>.failed-attempt-1.txt` and prints its path on stderr. Without an output file, the `--fixture` path is the base. Existing sidecars are never overwritten: a collision gets a UUID suffix.
+- If repair produces invalid JSON or fails schema validation, its response is saved as `<output>.failed-attempt-2.txt`. A schema-invalid first response is also saved, without retrying. Recovery files remain even when repair succeeds.
+- If saving fails, generation stops before repair. If the complete repair prompt exceeds the input limit, the saved response remains available for manual correction.
+- Recovery files can contain sensitive fixture data. Inspect them before sharing or committing.
+- Each attempt has its own configured `timeoutMs`; a corrective attempt can incur another generation charge.
+- Prompts go over stdin, limited to **1 MiB per attempt**. Combined stdout/stderr is limited to **8 MiB per attempt**.
 - A timeout terminates the owned process tree. If tree termination cannot be confirmed, the call
   fails and the temporary scratch directory is **kept**, not deleted under a possibly running process.
 - The final response must be strict JSON, not markdown or surrounding prose, and must pass local
   schema validation. The validator does not coerce types, insert defaults, or remove properties.
-- Validation completes before writing. Output is staged beside the destination and renamed
-  atomically; a failed or invalid response leaves an existing destination unchanged.
+- Validation completes before writing normal output. Output is staged beside the destination and renamed
+  atomically; a failed or invalid response leaves an existing destination unchanged. Diagnostic sidecars are separate.
 - A destination that aliases the fixture, spec, or declarations input (including via a symlink) is
   rejected.
 

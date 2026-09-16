@@ -109,6 +109,15 @@ All paths are under `<out-dir>`. The run ends with one `wrote <file>` line per f
 | AI fill       | `missing/populated.json`                                                                         |
 | merge         | `<schema>.fixed.json`, validated against the spec                                                |
 
+If AI returns invalid JSON, the wizard saves its exact response to
+`missing/populated.json.failed-attempt-1.txt` before asking the same agent to repair it.
+The repair includes the failed text, parser error, and original request. If the second
+response fails parsing or schema validation, it is saved as `failed-attempt-2.txt`
+with the same `populated.json.` prefix, and the wizard stops before merging.
+Paths are printed on stderr; existing diagnostics get a UUID-suffixed alternative
+rather than being overwritten. A successful repair keeps the first diagnostic and
+writes only the validated result to `populated.json`.
+
 ## Errors
 
 | You see                                      | It means                                                           | Fix                                                                             |

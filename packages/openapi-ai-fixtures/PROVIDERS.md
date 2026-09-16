@@ -30,7 +30,13 @@ Implementation: [workspace staging](./src/data-access/agent-process-workspace.cl
 [executable resolution](./src/data-access/agent-executable.client.ts), and
 [bounded process execution](./src/data-access/agent-process.client.ts).
 
-The provider parsers are strict. A response that contains Markdown fences or explanatory prose instead of the expected JSON fails rather than being repaired. The parsed fixture subsequently undergoes local schema validation; that public behavior is documented in the [CLI reference](./README.md#validation-and-failure-behavior).
+Provider envelopes and events remain strictly parsed. Adapters extract the model's fixture text unchanged; the shared generation layer parses that text as JSON without stripping Markdown fences, scraping prose, or repairing syntax locally.
+
+When fixture JSON is invalid, generation saves the exact response before making one repair attempt with the same provider/model. The repair prompt encodes the failed response, parser diagnostic, and original request as JSON data; the original schema and tool restrictions remain authoritative. CLI and wizard calls enable persistence automatically; library calls opt in with `recoveryFile`. The saved path is reported on stderr. Existing recovery files are never overwritten.
+
+A second invalid response is saved and fails. Malformed transport envelopes/events, provider errors, process failures, timeouts, and cancellation are not retried. Each attempt retains the process limits above, including its own timeout. An oversized repair prompt fails before another process starts, leaving the first saved response available.
+
+The parsed fixture, including a corrected response, subsequently undergoes local schema validation. Schema-invalid responses are saved without retrying, and normal output remains untouched. Antigravity's `structured_output` is serialized to JSON for diagnostics; response strings are preserved verbatim. See the [CLI reference](./README.md#validation-and-failure-behavior).
 
 ## Claude Code
 

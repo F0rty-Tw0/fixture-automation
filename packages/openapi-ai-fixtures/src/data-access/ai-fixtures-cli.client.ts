@@ -61,7 +61,8 @@ const generateMissing = async (options: AiFixtureCliOptions, missingFile: string
   const target = await prepareOutput(options);
   const missing = await missingInput(missingFile);
   const tool = await resolveModel(options.options);
-  const fill = aiMissingFixture(tool);
+  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile };
+  const fill = aiMissingFixture(agentOptions);
   const missingRequest: AiMissingRequest = { fixture, missing, scenario: options.scenario };
   const filled = await fill(missing.schemaName, missingRequest);
 
@@ -78,7 +79,8 @@ const generate = async (options: AiFixtureCliOptions): Promise<void> => {
   const fixture = await readJsonFile('--fixture', options.fixtureFile);
   const target = await prepareOutput(resolved);
   const tool = await resolveModel(options.options);
-  const enrich = aiFixtures(spec, tool);
+  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile };
+  const enrich = aiFixtures(spec, agentOptions);
   const request = { fixture, scenario: options.scenario };
   const enriched = await enrich(schemaName, request);
 

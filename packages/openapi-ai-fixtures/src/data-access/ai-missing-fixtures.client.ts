@@ -1,3 +1,4 @@
+import { saveFailedResponse } from './agent-response-file.client.ts';
 import { generateFixture } from './fixture-agent.client.ts';
 import type { AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
@@ -37,11 +38,14 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
     const input: MissingPromptInput = { fixtureJson, missing: document, scenario };
     const prompt = missingPrompt(input);
     const agentRequest: AgentRequest = { prompt, options };
-    const result = await generateFixture(agentRequest);
+    const generated = await generateFixture(agentRequest);
+    const result = generated.value;
 
     if (validate(result)) return result;
 
     const details = validationDetails(validate.errors);
+
+    await saveFailedResponse(options, generated.response, generated.attempt);
 
     throw new Error(`generated missing fields violate schema "${MISSING_SCHEMA_NAME}": ${details}`);
   };

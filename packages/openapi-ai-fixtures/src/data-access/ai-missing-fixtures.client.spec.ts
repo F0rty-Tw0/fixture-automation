@@ -2,16 +2,17 @@ import { readFile } from 'node:fs/promises';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { runAgent } from './agent-process.client.ts';
 import { aiMissingFixture } from './ai-missing-fixtures.client.ts';
-import { generateFixture } from './fixture-agent.client.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 import type { AiMissingRequest, MissingFile } from '../common/missing.type.ts';
+import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 import { integrationFile } from '../test/utils/integration-project.spec.util.ts';
 import { missingDocument } from '../utils/missing-document.util.ts';
 import { parseMissingFile } from '../utils/missing-file.util.ts';
 import { isSchemaRecord } from '../utils/schema-record.util.ts';
 
-vi.mock('./fixture-agent.client.ts');
+vi.mock('./agent-process.client.ts');
 
 const SCENARIO = 'Fill the absent status with an open invoice state.';
 const CORRUPT = { id: 'in_base', amount_due: 0 };
@@ -20,12 +21,12 @@ const UNLISTED = { status: 'paid' };
 const OVERSIZED_SCHEMA = { type: 'string', description: 'x'.repeat(1024 * 1024) };
 
 const agentPrompt = (): Record<string, unknown> => {
-  const [call] = vi.mocked(generateFixture).mock.calls;
+  const [call] = vi.mocked(runAgent).mock.calls;
 
-  if (call === undefined) throw new Error('generateFixture was not called');
+  if (call === undefined) throw new Error('runAgent was not called');
 
   const [request] = call;
-  const parsed: unknown = JSON.parse(request.prompt);
+  const parsed: unknown = JSON.parse(request.input);
 
   if (!isSchemaRecord(parsed)) throw new Error('the prompt payload is not a JSON object');
 
@@ -49,7 +50,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
     });
 
     it('WHEN the harness returns only the absent keys THEN returns the validated fill', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue(FILLED);
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const enrich = aiMissingFixture(options);
       const result = await enrich('invoice', request);
@@ -58,7 +59,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
     });
 
     it('WHEN the harness answers THEN the prompt carries the pruned document and the corrupt baseline', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue(FILLED);
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const enrich = aiMissingFixture(options);
 
@@ -73,7 +74,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
     });
 
     it('WHEN the harness answers THEN the prompt never carries the full specification', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue(FILLED);
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const enrich = aiMissingFixture(options);
 
@@ -90,11 +91,11 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       const huge: AiMissingRequest = { ...request, missing: oversized };
 
       await expect(enrich('invoice', huge)).rejects.toThrow(/1 MiB agent input limit/);
-      expect(vi.mocked(generateFixture)).not.toHaveBeenCalled();
+      expect(vi.mocked(runAgent)).not.toHaveBeenCalled();
     });
 
     it('WHEN the filled value breaks the projection THEN rejects with the failing path', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue(UNLISTED);
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(UNLISTED)));
 
       const enrich = aiMissingFixture(options);
 
@@ -102,7 +103,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
     });
 
     it('WHEN a required missing key is absent THEN rejects rather than returning a partial fill', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue({});
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', '{}'));
 
       const enrich = aiMissingFixture(options);
 
@@ -114,14 +115,14 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       const enrich = aiMissingFixture(options);
 
       await expect(enrich('invoice', blank)).rejects.toThrow(/scenario/);
-      expect(vi.mocked(generateFixture)).not.toHaveBeenCalled();
+      expect(vi.mocked(runAgent)).not.toHaveBeenCalled();
     });
 
     it('WHEN the schema name disagrees with the projection THEN rejects before invoking the harness', async (): Promise<void> => {
       const enrich = aiMissingFixture(options);
 
       await expect(enrich('receipt', request)).rejects.toThrow(/diffed against schema "invoice", not "receipt"/);
-      expect(vi.mocked(generateFixture)).not.toHaveBeenCalled();
+      expect(vi.mocked(runAgent)).not.toHaveBeenCalled();
     });
 
     it('WHEN canceled before invocation THEN does not invoke the harness', async (): Promise<void> => {
@@ -132,11 +133,11 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       controller.abort(new Error('generation canceled'));
 
       await expect(enrich('invoice', request)).rejects.toThrow('generation canceled');
-      expect(vi.mocked(generateFixture)).not.toHaveBeenCalled();
+      expect(vi.mocked(runAgent)).not.toHaveBeenCalled();
     });
 
     it('WHEN filling THEN leaves the corrupt baseline and the missing file unchanged', async (): Promise<void> => {
-      vi.mocked(generateFixture).mockResolvedValue(FILLED);
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const before = JSON.stringify({ CORRUPT, missing });
       const enrich = aiMissingFixture(options);

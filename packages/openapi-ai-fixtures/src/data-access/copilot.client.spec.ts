@@ -14,27 +14,27 @@ describe('FEATURE: Copilot fixture response handling', (): void => {
     vi.resetAllMocks();
   });
 
-  describe('GIVEN Copilot returns a JSON fixture response', (): void => {
-    it('WHEN the fixture is requested THEN returns the parsed fixture', async (): Promise<void> => {
+  describe('GIVEN Copilot returns fixture text', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact stdout', async (): Promise<void> => {
       const response = '{"id":"fixture-1"}\n';
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
       const fixture = await copilotFixture(request);
 
-      expect(fixture).toStrictEqual({ id: 'fixture-1' });
+      expect(fixture).toBe(response);
     });
   });
 
   describe('GIVEN Copilot returns prose around a fixture', (): void => {
-    it('WHEN the fixture is requested THEN rejects the ambiguous response', async (): Promise<void> => {
+    it('WHEN the fixture is requested THEN returns the unmodified response for central validation', async (): Promise<void> => {
       const response = 'Fixture: {"id":"fixture-1"}';
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
-      const fixture = copilotFixture(request);
+      const fixture = await copilotFixture(request);
 
-      await expect(fixture).rejects.toThrow('copilot returned invalid JSON');
+      expect(fixture).toBe(response);
     });
   });
 

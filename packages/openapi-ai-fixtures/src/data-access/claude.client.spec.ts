@@ -31,8 +31,8 @@ describe('FEATURE: Claude fixture response handling', (): void => {
     });
   });
 
-  describe('GIVEN Claude reports success with malformed final fixture JSON', (): void => {
-    it('WHEN the fixture is requested THEN rejects the malformed result', async (): Promise<void> => {
+  describe('GIVEN Claude reports success with malformed fixture text', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact response for central parsing', async (): Promise<void> => {
       const response = JSON.stringify({
         type: 'result',
         subtype: 'success',
@@ -42,27 +42,28 @@ describe('FEATURE: Claude fixture response handling', (): void => {
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
-      const fixture = claudeFixture(request);
+      const fixture = await claudeFixture(request);
 
-      await expect(fixture).rejects.toThrow('claude returned invalid JSON');
+      expect(fixture).toBe('{not-json}');
     });
   });
 
-  describe('GIVEN Claude reports success with a JSON fixture result', (): void => {
-    it('WHEN the fixture is requested THEN returns the parsed fixture', async (): Promise<void> => {
+  describe('GIVEN Claude reports success with fixture JSON', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact fixture text', async (): Promise<void> => {
       const expected = { id: 'invoice-1', amount: 42 };
+      const result = JSON.stringify(expected);
       const response = JSON.stringify({
         type: 'result',
         subtype: 'success',
         is_error: false,
-        result: JSON.stringify(expected)
+        result
       });
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
       const fixture = await claudeFixture(request);
 
-      expect(fixture).toStrictEqual(expected);
+      expect(fixture).toBe(result);
     });
   });
 });

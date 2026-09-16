@@ -1,5 +1,6 @@
 import type { OpenApiSpec, SchemaMap } from '@fixture-automation/openapi-fixtures';
 
+import { saveFailedResponse } from './agent-response-file.client.ts';
 import { generateFixture } from './fixture-agent.client.ts';
 import type { AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureFactory, AiFixtureOptions, AiFixtureRequest } from '../common/ai-fixtures.type.ts';
@@ -32,11 +33,14 @@ export const aiFixtures = <TComponents extends SchemaMap = SchemaMap>(
     const prepared = prepareSchema<TComponents['schemas'][TSchemaName]>(spec, name);
     const prompt = fixturePrompt(prepared.context, fixtureJson, scenario);
     const agentRequest: AgentRequest = { prompt, options };
-    const result = await generateFixture(agentRequest);
+    const generated = await generateFixture(agentRequest);
+    const result = generated.value;
 
     if (prepared.validate(result)) return result;
 
     const details = validationDetails(prepared.validate.errors);
+
+    await saveFailedResponse(options, generated.response, generated.attempt);
 
     throw new Error(`generated fixture violates schema "${name}": ${details}`);
   };

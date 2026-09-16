@@ -1,6 +1,5 @@
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentFile, AgentRequest } from '../common/agent.type.ts';
-import { parseAgentJson } from '../utils/agent-response.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const COPILOT_AGENT_CONTENT = `---
@@ -30,7 +29,7 @@ const COPILOT_ARGS = [
  * Enrich through Copilot CLI versions that support custom agents with
  * `tools: []`; older versions cannot satisfy this adapter's no-tools contract.
  */
-export const copilotFixture = async (request: AgentRequest): Promise<unknown> => {
+export const copilotFixture = async (request: AgentRequest): Promise<string> => {
   const agentFile: AgentFile = {
     path: '.github/agents/fixture-enricher.agent.md',
     content: COPILOT_AGENT_CONTENT
@@ -53,5 +52,5 @@ export const copilotFixture = async (request: AgentRequest): Promise<unknown> =>
   };
   const stdout = await runAgent(command, request.options);
 
-  return parseAgentJson(stdout, 'copilot');
+  return stdout;
 };

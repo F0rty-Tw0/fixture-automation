@@ -1,6 +1,6 @@
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentFile, AgentRequest } from '../common/agent.type.ts';
-import { parseAgentEnvelope, parseAgentJson } from '../utils/agent-response.util.ts';
+import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const GEMINI_PROMPT = 'Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value.';
@@ -47,7 +47,7 @@ const GEMINI_ARGS = [
  * Enrich through Gemini CLI versions supporting headless JSON envelopes,
  * explicit policy files, `--extensions none`, and system settings paths.
  */
-export const geminiFixture = async (request: AgentRequest): Promise<unknown> => {
+export const geminiFixture = async (request: AgentRequest): Promise<string> => {
   const settingsFile: AgentFile = {
     path: '.gemini/system-settings.json',
     content: GEMINI_SETTINGS_CONTENT
@@ -87,5 +87,5 @@ export const geminiFixture = async (request: AgentRequest): Promise<unknown> => 
     throw new Error(message);
   }
 
-  return parseAgentJson(response, 'gemini');
+  return response;
 };

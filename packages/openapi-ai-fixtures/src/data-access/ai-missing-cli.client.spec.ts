@@ -33,6 +33,41 @@ describe('FEATURE: AI fixture command in missing-field mode', (): void => {
       expect(filled).toStrictEqual({ status: 'open' });
     });
 
+    it('WHEN the first model response is invalid JSON THEN writes only the validated missing fields', async (): Promise<void> => {
+      const args = missingArgs(project, 'missing-mode recover invalid fixture JSON', false);
+
+      await project.run(args);
+
+      const text = await readFile(project.outputFile, 'utf8');
+      const filled: unknown = JSON.parse(text);
+
+      expect(filled).toStrictEqual({ status: 'open' });
+    });
+
+    it('WHEN corrected JSON violates the projection THEN preserves the existing destination', async (): Promise<void> => {
+      const original = '{"saved":"previous fixture"}\n';
+      const args = missingArgs(project, 'missing-mode invalid recover invalid fixture JSON', false);
+
+      await writeFile(project.outputFile, original);
+      await expect(project.run(args)).rejects.toMatchObject({ code: 1 });
+
+      const after = await readFile(project.outputFile, 'utf8');
+
+      expect(after).toBe(original);
+    });
+
+    it('WHEN corrected JSON violates the projection THEN retains both responses for inspection', async (): Promise<void> => {
+      const args = missingArgs(project, 'missing-mode invalid recover invalid fixture JSON', false);
+
+      await expect(project.run(args)).rejects.toMatchObject({ code: 1 });
+
+      const original = await readFile(`${project.outputFile}.failed-attempt-1.txt`, 'utf8');
+      const correction = await readFile(`${project.outputFile}.failed-attempt-2.txt`, 'utf8');
+
+      expect(original).toBe('\r\n{"status": \t');
+      expect(correction).toBe('{"status":"paid"}');
+    });
+
     it('WHEN no scenario is given THEN the default missing scenario still fills the fields', async (): Promise<void> => {
       const args = missingArgs(project, SCENARIO, false);
       const scenarioIndex = args.indexOf('--scenario');

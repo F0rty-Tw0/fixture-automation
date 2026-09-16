@@ -1,6 +1,6 @@
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentRequest } from '../common/agent.type.ts';
-import { parseAgentEnvelope, parseAgentJson } from '../utils/agent-response.util.ts';
+import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const isEnvelope = (value: unknown): value is Record<string, unknown> => {
@@ -102,7 +102,7 @@ const codexArgs = (model: string | undefined): string[] => {
 };
 
 /** Enrich a fixture through an installed Codex CLI in restricted ephemeral mode. */
-export const codexFixture = async (request: AgentRequest): Promise<unknown> => {
+export const codexFixture = async (request: AgentRequest): Promise<string> => {
   const args = codexArgs(selectedModel(request.options));
   const command: AgentCommand = {
     executable: 'codex',
@@ -112,5 +112,5 @@ export const codexFixture = async (request: AgentRequest): Promise<unknown> => {
   const output = await runAgent(command, request.options);
   const result = codexResult(output);
 
-  return parseAgentJson(result, 'codex');
+  return result;
 };

@@ -15,15 +15,16 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
   });
 
   describe('GIVEN Gemini returns a successful JSON envelope', (): void => {
-    it('WHEN the fixture is requested THEN returns the parsed response JSON', async (): Promise<void> => {
-      const envelope = { response: '{"id":"fixture-1"}', stats: {} };
+    it('WHEN the fixture is requested THEN returns the exact response text', async (): Promise<void> => {
+      const fixtureText = '{"id":"fixture-1"}';
+      const envelope = { response: fixtureText, stats: {} };
       const response = JSON.stringify(envelope);
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
       const fixture = await geminiFixture(request);
 
-      expect(fixture).toStrictEqual({ id: 'fixture-1' });
+      expect(fixture).toBe(fixtureText);
     });
   });
 
@@ -65,16 +66,17 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
     });
   });
 
-  describe('GIVEN Gemini returns malformed fixture JSON in a successful envelope', (): void => {
-    it('WHEN the fixture is requested THEN rejects instead of scraping the response', async (): Promise<void> => {
-      const envelope = { response: '```json\n{"id":"fixture-1"}\n```' };
+  describe('GIVEN Gemini returns malformed fixture text in a successful envelope', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact text for central validation', async (): Promise<void> => {
+      const fixtureText = '```json\n{"id":"fixture-1"}\n```';
+      const envelope = { response: fixtureText };
       const response = JSON.stringify(envelope);
 
       vi.mocked(runAgent).mockResolvedValue(response);
 
-      const fixture = geminiFixture(request);
+      const fixture = await geminiFixture(request);
 
-      await expect(fixture).rejects.toThrow('gemini returned invalid JSON');
+      expect(fixture).toBe(fixtureText);
     });
   });
 });

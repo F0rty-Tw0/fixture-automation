@@ -30,24 +30,10 @@ describe('FEATURE: Codex fixture response handling', (): void => {
     });
   });
 
-  describe('GIVEN Codex completes a turn with malformed final fixture JSON', (): void => {
-    it('WHEN the fixture is requested THEN rejects the malformed response', async (): Promise<void> => {
-      const message = { type: 'agent_message', text: '{not-json}' };
-      const events = [JSON.stringify({ type: 'item.completed', item: message }), JSON.stringify({ type: 'turn.completed' })];
-      const response = events.join('\n');
-
-      vi.mocked(runAgent).mockResolvedValue(response);
-
-      const fixture = codexFixture(request);
-
-      await expect(fixture).rejects.toThrow('codex returned invalid JSON');
-    });
-  });
-
-  describe('GIVEN Codex completes a turn with a JSON fixture message', (): void => {
-    it('WHEN the fixture is requested THEN returns the parsed fixture', async (): Promise<void> => {
-      const expected = { id: 'invoice-1', amount: 42 };
-      const message = { type: 'agent_message', text: JSON.stringify(expected) };
+  describe('GIVEN Codex completes a turn with malformed fixture text', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact response for central parsing', async (): Promise<void> => {
+      const text = '{not-json}';
+      const message = { type: 'agent_message', text };
       const events = [JSON.stringify({ type: 'item.completed', item: message }), JSON.stringify({ type: 'turn.completed' })];
       const response = events.join('\n');
 
@@ -55,7 +41,23 @@ describe('FEATURE: Codex fixture response handling', (): void => {
 
       const fixture = await codexFixture(request);
 
-      expect(fixture).toStrictEqual(expected);
+      expect(fixture).toBe(text);
+    });
+  });
+
+  describe('GIVEN Codex completes a turn with a fixture message', (): void => {
+    it('WHEN the fixture is requested THEN returns the exact fixture text', async (): Promise<void> => {
+      const expected = { id: 'invoice-1', amount: 42 };
+      const text = JSON.stringify(expected);
+      const message = { type: 'agent_message', text };
+      const events = [JSON.stringify({ type: 'item.completed', item: message }), JSON.stringify({ type: 'turn.completed' })];
+      const response = events.join('\n');
+
+      vi.mocked(runAgent).mockResolvedValue(response);
+
+      const fixture = await codexFixture(request);
+
+      expect(fixture).toBe(text);
     });
   });
 });

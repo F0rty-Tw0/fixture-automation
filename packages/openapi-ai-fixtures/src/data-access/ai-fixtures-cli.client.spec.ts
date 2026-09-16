@@ -30,6 +30,45 @@ describe('FEATURE: AI fixture command', (): void => {
       expect(fixture).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
     });
 
+    it('WHEN the first model response is invalid JSON THEN writes the schema-valid correction', async (): Promise<void> => {
+      const args = integrationArgs(project, 'recover invalid fixture JSON', false);
+
+      await project.run(args);
+
+      const text = await readFile(project.outputFile, 'utf8');
+      const fixture: unknown = JSON.parse(text);
+
+      expect(fixture).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
+    });
+
+    it('WHEN malformed output is repaired THEN preserves the original response verbatim', async (): Promise<void> => {
+      const args = integrationArgs(project, 'recover invalid fixture JSON', false);
+
+      const result = await project.run(args);
+      const saved = `${project.outputFile}.failed-attempt-1.txt`;
+      const raw = await readFile(saved, 'utf8');
+
+      expect(raw).toBe('\r\n{"status": \t');
+      expect(result.stderr).toContain(saved);
+    });
+
+    it('WHEN both attempts fail THEN preserves both raw responses for manual repair', async (): Promise<void> => {
+      const args = integrationArgs(project, 'invalid fixture JSON', false);
+      const first = `${project.outputFile}.failed-attempt-1.txt`;
+      const second = `${project.outputFile}.failed-attempt-2.txt`;
+      const failure = project.run(args);
+
+      await expect(failure).rejects.toMatchObject({ code: 1 });
+      await expect(failure).rejects.toHaveProperty('stderr', expect.stringContaining(first));
+      await expect(failure).rejects.toHaveProperty('stderr', expect.stringContaining(second));
+
+      const original = await readFile(first, 'utf8');
+      const correction = await readFile(second, 'utf8');
+
+      expect(original).toBe('\r\n{"status": \t');
+      expect(correction).toBe('{"status":"open",}\n');
+    });
+
     it('WHEN writing a typed stub THEN a compiled consumer reads the fixture', async (): Promise<void> => {
       const args = integrationArgs(project, 'An open invoice for 4200 cents.', true);
 
@@ -40,7 +79,7 @@ describe('FEATURE: AI fixture command', (): void => {
       expect(invoice).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
     }, 30000);
 
-    it.each(['invalid enum', 'process failure', 'malformed response'])(
+    it.each(['invalid enum', 'process failure', 'malformed response', 'invalid fixture JSON'])(
       'WHEN generation has %s THEN preserves the existing destination',
       async (scenario: string): Promise<void> => {
         const original = '{"saved":"previous fixture"}\n';

@@ -1,6 +1,6 @@
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentRequest } from '../common/agent.type.ts';
-import { parseAgentEnvelope, parseAgentJson } from '../utils/agent-response.util.ts';
+import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const claudeResult = (envelope: Record<string, unknown>): string => {
@@ -23,7 +23,7 @@ const claudeResult = (envelope: Record<string, unknown>): string => {
 };
 
 /** Enrich a fixture through an installed Claude Code CLI without agent tools. */
-export const claudeFixture = async (request: AgentRequest): Promise<unknown> => {
+export const claudeFixture = async (request: AgentRequest): Promise<string> => {
   const args = [
     '-p',
     '--input-format',
@@ -53,5 +53,5 @@ export const claudeFixture = async (request: AgentRequest): Promise<unknown> => 
   const envelope = parseAgentEnvelope(output, 'claude');
   const result = claudeResult(envelope);
 
-  return parseAgentJson(result, 'claude');
+  return result;
 };

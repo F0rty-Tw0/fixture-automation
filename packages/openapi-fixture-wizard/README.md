@@ -8,7 +8,7 @@ It calls the other five packages in-process and asks every question on stderr. E
 
 - **Generates** `<schema>.fixture.json` and, for the `ts` and `both` formats, `<schema>.spec.json`, `<schema>.d.ts` and a typed `<schema>.fixture.ts` stub.
 - **Targets** a schema by name, or by route: `GET /v1/invoices/{id}` is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints).
-- **Diffs** one existing fixture against the schema and writes `missing/missing.json`, `missing/missing.d.ts` and `missing/missing.stub.ts` when fields are absent.
+- **Diffs** one existing fixture against the schema, optionally selecting a top-level payload such as `body`, and writes `missing/missing.json`, `missing/missing.d.ts` and `missing/missing.stub.ts` when fields are absent.
 - **Fills** the missing fields with a local coding harness (`claude`, `codex`, `antigravity`, `copilot` or `gemini`) into `missing/populated.json`.
 - **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar.
 
@@ -38,6 +38,9 @@ format: 3
 existing-fixture (Enter to skip): JSON fixture to check for missing fields; Enter ends the run after generation
   e.g. invoice.fixture.json
 existing-fixture: invoice.json
+object-shape (Enter to skip): top-level fixture property to compare and merge; Enter uses the whole object
+  e.g. body
+object-shape:
 required-only (y/N): report only missing required fields
 required-only:
 3 missing field(s): amount_due, status, memo
@@ -60,9 +63,12 @@ extra-prompt (Enter to skip): what the missing values should describe; Enter kee
 extra-prompt:
 merge (y/N): merge the filled values into the existing fixture and validate the result
 merge: y
-endpoint-url: exact URL whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and SHA-256 provenance sidecar
-  e.g. https://api.example.com/v1/invoices/in_2
+endpoint-url: endpoint identity whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and provenance
+  e.g. GET, custodies/v2
 endpoint-url: https://api.stripe.com/v1/invoices/in_1
+subdirectory (Enter to skip): optional endpoint prefix for hashing; Enter keeps the endpoint identity unchanged
+  e.g. savings (GET, custodies/v2 becomes GET, savings/custodies/v2)
+subdirectory:
 filled 3 path(s)
 wrote E:\work\fixtures\invoice.spec.json
 wrote E:\work\fixtures\invoice.d.ts
@@ -87,15 +93,23 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | `target`           | required | A key under `components.schemas`, or `VERB /path` of a route whose JSON response is a `$ref`. |
 | `format`           | choice   | `1) json` `2) ts` `3) both`.                                                                  |
 | `existing-fixture` | optional | JSON fixture to check. Enter ends the run after generation.                                   |
+| `object-shape`     | optional | Top-level property to compare and merge, e.g. `body`. Enter uses the entire fixture.          |
 | `required-only`    | y/N      | Diff only required fields.                                                                    |
 | `fill-with-ai`     | y/N      | Asked only when the diff found missing fields.                                                |
 | `tool`             | choice   | `1) claude` `2) codex` `3) antigravity` `4) copilot` `5) gemini`.                             |
 | `model number`     | choice   | Models the harness offers; `0` keeps the harness default.                                     |
 | `extra-prompt`     | optional | Scenario for the missing values. Enter keeps the default missing-field scenario.              |
 | `merge`            | y/N      | Merge the filled values into the existing fixture.                                            |
-| `endpoint-url`     | required | Asked only after accepting merge. Exact endpoint URL used to derive the merged JSON filename. |
+| `endpoint-url`     | required | Asked only after accepting merge. Endpoint identity: a URL or `METHOD, path`.                 |
+| `subdirectory`     | optional | Prefix inserted into the endpoint path before hashing. Enter keeps the identity unchanged.    |
 
 Every required prompt and every choice allows three attempts before the run fails.
+
+`object-shape` is asked once and reused by the merge. With `body`, the existing fixture
+must have a `body` property. Missing paths are reported as `body.amount_due`, and the
+missing schema and AI-filled JSON retain the `body` wrapper. Merge fills and validates
+only that payload; sibling fields such as `statusCode` and `headers` remain unchanged.
+The shape is one literal top-level key, not a dotted path.
 
 ## Files written
 
@@ -110,7 +124,7 @@ All paths are under `<out-dir>`. The run ends with one `wrote <file>` line per f
 | AI fill       | `missing/populated.json`                                                                         |
 | merge         | `<hash>.json`, validated against the spec, and `<hash>.provenance.json`                          |
 
-`<hash>` is SHA-1 of the endpoint URL's UTF-8 bytes, encoded as standard Base64 with every `/` replaced by lowercase `x`; `+` and `=` are retained. The URL is not normalized or inferred from the spec URL, schema, or route. The merged fixture stays plain JSON. Its sidecar records `endpointUrl` and `sha256`, a lowercase hexadecimal SHA-256 checksum of the exact merged file bytes, including the final newline. Repeating an endpoint overwrites the same pair of files; changing content changes the checksum, not the name.
+`<hash>` is SHA-1 of the endpoint identity's UTF-8 bytes, encoded as standard Base64 with every `/` replaced by lowercase `x`; `+` and `=` are retained. With a blank subdirectory the identity is unchanged and is not inferred from the spec URL, schema, or route. With `endpoint-url: GET, custodies/v2` and `subdirectory: savings`, the exact hash input is `GET, savings/custodies/v2`, producing `SyDyiBXH0INxJLx3y+UqNPhAJKc=.json`. Leading/trailing subdirectory slashes and leading endpoint slashes are removed at the join. The merged fixture stays plain JSON. Its sidecar records the effective identity as `endpointUrl` and a lowercase hexadecimal `sha256` checksum of the exact merged file bytes, including the final newline. Repeating an identity overwrites the same pair of files; changing content changes the checksum, not the name.
 
 The sidecar is a content fingerprint and a declared endpoint association, not a signed origin attestation. It stores the endpoint URL in plain text; do not include credentials or secret query parameters.
 

@@ -88,7 +88,7 @@ describe('FEATURE: fixture wizard', (): void => {
         const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
         const mergedFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.json');
         const provenanceFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.provenance.json');
-        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', 'y', '2', '1', '', 'y', endpointUrl];
+        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', endpointUrl, ''];
 
         await run(...answers);
 
@@ -118,7 +118,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'three');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '');
+        await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '', '');
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
       },
       TIMEOUT
@@ -132,7 +132,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'four');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', 'n');
+        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', '', 'n');
         await expect(exists(join(outDir, 'missing', 'missing.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'missing', 'populated.json'))).resolves.toBe(false);
       },
@@ -147,12 +147,57 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'five');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', 'y', '2', '1', '', 'n');
+        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', '', 'y', '2', '1', '', 'n');
 
         const outputEntries = await readdir(outDir);
 
         await expect(exists(join(outDir, 'missing', 'populated.json'))).resolves.toBe(true);
         expect(outputEntries.sort()).toStrictEqual(['invoice.fixture.json', 'missing']);
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN a body envelope and a hash subdirectory', (): void => {
+    it(
+      'WHEN filled and merged THEN keeps the envelope and hashes the prefixed endpoint',
+      async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const fixture = { statusCode: 200, body: CORRUPT };
+        const populated = { body: FILLED };
+        const expected = { statusCode: 200, body: COMPLETE };
+        const fixtureFile = join(directory, 'wrapped.json');
+        const outDir = join(directory, 'wrapped');
+        const question = answering(
+          SPEC_URL,
+          outDir,
+          'invoice',
+          '1',
+          fixtureFile,
+          'body',
+          '',
+          'y',
+          '2',
+          '1',
+          '',
+          'y',
+          'GET, custodies/v2',
+          'savings'
+        );
+        const enrichBody: AiMissingFactory = async (): Promise<Record<string, unknown>> => Promise.resolve(populated);
+        const fillBody = (): AiMissingFactory => enrichBody;
+        const deps: WizardDeps = { question, discover, fill: fillBody };
+        const mergedFile = join(outDir, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.json');
+        const provenanceFile = join(outDir, 'SyDyiBXH0INxJLx3y+UqNPhAJKc=.provenance.json');
+
+        await writeFile(fixtureFile, JSON.stringify(fixture));
+        await runWizard(promptedInputs(question), deps);
+
+        const merged: unknown = JSON.parse(await readFile(mergedFile, 'utf8'));
+        const provenance: unknown = JSON.parse(await readFile(provenanceFile, 'utf8'));
+
+        expect(merged).toStrictEqual(expected);
+        expect(provenance).toMatchObject({ endpointUrl: 'GET, savings/custodies/v2' });
       },
       TIMEOUT
     );

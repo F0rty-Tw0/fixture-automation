@@ -36,6 +36,11 @@ const existingFixture: InputSpec = {
   description: 'JSON fixture to check for missing fields; Enter ends the run after generation',
   example: 'invoice.fixture.json'
 };
+const objectShape: InputSpec = {
+  label: 'object-shape',
+  description: 'top-level fixture property to compare and merge; Enter uses the whole object',
+  example: 'body'
+};
 const requiredOnly: InputSpec = {
   label: 'required-only',
   description: 'report only missing required fields',
@@ -63,8 +68,13 @@ const merge: InputSpec = {
 };
 const endpointUrl: InputSpec = {
   label: 'endpoint-url',
-  description: 'exact URL whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and SHA-256 provenance sidecar',
-  example: 'https://api.example.com/v1/invoices/in_2'
+  description: 'endpoint identity whose SHA-1 Base64 name (with / replaced by x) names the merged JSON and provenance',
+  example: 'GET, custodies/v2'
+};
+const subdirectory: InputSpec = {
+  label: 'subdirectory',
+  description: 'optional endpoint prefix for hashing; Enter keeps the endpoint identity unchanged',
+  example: 'savings (GET, custodies/v2 becomes GET, savings/custodies/v2)'
 };
 
 /** What each prompt says, in the order the wizard asks. */
@@ -74,12 +84,14 @@ export const WIZARD_INPUTS = {
   target,
   format,
   existingFixture,
+  objectShape,
   requiredOnly,
   fillWithAi,
   tool,
   extraPrompt,
   merge,
-  endpointUrl
+  endpointUrl,
+  subdirectory
 };
 
 export const WIZARD_HELP = `usage: openapi-fixture-wizard
@@ -92,11 +104,13 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
   target            schema name (invoice) or route (GET /v1/invoices/{id}) (required)
   format            1) json  2) ts  3) both
   existing-fixture  JSON fixture to check; Enter ends the run after generation
+  object-shape      top-level property to compare and merge (body); Enter uses the whole object
   required-only     y/N, diff only required fields
   fill-with-ai      y/N, asked when the diff found missing fields
   tool              1) claude  2) codex  3) antigravity  4) copilot  5) gemini
   model             numbered list from the harness; 0 = harness default
   extra-prompt      scenario for the missing values; Enter keeps the default
   merge             y/N, merge the filled values into the existing fixture
-  endpoint-url      required after merge; exact URL drives the SHA-1 Base64 (/ -> x) JSON basename and SHA-256 provenance sidecar
+  endpoint-url      required after merge; endpoint identity, e.g. GET, custodies/v2, drives the hashed JSON basename
+  subdirectory      optional hash prefix, e.g. savings gives GET, savings/custodies/v2; Enter leaves it unchanged
   -h, --help        print this help`;

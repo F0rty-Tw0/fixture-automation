@@ -20,10 +20,11 @@ const MISSING_DIR = 'missing';
 const defaultDeps: WizardDeps = { question: terminalQuestion, discover: discoverModels, fill: aiMissingFixture };
 
 const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string[]> => {
-  const { fixtureFile, inputs, outDir, schemaName, specUrl } = context;
+  const { fixtureFile, inputs, objectShape, outDir, schemaName, specUrl } = context;
   const endpointUrl = await inputs.required(undefined, WIZARD_INPUTS.endpointUrl, WIZARD_USAGE);
+  const subdirectory = await inputs.optional(undefined, WIZARD_INPUTS.subdirectory);
   const spec: MergeSpec = { url: specUrl, schemaName };
-  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outDir, endpointUrl, spec };
+  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory, spec };
   const result = await mergeFixture(input);
   const mergedFiles = [result.outFile, result.provenanceFile];
 
@@ -49,10 +50,10 @@ const fillAndMerge = async (context: WizardContext, diffed: DiffResult): Promise
 };
 
 const checkExisting = async (context: WizardContext): Promise<string[]> => {
-  const { inputs, spec, schemaName, outDir, fixtureFile } = context;
+  const { inputs, spec, schemaName, outDir, fixtureFile, objectShape } = context;
   const requiredOnly = await inputs.flag(undefined, WIZARD_INPUTS.requiredOnly);
   const missingDir = join(outDir, MISSING_DIR);
-  const diffed = await diffExisting({ spec, schemaName, fixtureFile, outDir: missingDir, requiredOnly });
+  const diffed = await diffExisting({ spec, schemaName, fixtureFile, outDir: missingDir, requiredOnly, objectShape });
 
   if (diffed === undefined) {
     console.error(styleText('green', 'no missing fields', { stream: process.stderr }));
@@ -80,7 +81,8 @@ const runSteps = async (inputs: Inputs, deps: WizardDeps): Promise<string[]> => 
 
   if (fixtureFile === undefined) return generated;
 
-  const context: WizardContext = { inputs, deps, specUrl, spec, schemaName, outDir, fixtureFile };
+  const objectShape = await inputs.optional(undefined, WIZARD_INPUTS.objectShape);
+  const context: WizardContext = { inputs, deps, specUrl, spec, schemaName, outDir, fixtureFile, objectShape };
   const checked = await checkExisting(context);
 
   return [...generated, ...checked];

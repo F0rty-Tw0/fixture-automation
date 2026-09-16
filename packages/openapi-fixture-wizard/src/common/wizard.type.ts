@@ -26,6 +26,7 @@ export type DiffRequest = {
   /** Directory receiving `missing.json`, `missing.d.ts` and `missing.stub.ts`. */
   readonly outDir: string;
   readonly requiredOnly: boolean;
+  readonly objectShape?: string | undefined;
 };
 
 export type DiffResult = {
@@ -46,4 +47,5 @@ export type WizardContext = {
   readonly schemaName: string;
   readonly outDir: string;
   readonly fixtureFile: string;
+  readonly objectShape: string | undefined;
 };

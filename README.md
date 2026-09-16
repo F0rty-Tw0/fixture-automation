@@ -48,6 +48,12 @@ SPEC=$(node -p "require('node:url').pathToFileURL('packages/openapi-fixtures/src
 
 **Every tool has `--help`.** Prints the full flag reference and exits `0`.
 
+**Terminal colors.** Human-readable output uses Node's built-in colors: red errors, yellow warnings and missing fields, green success messages, and cyan/bold help headings and prompts.
+
+Colors follow the destination stream's terminal capabilities; pipes stay plain by default. Set `NO_COLOR=1` or `NODE_DISABLE_COLORS=1` to disable colors, or `FORCE_COLOR=1` to force them. `FORCE_COLOR` takes precedence; `FORCE_COLOR=0` disables colors.
+
+Generated JSON/TypeScript, saved files, and `--list-models` stdout stay uncolored even when colors are forced.
+
 **Exit codes.** `0` on success, `1` on any failure.
 
 **Errors are 3 lines, to stderr:**

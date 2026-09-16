@@ -1,5 +1,31 @@
 import type { AiTool } from '../../common/ai-fixtures.type.ts';
 
+const geminiStreamResponse = (text: string): string => {
+  const init = {
+    model: 'gemini-test',
+    session_id: 'session-1',
+    timestamp: '2026-09-16T00:00:00.000Z',
+    type: 'init'
+  };
+  const message = {
+    content: text,
+    delta: true,
+    role: 'assistant',
+    timestamp: '2026-09-16T00:00:01.000Z',
+    type: 'message'
+  };
+  const result = {
+    stats: {},
+    status: 'success',
+    timestamp: '2026-09-16T00:00:02.000Z',
+    type: 'result'
+  };
+  const events = [init, message, result];
+  const lines = events.map((event): string => JSON.stringify(event));
+
+  return `${lines.join('\n')}\n`;
+};
+
 export const agentResponse = (tool: AiTool, text: string): string => {
   switch (tool) {
     case 'claude':
@@ -19,6 +45,6 @@ export const agentResponse = (tool: AiTool, text: string): string => {
     case 'copilot':
       return text;
     case 'gemini':
-      return JSON.stringify({ response: text });
+      return geminiStreamResponse(text);
   }
 };

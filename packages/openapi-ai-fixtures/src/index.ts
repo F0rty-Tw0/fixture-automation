@@ -2,6 +2,8 @@ export { aiFixtures } from './data-access/ai-fixtures.client.ts';
 
 export { aiMissingFixture } from './data-access/ai-missing-fixtures.client.ts';
 
+export { createAiProgressReporter } from './data-access/ai-progress.client.ts';
+
 export { parseMissingFile } from './utils/missing-file.util.ts';
 
 export { discoverModels } from './data-access/model-discovery.client.ts';
@@ -16,7 +18,7 @@ export { schemaDialect } from './utils/schema-dialect.util.ts';
 
 export { compileFixtureSchema } from './utils/schema-validator.util.ts';
 
-export type { AiFixtureFactory, AiFixtureOptions, AiFixtureRequest, AiTool } from './common/ai-fixtures.type.ts';
+export type { AiFixtureFactory, AiFixtureOptions, AiFixtureProgress, AiFixtureRequest, AiTool } from './common/ai-fixtures.type.ts';
 
 export type { AiMissingFactory, AiMissingRequest, MissingFile, MissingPromptInput } from './common/missing.type.ts';
 

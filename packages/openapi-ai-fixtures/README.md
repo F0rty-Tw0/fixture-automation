@@ -48,11 +48,12 @@ usage: openapi-ai-fixtures <spec-url> [schema-name] [out-file] [options]
   --model <slug>          harness model, or "default" for the harness default
   --ts <types-file>       write a typed .ts stub; requires an out-file
   --executable <path>     absolute path to the harness binary
-  --timeout <ms>          harness timeout in milliseconds
-  --list-models           print the models the harness offers
+  --timeout <ms>          harness timeout in milliseconds (default 900000: 15 minutes)
+  --list-models           print the models the harness offers (default timeout 120000ms)
   -h, --help              print this help
 
 Without --model a terminal prompts for one and a pipe uses the harness default.
+Live provider output and quiet-period status updates go to stderr; fixture JSON stays on stdout.
 ```
 
 | Flag                  | Required                | What it does                                                                                                                 |
@@ -67,7 +68,7 @@ Without --model a terminal prompts for one and a pipe uses the harness default.
 | `--model <slug>`      | No                      | Model passed to the tool. `default` keeps the harness default. Omitted: a terminal prompts, a pipe uses the default.         |
 | `--ts <types-file>`   | No                      | Write a typed `.ts` stub instead of JSON; requires `out-file`.                                                               |
 | `--executable <path>` | No                      | Absolute native executable or Node `.js`/`.cjs`/`.mjs` entrypoint, overriding the tool's normal command.                     |
-| `--timeout <ms>`      | No                      | Integer 1–2147483647; defaults to `120000`.                                                                                  |
+| `--timeout <ms>`      | No                      | Integer 1–2147483647; generation defaults to `900000` (15 minutes), model discovery to `120000` (2 minutes).                  |
 | `--list-models`       | No                      | Print the tool's models and exit; needs no spec, fixture, or scenario.                                                       |
 | `-h, --help`          | No                      | Print usage and exit 0.                                                                                                      |
 
@@ -76,6 +77,20 @@ Without --model a terminal prompts for one and a pipe uses the harness default.
 then every unset optional (`schema-name` — skipped with `--missing` — `out-file`, `--ts`, `--executable`,
 `--timeout`); Enter skips an optional. `--model` keeps its own numbered picker, not this session. A run with every
 required value given asks nothing. Piped and CI runs get the usage error instead.
+
+**Generation progress.** The CLI and wizard show the provider process PID and deadline, live output,
+and an alive message during quiet periods (checked every 10 seconds). Gemini streams assistant text
+without echoing the input prompt or tool payloads; Copilot streams its raw response. Other providers
+forward output when their CLI emits it. No second terminal is needed.
+
+Progress is unvalidated partial output, not the final fixture. It goes only to stderr; stdout and
+output files still contain only the validated result. Provider output can contain sensitive data,
+so treat captured stderr as sensitive. An alive message confirms the subprocess has not exited,
+not that the remote model is making progress or exposing its internal reasoning.
+
+Each generation process gets **15 minutes** by default, including a repair process if one is needed.
+An explicit `--timeout` takes precedence; use `--timeout 1800000` for 30 minutes. Model discovery keeps
+its 2-minute default.
 
 A bare run's first two prompts, captured on stderr:
 
@@ -161,6 +176,7 @@ That run took 12.1 seconds. The result holds **only** the absent properties — 
 | `--missing file "<path>" does not exist`                                                             | The `--missing` path is wrong.                                  | Check the path; it resolves from the current directory.                                           |
 | `missing.json requires a non-empty "schemaName"`                                                     | `--missing` points at a file that is not a real `missing.json`. | Use the file `openapi-fixture-diff diff` produced.                                                |
 | `--ts requires an output file to resolve the types import`                                           | `--ts` was given without a positional `out-file`.               | Add a destination file.                                                                           |
+| `mcpName is required if specified (cannot be empty)` | Gemini received an empty MCP server name. | Rebuild this package to remove the old empty discovery allowlist. If it persists, check the Gemini MCP settings or policy rule named in the error. |
 | Any other error                                                                                      | See the shared error format and exit codes.                     | [Root README](../../README.md#rules-every-tool-shares).                                           |
 
 The rows below are diagnostic categories the underlying provider or runtime can raise, not exact
@@ -182,9 +198,9 @@ messages:
 ```
 
 ```ts
-import { aiFixtures } from '@fixture-automation/openapi-ai-fixtures';
+import { aiFixtures, createAiProgressReporter } from '@fixture-automation/openapi-ai-fixtures';
 
-const enrich = aiFixtures<components>(spec, { tool: 'claude' });
+const enrich = aiFixtures<components>(spec, { tool: 'claude', onProgress: createAiProgressReporter() });
 const invoice = await enrich('invoice', {
   fixture: baseline,
   scenario: 'An open monthly software-subscription invoice with amount_due of 4200 cents.'
@@ -197,8 +213,10 @@ const invoice = await enrich('invoice', {
 - `prepareSchema(spec, name)` — resolves a schema's local dependency graph into a self-contained document and compiles a validator.
 - `schemaDialect(openapi, jsonSchemaDialect)` — maps a spec's version fields onto `'draft-07' | 'openapi-30' | 'openapi-31'`.
 - `compileFixtureSchema(schema, dialect)` — compiles one prepared document; formats outside `ajv-formats` register as pass-through.
-- `AiFixtureOptions` — `{ tool, executable?, model?, timeoutMs?, signal?, recoveryFile? }`. `tool` is required (no fallback). `executable` is an absolute path override. `model` omitted or `'default'` adds no model flag. `timeoutMs` defaults to `120000`, max `2147483647`. `signal` is an `AbortSignal`; an already-aborted signal rejects before the schema is prepared or a process starts. `recoveryFile` is the base path for failed-response sidecars; library calls without it do not save diagnostic files.
-- `discoverModels(tool, options?: ModelDiscoveryOptions): Promise<ModelDiscovery>` — returns `{ models, source }` from the installed provider. Options are `{ executable?, timeoutMs?, signal? }`; errors reject, with no hardcoded fallback.
+- `AiFixtureOptions` — `{ tool, executable?, model?, timeoutMs?, onProgress?, signal?, recoveryFile? }`. `tool` is required (no fallback). `executable` is an absolute path override. `model` omitted or `'default'` adds no model flag. Generation `timeoutMs` defaults to `900000` (15 minutes), max `2147483647`. `signal` is an `AbortSignal`; an already-aborted signal rejects before the schema is prepared or a process starts. `recoveryFile` is the base path for failed-response sidecars; library calls without it do not save diagnostic files.
+- `onProgress(event: AiFixtureProgress)` — optional synchronous callback receiving `{ stream: 'stdout' | 'stderr' | 'status', text: string }`. Library calls emit no progress unless supplied. Throwing from the callback fails the operation and terminates a still-running child; an existing process failure remains the primary error.
+- `createAiProgressReporter()` — returns a stateful progress callback that writes to stderr, strips terminal control sequences, and separates status messages from unfinished output lines. Create one per generation call.
+- `discoverModels(tool, options?: ModelDiscoveryOptions): Promise<ModelDiscovery>` — returns `{ models, source }` from the installed provider. Options are `{ executable?, timeoutMs?, signal? }`; `timeoutMs` defaults to `120000` (2 minutes). Errors reject, with no hardcoded fallback.
 
 ### Validation and failure behavior
 

@@ -2,7 +2,7 @@
 
 This is the provider/security reference for `@fixture-automation/openapi-ai-fixtures`. For the public API, see [README](./README.md); for CLI arguments, use the canonical [AI fixture CLI reference](./README.md#command).
 
-A generation adapter starts one installed, already-authenticated provider CLI in a new temporary working directory. It writes listed files there, pipes UTF-8 input to standard input, closes it, captures UTF-8 stdout and stderr, and deletes the directory after completion unless process-tree termination cannot be confirmed. It uses no shell. The request is limited to 1 MiB; combined stdout and stderr are limited to 8 MiB; the default timeout is 120 seconds.
+A generation adapter starts one installed, already-authenticated provider CLI in a new temporary working directory. It writes listed files there, pipes UTF-8 input to standard input, closes it, captures UTF-8 stdout and stderr, and deletes the directory after completion unless process-tree termination cannot be confirmed. It uses no shell. The request is limited to 1 MiB; combined stdout and stderr are limited to 8 MiB. Each generation process defaults to a 900-second (15-minute) deadline; public model discovery retains its 120-second default. An explicit timeout overrides either default.
 
 A scratch directory and model-tool restrictions are **not** an OS sandbox or a universal guarantee that an executable, its inherited configuration, extensions, hooks, MCP servers, or global instructions cannot run. The status and caveats below are provider-specific.
 
@@ -13,8 +13,8 @@ A scratch directory and model-tool restrictions are **not** an OS sandbox or a u
 | Claude Code        | `claude`; text stdin, JSON stdout envelope                             | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
 | Codex CLI          | `codex`; stdin placeholder `-`, JSONL stdout                           | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
 | Antigravity        | `agy`; one stream-JSON stdin event and stream-JSON stdout              | `.agents/agents/fixture-enricher/agent.md`                                  | Source-linked documentation review; no local run                | Empty-list inheritance, global hooks/rules/MCP, and native-Windows sandbox behavior are unresolved. |
-| GitHub Copilot CLI | `copilot`; complete prompt on stdin, raw text stdout                   | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source-linked documentation review; no local run                | Model tools are disabled, but global MCP/extensions may still start.                                |
-| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, JSON stdout envelope | `.gemini/system-settings.json`                                              | Source review and controlled-process checks; no live generation | Trusted scratch workspace; no custom deny policy; inherited configuration remains relevant.         |
+| GitHub Copilot CLI | `copilot`; complete prompt on stdin, streaming raw text stdout        | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source review and controlled-process checks; no live generation | Model tools are disabled, but global MCP/extensions may still start.                                |
+| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, stream-JSON stdout  | `.gemini/system-settings.json`                                              | Source review and controlled-process checks; no live generation | Trusted scratch workspace; no custom deny policy; inherited configuration remains relevant.         |
 
 “Source-linked documentation review” means official documentation and released/source-code material were inspected. It is not a runtime pass, authentication check, installed-version assertion, or proof of no side effects.
 
@@ -29,6 +29,19 @@ literal double-quote characters inside that argument; do not remove them as if t
 Implementation: [workspace staging](./src/data-access/agent-process-workspace.client.ts),
 [executable resolution](./src/data-access/agent-executable.client.ts), and
 [bounded process execution](./src/data-access/agent-process.client.ts).
+
+The optional `onProgress` callback receives decoded stdout/stderr and lifecycle status while the child
+runs; it does not replace bounded capture or final validation. CLI and wizard calls enable a reporter
+on stderr by default. It prints the process PID and deadline, checks for quiet periods every 10 seconds,
+and reports completion. A heartbeat means the subprocess has not exited; it does not prove remote-model
+progress. A throwing callback fails the operation and terminates a running child without replacing an
+earlier process failure. Timers and abort listeners are removed at settlement.
+
+The terminal reporter removes control sequences and separates status messages from unfinished text.
+Gemini progress includes assistant deltas, initialization, and diagnostics, not echoed user prompts or
+tool payloads. Copilot progress is raw response text. Other providers forward their emitted output.
+These streams are unvalidated and may contain sensitive fixture data or provider diagnostics; capturing
+stderr requires the same care as capturing the fixture itself. Final stdout/output files remain validated.
 
 Provider envelopes and events remain strictly parsed. Adapters extract the model's fixture text unchanged; the shared generation layer parses that text as JSON without stripping Markdown fences, scraping prose, or repairing syntax locally.
 
@@ -66,10 +79,11 @@ definitions with account state. A catalog entry is not proof of a successful gen
 Keep provider CLIs updated. Claude safe mode still permits managed policy hooks.
 
 Gemini ACP initializes a session even without a prompt. Discovery disables ordinary hooks and
-Auto Memory in the trusted scratch workspace, disables extensions, and excludes inherited MCP
-servers with a per-run allowlist. It preserves managed system settings and refuses discovery if
-those settings can re-enable hooks or background Auto Memory generation. It also refuses a
-restricted-mode configuration that would prevent the scratch overrides from taking effect.
+Auto Memory in the trusted scratch workspace and launches with `--acp --extensions none`.
+It does not override the MCP allowlist: inherited MCP settings remain effective and may start
+servers. It preserves managed system settings and refuses discovery if those settings can
+re-enable hooks or background Auto Memory generation. It also refuses a restricted-mode
+configuration that would prevent the scratch overrides from taking effect.
 `NO_BROWSER=true` prevents opening a login browser; missing authentication still fails or times out.
 Discovery also disables IDE integration and its setup nudge, and clears the Gemini IDE connection
 variables listed in the [Gemini invocation contract](#gemini-cli).
@@ -222,9 +236,9 @@ Primary sources: [programmatic use](https://docs.github.com/en/copilot/how-tos/c
 | Item                  | Adapter contract                                                                                                                                                        |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Executable            | `copilot` — the standalone CLI, not `gh copilot`.                                                                                                                       |
-| Exact argument vector | `--agent=fixture-enricher --silent --stream=off --no-ask-user --disable-builtin-mcps --no-custom-instructions --deny-tool=shell,write,read,url,memory --no-auto-update` |
+| Exact argument vector | `--agent=fixture-enricher --silent --stream=on --no-ask-user --disable-builtin-mcps --no-custom-instructions --deny-tool=shell,write,read,url,memory --no-auto-update` |
 | stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. No `-p` or `--prompt` is passed.                                                                  |
-| stdout                | Raw, non-streaming text, which must itself be one JSON value. Do not substitute `--output-format=json`: its documented mode is JSONL, a different event protocol.       |
+| stdout                | Streaming raw text, whose concatenated response must be one JSON value. Do not substitute `--output-format=json`: its documented mode is JSONL, a different event protocol. |
 | Environment           | No overlay; normal environment/authentication and user configuration are inherited.                                                                                     |
 | Authentication        | Existing valid Copilot authentication is required. Documented precedence includes token environment variables before stored credentials; no login was attempted.        |
 | Model selection       | `--model=<slug>` is appended when a non-`default` model is selected; this CLI uses the joined `=` form. Model choices come from headless `models.list`.                 |
@@ -249,7 +263,7 @@ The staged settings file, `.github/copilot/settings.json`, is:
 }
 ```
 
-The documented stdin mode is intentional: Copilot documents that piped input is ignored when `-p`/`--prompt` is also supplied. `--silent --stream=off` makes raw response parsing appropriate. The agent filename and `--agent` identifier are documented, `tools: []` documents model-facing disablement of built-in and MCP-sourced tools, `disableAllHooks` is the documented spelling for repository and user hooks, and `--deny-tool` is defense in depth for the listed built-in kinds. `--no-ask-user` is limited to the `ask_user` tool. `--no-auto-update` concerns CLI update downloads, not all provider side effects.
+The documented stdin mode is intentional: Copilot documents that piped input is ignored when `-p`/`--prompt` is also supplied. `--silent --stream=on` streams raw response text for progress and eventual JSON parsing. The agent filename and `--agent` identifier are documented, `tools: []` documents model-facing disablement of built-in and MCP-sourced tools, `disableAllHooks` is the documented spelling for repository and user hooks, and `--deny-tool` is defense in depth for the listed built-in kinds. `--no-ask-user` is limited to the `ask_user` tool. `--no-auto-update` concerns CLI update downloads, not all provider side effects.
 
 ### Result and failure framing
 
@@ -257,7 +271,7 @@ A zero-exit stdout string must parse directly as fixture JSON. There is no Copil
 
 ### Evidence, contradictions, and unresolved work
 
-No Copilot generation ran because `copilot` was unavailable on `PATH`. The review found no wrong command spelling or staged filename, but it did find evidence boundaries:
+No live Copilot generation was run for this change. A controlled subprocess verified live response forwarding before exit and final JSON parsing, including a UTF-8 response. The review found no wrong command spelling or staged filename, but it did find evidence boundaries:
 
 - `tools: []` controls model tool availability. It does **not** document that user/plugin MCP servers cannot start before the model calls a tool. `--disable-builtin-mcps` disables built-in servers only. User MCP configuration is documented as available across sessions, and live discovery may still run.
 - `disableAllHooks` is a documented hook setting, but the exact combined behavior of a fresh non-Git scratch directory, staged project settings, selected agent, stdin, and all flags was not exercised.
@@ -300,9 +314,9 @@ and [process lookup](https://raw.githubusercontent.com/google-gemini/gemini-cli/
 | Item                  | Adapter contract                                                                                                                                                                                            |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Executable            | `gemini`                                                                                                                                                                                                    |
-| Exact argument vector | `--prompt "Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value." --output-format json --approval-mode default --extensions none`                        |
+| Exact argument vector | `--prompt "Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value." --output-format stream-json --approval-mode default --extensions none`                 |
 | stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. The documented/released behavior composes stdin, two newlines, then the fixed `--prompt` text as model input.                         |
-| stdout                | One JSON envelope. Its `response` field must be a string containing the fixture JSON value.                                                                                                                 |
+| stdout                | Newline-delimited JSON events. Assistant message deltas form the fixture response; a successful terminal result is required.                                                                                |
 | Environment overlay   | `GEMINI_CLI_SYSTEM_SETTINGS_PATH=.gemini/system-settings.json`; `GEMINI_CLI_TRUST_WORKSPACE=true`; remove inherited Gemini IDE connection variables and `GEMINI_SANDBOX`. Authentication remains inherited. |
 | Authentication        | Existing credentials may be reused in headless mode, but presence and usability were not checked.                                                                                                           |
 | Model selection       | `-m <slug>` is appended when a non-`default` model is selected. Model choices come from the CLI's ACP session catalog.                                                                                      |
@@ -351,21 +365,28 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 }
 ```
 
-Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, JSON output envelope, extensions sentinel `none`, empty core-tool list, empty discovery command, skill switch, hook switch, and IDE settings. `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
+Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, extensions sentinel `none`, empty core-tool list, empty discovery command, skill switch, hook switch, and IDE settings. The streaming event contract is documented in headless mode and implemented in the [v0.60.0 non-interactive runner](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/nonInteractiveCli.ts). `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
 
 ### Result and failure framing
 
-The adapter parses stdout as one JSON object. Any present `error` field fails. Otherwise `response` must be a string, which is then parsed strictly as fixture JSON. Extra envelope fields such as session/statistics/warnings are ignored. `--output-format json` guarantees the outer Gemini envelope, not JSON inside `response`. Nonzero exits fail before this parser runs, so not every startup failure must appear as an envelope error.
+The adapter parses newline-delimited events, requires an initial `init`, concatenates `message` content only for assistant deltas, and requires one terminal `result` with `status: "success"`. It rejects unknown event types, duplicate initialization, events after completion, incomplete streams, failed results, and empty assistant output. User messages and tool events do not become fixture text. Streamed text is still parsed strictly as fixture JSON: `--output-format stream-json` guarantees the event framing, not JSON inside assistant content. Nonzero exits fail before this parser runs.
 
 ### Evidence, released/source conflict, and unresolved work
 
-No live Gemini generation ran for this change. A controlled subprocess verified policy-file removal, disabled IDE settings, stripped IDE connection variables, workspace trust, prompt/model preservation, and scratch cleanup; the ACP protocol fixture verified discovery with inherited IDE variables. The local pnpm wrapper points to `@google/gemini-cli@0.32.1`, but its package and entrypoint are missing. No installation, repair, or authentication work occurred. The documentation/source review uses released **v0.59.0** and the separately pinned unreleased `main` linked above; neither is an assertion about a working installed version.
+No live Gemini generation ran for this change. Controlled subprocesses verified CLI and wizard streaming, quiet-period heartbeats, explicit timeout overrides, and final fixture validation. Earlier controlled checks covered policy-file removal, disabled IDE settings, stripped IDE connection variables, workspace trust, prompt/model preservation, scratch cleanup, and ACP discovery. No provider installation or authentication work occurred. The configuration/security review uses released **v0.59.0** and the separately pinned unreleased `main` linked above; streaming framing uses **v0.60.0**. None is an assertion about the installed provider version.
 
 The material released-code contradiction is `admin.mcp.enabled`: v0.59.0's settings merge ignores **all file-based `admin.*` settings**, so the staged `admin.mcp.enabled: false` does not disable MCP servers. In a trusted workspace, inherited user configuration can start MCP processes before a model tool call. No adapter-supplied deny policy now supplements the remaining tool settings.
 
 Generation and discovery deliberately set `GEMINI_CLI_TRUST_WORKSPACE=true` for their scratch workspace. In the reviewed release, `GEMINI_RESTRICTED_MODE=true` takes precedence over that trust setting; it is not cleared, and discovery retains its explicit restricted-mode refusal. Workspace trust does not provide sandboxing or disable inherited policy/configuration.
 
 The reviewed empty-list and sentinel alternatives are not safe replacements for the missing MCP gate: `mcp.allowed: []` becomes permissive at connection time; a literal empty `--allowed-mcp-server-names` value is `['']`, not an empty list; `none` is a server name, not a documented all-MCP sentinel; `mcpServers: {}` shallow-merges rather than clears; and `mcp.excluded: ['*']` is not a wildcard connection filter. Do not add a fake deny-all MCP sentinel.
+
+Discovery no longer passes `--allowed-mcp-server-names ""`. In v0.60.0, that value becomes an
+allow rule with `mcpName: ""`, which the
+[policy engine](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/core/src/policy/policy-engine.ts)
+rejects with `mcpName is required if specified (cannot be empty)`. The subprocess regression
+fixture rejects empty MCP names before completing ACP discovery. This fix removes an invalid
+startup argument; it does not add MCP isolation.
 
 Further inherited-state limits remain: a user `tools.sandbox` setting or `.env` can reintroduce sandbox behavior after `GEMINI_SANDBOX` is merely deleted; global `GEMINI.md` and `GEMINI_SYSTEM_MD` can still influence instructions; and administrator policies remain effective. A child overlay of `GEMINI_SANDBOX=false` and `GEMINI_SYSTEM_MD=false` are reviewed source/documentation candidates, not implemented fixes; the latter still does not suppress global `GEMINI.md`.
 

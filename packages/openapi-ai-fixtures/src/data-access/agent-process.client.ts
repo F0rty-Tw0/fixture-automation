@@ -10,7 +10,7 @@ import type { AgentCommand } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 
 const MAXIMUM_INPUT_BYTES = 1024 * 1024;
-const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_TIMEOUT_MS = 900_000;
 const MAXIMUM_TIMEOUT_MS = 2_147_483_647;
 
 const cancellationError = (reason: unknown): Error => {

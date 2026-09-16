@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand } from '../common/agent.type.ts';
-import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../common/ai-fixtures.type.ts';
 import { processFixture } from '../test/utils/process-fixture.spec.util.ts';
 import { processWorkspace } from '../test/utils/process-workspace.spec.util.ts';
 
@@ -104,11 +104,48 @@ describe('FEATURE: agent process execution', (): void => {
       await expect(runAgent(childCommand('overflow', []), PROCESS_OPTIONS)).rejects.toThrow(/output exceeds the 8 MiB limit/);
     });
   });
+  describe('GIVEN a child that writes output before it exits', (): void => {
+    it('WHEN progress is observed THEN delivers decoded streams before settlement', async (): Promise<void> => {
+      const { promise: outputObserved, resolve: resolveOutputObserved } = Promise.withResolvers<undefined>();
+      const progress: AiFixtureProgress[] = [];
+      let isComplete = false;
+      const onProgress = (event: AiFixtureProgress): void => {
+        progress.push(event);
+
+        const containsFirstOutput = event.text.includes('first');
+        const isFirstStdout = event.stream === 'stdout' && containsFirstOutput;
+
+        if (isFirstStdout) resolveOutputObserved(undefined);
+      };
+      const options: AiFixtureOptions = { tool: 'claude', onProgress };
+      const execution = runAgent(childCommand('stream', []), options).finally((): void => {
+        isComplete = true;
+      });
+
+      await outputObserved;
+
+      expect(isComplete).toBe(false);
+
+      const output = await execution;
+
+      expect(output).toBe('firstcomplete');
+      expect(progress).toContainEqual({ stream: 'stderr', text: 'warning' });
+    });
+  });
   describe('GIVEN a child that splits a UTF-8 code point across writes', (): void => {
-    it('WHEN running THEN returns the original decoded text', async (): Promise<void> => {
-      const output = await runAgent(childCommand('split-utf8', []), PROCESS_OPTIONS);
+    it('WHEN progress is observed THEN delivers the original decoded text', async (): Promise<void> => {
+      const progress: AiFixtureProgress[] = [];
+      const onProgress = (event: AiFixtureProgress): void => {
+        progress.push(event);
+      };
+      const options: AiFixtureOptions = { ...PROCESS_OPTIONS, onProgress };
+
+      const output = await runAgent(childCommand('split-utf8', []), options);
+      const stdoutEvents = progress.filter((event): boolean => event.stream === 'stdout');
+      const stdout = stdoutEvents.map((event): string => event.text).join('');
 
       expect(output).toBe('{"name":"é"}');
+      expect(stdout).toBe('{"name":"é"}');
     });
   });
 
@@ -149,6 +186,29 @@ describe('FEATURE: agent process execution', (): void => {
         controller.abort(new Error('test cancellation'));
 
         await expect(execution).rejects.toThrow(/test cancellation/);
+        await expect(access(cwd)).rejects.toThrow();
+      } finally {
+        await workspace.dispose();
+      }
+    });
+  });
+  describe('GIVEN a child that exceeds a short timeout', (): void => {
+    it('WHEN it runs beyond the limit THEN terminates the child before scratch cleanup', async (): Promise<void> => {
+      const workspace = await processWorkspace();
+      const cwdMarker = workspace.file('child-cwd.txt');
+      const onProgress = (event: AiFixtureProgress): void => {
+        const mentionsExit = event.text.includes('ended');
+        const isProcessEnded = event.stream === 'status' && mentionsExit;
+
+        if (isProcessEnded) throw new Error('progress listener failure');
+      };
+      const options: AiFixtureOptions = { tool: 'claude', timeoutMs: 500, onProgress };
+      const execution = runAgent(childCommand('wait', [cwdMarker]), options);
+
+      try {
+        const cwd = await workspace.waitForFile('child-cwd.txt');
+
+        await expect(execution).rejects.toThrow(/timed out/);
         await expect(access(cwd)).rejects.toThrow();
       } finally {
         await workspace.dispose();

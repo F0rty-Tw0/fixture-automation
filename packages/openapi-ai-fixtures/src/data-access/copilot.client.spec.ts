@@ -1,52 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { writeFileSync } from 'node:fs';
 
-import { runAgent } from './agent-process.client.ts';
+import { describe, expect, it } from 'vitest';
+
 import { copilotFixture } from './copilot.client.ts';
-import type { AgentRequest } from '../common/agent.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../common/ai-fixtures.type.ts';
+import { processFixture } from '../test/utils/process-fixture.spec.util.ts';
+import { processWorkspace } from '../test/utils/process-workspace.spec.util.ts';
 
-vi.mock('./agent-process.client.ts');
+const COPILOT = processFixture('process-child', 'copilot-stream.mjs');
 
-const options = { tool: 'copilot' } as const;
-const request: AgentRequest = { prompt: 'Return a fixture.', options };
+describe('FEATURE: Copilot fixture streaming', (): void => {
+  describe('GIVEN a provider that waits for its first response chunk to reach the caller', (): void => {
+    it('WHEN requesting a fixture THEN streams before exit and returns only the complete response', async (): Promise<void> => {
+      const workspace = await processWorkspace();
+      const releaseFile = workspace.file('release');
+      const chunks: string[] = [];
+      const onProgress = (event: AiFixtureProgress): void => {
+        if (event.stream !== 'stdout') return;
 
-describe('FEATURE: Copilot fixture response handling', (): void => {
-  beforeEach((): void => {
-    vi.resetAllMocks();
-  });
+        chunks.push(event.text);
+        writeFileSync(releaseFile, 'continue');
+      };
+      const options: AiFixtureOptions = { tool: 'copilot', executable: COPILOT, timeoutMs: 5_000, onProgress };
 
-  describe('GIVEN Copilot returns fixture text', (): void => {
-    it('WHEN the fixture is requested THEN returns the exact stdout', async (): Promise<void> => {
-      const response = '{"id":"fixture-1"}\n';
+      try {
+        const fixture = await copilotFixture({ prompt: releaseFile, options });
+        const streamed = chunks.join('');
 
-      vi.mocked(runAgent).mockResolvedValue(response);
-
-      const fixture = await copilotFixture(request);
-
-      expect(fixture).toBe(response);
-    });
-  });
-
-  describe('GIVEN Copilot returns prose around a fixture', (): void => {
-    it('WHEN the fixture is requested THEN returns the unmodified response for central validation', async (): Promise<void> => {
-      const response = 'Fixture: {"id":"fixture-1"}';
-
-      vi.mocked(runAgent).mockResolvedValue(response);
-
-      const fixture = await copilotFixture(request);
-
-      expect(fixture).toBe(response);
-    });
-  });
-
-  describe('GIVEN the Copilot process fails', (): void => {
-    it('WHEN the fixture is requested THEN preserves the process failure', async (): Promise<void> => {
-      const failure = new Error('Copilot CLI exited with code 1.');
-
-      vi.mocked(runAgent).mockRejectedValue(failure);
-
-      const fixture = copilotFixture(request);
-
-      await expect(fixture).rejects.toBe(failure);
+        expect(fixture).toBe('{"id":"café"}');
+        expect(streamed).toBe(fixture);
+      } finally {
+        await workspace.dispose();
+      }
     });
   });
 });

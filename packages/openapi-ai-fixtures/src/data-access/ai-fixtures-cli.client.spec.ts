@@ -30,6 +30,17 @@ describe('FEATURE: AI fixture command', (): void => {
       expect(fixture).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
     });
 
+    it('WHEN streaming progress while writing to stdout THEN stdout remains one schema-valid fixture', async (): Promise<void> => {
+      const fileArgs = integrationArgs(project, 'An open invoice for 4200 cents.', false);
+      const args = fileArgs.toSpliced(2, 1);
+
+      const result = await project.run(args);
+      const fixture: unknown = JSON.parse(result.stdout);
+
+      expect(fixture).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
+      expect(result.stderr).toContain('September subscription');
+    });
+
     it('WHEN the first model response is invalid JSON THEN writes the schema-valid correction', async (): Promise<void> => {
       const args = integrationArgs(project, 'recover invalid fixture JSON', false);
 

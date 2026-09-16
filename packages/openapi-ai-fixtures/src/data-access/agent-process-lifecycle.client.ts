@@ -17,6 +17,8 @@ type AgentSettlement = {
   readonly signal: NodeJS.Signals | null;
 };
 
+const HEARTBEAT_INTERVAL_MS = 10_000;
+
 const detachAgentProcess = (child: SpawnedAgentProcess): void => {
   child.stdin.destroy();
   child.stdout.destroy();
@@ -30,25 +32,83 @@ const cancellationError = (reason: unknown): Error => {
   return new Error('Agent execution was canceled');
 };
 
-const settleAgentProcess = async (settlement: AgentSettlement): Promise<void> => {
+const settleAgentProcess = async (settlement: AgentSettlement, endedStatus: string): Promise<void> => {
   try {
     const output = await settlement.execution.result(settlement.executable, settlement.code, settlement.signal);
+    const progressError = settlement.execution.reportStatus(endedStatus);
+
+    if (progressError !== undefined) {
+      settlement.reject(progressError);
+
+      return;
+    }
 
     settlement.resolve(output);
   } catch (error: unknown) {
+    settlement.execution.reportStatus(endedStatus);
     settlement.reject(error);
   }
+};
+
+const startAgentProgress = (
+  execution: AgentProcessExecution,
+  label: string,
+  timeoutMs: number,
+  lastOutputAt: () => number
+): NodeJS.Timeout => {
+  const startError = execution.reportStatus(`Started ${label} (time limit ${timeoutMs}ms).\n`);
+
+  if (startError !== undefined) execution.stop(startError);
+
+  const reportQuietHeartbeat = (): void => {
+    const lastOutput = lastOutputAt();
+    const now = Date.now();
+    const quietFor = now - lastOutput;
+
+    if (quietFor < HEARTBEAT_INTERVAL_MS) return;
+
+    const progressError = execution.reportStatus(`The ${label} process is still running.\n`);
+
+    if (progressError !== undefined) execution.stop(progressError);
+  };
+
+  return setInterval(reportQuietHeartbeat, HEARTBEAT_INTERVAL_MS);
+};
+
+const observeAgentExit = (
+  child: SpawnedAgentProcess,
+  executable: string,
+  execution: AgentProcessExecution,
+  finish: (code: number | null, signal: NodeJS.Signals | null) => void
+): void => {
+  child.once('error', (error: Error): void => {
+    execution.stop(new Error(`Failed to start agent "${executable}": ${error.message}`));
+    finish(null, null);
+  });
+  child.once('close', finish);
 };
 
 const waitForAgentProcess = async (child: SpawnedAgentProcess, process: AgentProcess, options: AiFixtureOptions): Promise<string> => {
   const { promise, resolve, reject } = Promise.withResolvers<string>();
   const signal = options.signal;
+  const processLabel = `${options.tool} agent "${process.executable}" (PID ${child.pid ?? 'unknown'})`;
   let isSettled = false;
-  const execution = new AgentProcessExecution(child.pid, (error): void => {
+  let lastOutputAt = Date.now();
+  const noteOutput = (): void => {
+    lastOutputAt = Date.now();
+  };
+  const terminationFailed = (error: Error): void => {
     isSettled = true;
     detachAgentProcess(child);
     reject(error);
-  });
+  };
+  const execution = new AgentProcessExecution(child.pid, terminationFailed, noteOutput, options.onProgress);
+  let heartbeat: NodeJS.Timeout | undefined;
+
+  if (options.onProgress !== undefined) {
+    heartbeat = startAgentProgress(execution, processLabel, process.timeoutMs, (): number => lastOutputAt);
+  }
+
   const abort = (): void => execution.stop(cancellationError(signal?.reason));
   const timeout = setTimeout((): void => {
     execution.stop(new Error(`Agent execution timed out after ${process.timeoutMs}ms`));
@@ -57,6 +117,9 @@ const waitForAgentProcess = async (child: SpawnedAgentProcess, process: AgentPro
     if (isSettled) return;
 
     isSettled = true;
+
+    const endedStatus = `The ${processLabel} process ended.\n`;
+
     const settlement: AgentSettlement = {
       code,
       executable: process.executable,
@@ -66,14 +129,10 @@ const waitForAgentProcess = async (child: SpawnedAgentProcess, process: AgentPro
       signal: childSignal
     };
 
-    void settleAgentProcess(settlement);
+    void settleAgentProcess(settlement, endedStatus);
   };
 
-  child.once('error', (error: Error): void => {
-    execution.stop(new Error(`Failed to start agent "${process.executable}": ${error.message}`));
-    finish(null, null);
-  });
-  child.once('close', finish);
+  observeAgentExit(child, process.executable, execution, finish);
 
   if (signal !== undefined) signal.addEventListener('abort', abort, { once: true });
 
@@ -86,6 +145,9 @@ const waitForAgentProcess = async (child: SpawnedAgentProcess, process: AgentPro
     return await promise;
   } finally {
     clearTimeout(timeout);
+
+    clearInterval(heartbeat);
+
     signal?.removeEventListener('abort', abort);
   }
 };

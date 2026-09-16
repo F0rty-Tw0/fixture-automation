@@ -17,7 +17,7 @@ const COPILOT_SETTINGS_CONTENT = `{
 const COPILOT_ARGS = [
   '--agent=fixture-enricher',
   '--silent',
-  '--stream=off',
+  '--stream=on',
   '--no-ask-user',
   '--disable-builtin-mcps',
   '--no-custom-instructions',

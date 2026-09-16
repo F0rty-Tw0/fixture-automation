@@ -8,7 +8,7 @@ type AgentOutput = {
 };
 
 type AgentOutputCollector = {
-  readonly append: (chunk: Buffer, destination: 'stderr' | 'stdout') => void;
+  readonly append: (chunk: Buffer, destination: 'stderr' | 'stdout') => string;
   readonly complete: () => AgentOutput;
 };
 
@@ -30,7 +30,7 @@ export const agentOutputCollector = (): AgentOutputCollector => {
   let stderr = '';
   let stdout = '';
 
-  const append = (chunk: Buffer, destination: 'stderr' | 'stdout'): void => {
+  const append = (chunk: Buffer, destination: 'stderr' | 'stdout'): string => {
     outputBytes += chunk.byteLength;
 
     if (outputBytes > MAXIMUM_OUTPUT_BYTES) throw new Error('Agent output exceeds the 8 MiB limit');
@@ -40,6 +40,8 @@ export const agentOutputCollector = (): AgentOutputCollector => {
 
     if (destination === 'stdout') stdout += text;
     else stderr += text;
+
+    return text;
   };
   const complete = (): AgentOutput => {
     stderr += decodedText(stderrDecoder, undefined);

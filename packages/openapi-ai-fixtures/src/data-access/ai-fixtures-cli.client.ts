@@ -5,6 +5,7 @@ import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { aiFixtures } from './ai-fixtures.client.ts';
 import { aiMissingFixture } from './ai-missing-fixtures.client.ts';
+import { createAiProgressReporter } from './ai-progress.client.ts';
 import { prepareOutput, writeFixtureOutput } from './fixture-output.client.ts';
 import { discoverModels } from './model-discovery.client.ts';
 import { selectModel } from './model-select.client.ts';
@@ -61,7 +62,8 @@ const generateMissing = async (options: AiFixtureCliOptions, missingFile: string
   const target = await prepareOutput(options);
   const missing = await missingInput(missingFile);
   const tool = await resolveModel(options.options);
-  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile };
+  const onProgress = createAiProgressReporter();
+  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile, onProgress };
   const fill = aiMissingFixture(agentOptions);
   const missingRequest: AiMissingRequest = { fixture, missing, scenario: options.scenario };
   const filled = await fill(missing.schemaName, missingRequest);
@@ -79,7 +81,8 @@ const generate = async (options: AiFixtureCliOptions): Promise<void> => {
   const fixture = await readJsonFile('--fixture', options.fixtureFile);
   const target = await prepareOutput(resolved);
   const tool = await resolveModel(options.options);
-  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile };
+  const onProgress = createAiProgressReporter();
+  const agentOptions: AiFixtureOptions = { ...tool, recoveryFile: target.file ?? options.fixtureFile, onProgress };
   const enrich = aiFixtures(spec, agentOptions);
   const request = { fixture, scenario: options.scenario };
   const enriched = await enrich(schemaName, request);

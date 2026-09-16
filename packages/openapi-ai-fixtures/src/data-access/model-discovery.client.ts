@@ -6,6 +6,8 @@ import { geminiModels } from './gemini-models.client.ts';
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 import type { ModelDiscovery, ModelDiscoveryOptions } from '../common/model.type.ts';
 
+const DISCOVERY_TIMEOUT_MS = 120_000;
+
 const providerModels: Record<AiTool, (options: ModelDiscoveryOptions) => Promise<string[]>> = {
   antigravity: antigravityModels,
   claude: claudeModels,
@@ -17,7 +19,9 @@ const providerModels: Record<AiTool, (options: ModelDiscoveryOptions) => Promise
 /** Query the installed provider's selectable models without sending a generation prompt. Never substitutes a static catalog. */
 export const discoverModels = async (tool: AiTool, options: ModelDiscoveryOptions = {}): Promise<ModelDiscovery> => {
   try {
-    const models = await providerModels[tool](options);
+    const timeoutMs = options.timeoutMs ?? DISCOVERY_TIMEOUT_MS;
+    const discoveryOptions: ModelDiscoveryOptions = { ...options, timeoutMs };
+    const models = await providerModels[tool](discoveryOptions);
 
     if (models.length === 0) throw new Error('Provider returned no selectable models');
 

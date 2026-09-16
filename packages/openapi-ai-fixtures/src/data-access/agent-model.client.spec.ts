@@ -5,12 +5,13 @@ import { claudeFixture } from './claude.client.ts';
 import { copilotFixture } from './copilot.client.ts';
 import { geminiFixture } from './gemini.client.ts';
 import { agentArgs, modelRequest } from '../test/utils/agent-model.spec.util.ts';
+import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 
 vi.mock('./agent-process.client.ts');
 
 const claudeResult = { type: 'result', subtype: 'success', is_error: false, result: '{}' };
 const claudeEnvelope = JSON.stringify(claudeResult);
-const geminiEnvelope = JSON.stringify({ response: '{}' });
+const geminiEnvelope = agentResponse('gemini', '{}');
 const hasModelFlag = (argument: string): boolean => argument.startsWith('--model');
 
 describe('FEATURE: AI model passthrough per harness', (): void => {

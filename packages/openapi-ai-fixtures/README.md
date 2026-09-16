@@ -216,6 +216,8 @@ const invoice = await enrich('invoice', {
   schema validation. The validator does not coerce types, insert defaults, or remove properties.
 - Validation completes before writing normal output. Output is staged beside the destination and renamed
   atomically; a failed or invalid response leaves an existing destination unchanged. Diagnostic sidecars are separate.
+- Output paths are made absolute before validation. Existing destinations are resolved through symlinks;
+  imports and writes use that resolved path.
 - A destination that aliases the fixture, spec, or declarations input (including via a symlink) is
   rejected.
 

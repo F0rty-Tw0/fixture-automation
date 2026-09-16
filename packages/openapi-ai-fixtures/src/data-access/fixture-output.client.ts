@@ -24,7 +24,7 @@ export const prepareOutput = async (options: AiFixtureCliOptions): Promise<Fixtu
   const sourceFiles = [resolve(options.fixtureFile)];
   let typesImport: string | undefined;
 
-  if (options.outFile !== undefined) file = resolve(options.outFile);
+  if (options.outFile !== undefined) file = await destinationPath(resolve(options.outFile));
 
   if (options.specUrl !== undefined) {
     const specUrl = parseSpecUrl(options.specUrl);
@@ -42,11 +42,9 @@ export const prepareOutput = async (options: AiFixtureCliOptions): Promise<Fixtu
   }
 
   if (file !== undefined) {
-    const destination = await destinationPath(file);
-
     for (const source of sourceFiles) {
       const input = await realpath(source);
-      const difference = relative(input, destination);
+      const difference = relative(input, file);
 
       if (!difference) throw new Error('the destination must differ from the fixture, spec, and types inputs');
     }

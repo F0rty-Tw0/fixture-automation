@@ -79,6 +79,24 @@ describe('FEATURE: AI fixture command', (): void => {
       expect(invoice).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
     }, 30000);
 
+    it('WHEN a relative output symlink targets another directory THEN a compiled consumer reads the real destination', async (): Promise<void> => {
+      const aliasDirectory = join(project.directory, 'alias');
+      const alias = join(aliasDirectory, 'generated.stub.ts');
+
+      await mkdir(aliasDirectory);
+      await writeFile(project.outputFile, '');
+      await symlink(project.outputFile, alias, 'file');
+
+      const linkedProject: IntegrationProject = { ...project, outputFile: join('alias', 'generated.stub.ts') };
+      const args = integrationArgs(linkedProject, 'An open invoice for 4200 cents.', true);
+
+      await project.run(args);
+
+      const invoice = await project.compile();
+
+      expect(invoice).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
+    }, 30000);
+
     it.each(['invalid enum', 'process failure', 'malformed response', 'invalid fixture JSON'])(
       'WHEN generation has %s THEN preserves the existing destination',
       async (scenario: string): Promise<void> => {

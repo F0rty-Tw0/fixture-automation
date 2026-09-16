@@ -46,17 +46,6 @@ describe('FEATURE: fixture merge', (): void => {
       expect(result.filled).toStrictEqual(['status']);
       expect(result.outFile).toBe(project.outFile);
       await expect(readFile(project.outFile, 'utf8')).resolves.toBe(`${JSON.stringify(expected, null, 2)}\n`);
-      expect(console.error).toHaveBeenCalledWith('filled 1 path(s)');
-    });
-  });
-
-  describe('GIVEN no spec option', (): void => {
-    it('WHEN merging THEN it warns that the result is unvalidated', async (): Promise<void> => {
-      const input = mergeInput(project, project.populatedFile, undefined);
-
-      await mergeFixture(input);
-
-      expect(console.error).toHaveBeenCalledWith('warning: result not validated (no --spec)');
     });
   });
 

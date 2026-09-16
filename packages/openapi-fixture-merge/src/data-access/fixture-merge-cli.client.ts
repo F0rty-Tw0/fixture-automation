@@ -1,4 +1,4 @@
-import { silentInputs } from '@fixture-automation/openapi-fixtures';
+import { printHelp, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { mergeFixture } from './fixture-merge.client.ts';
@@ -9,7 +9,7 @@ export const runFixtureMergeCli = async (args: string[], inputs: Inputs = silent
   const input = await parseMergeArgs(args, inputs);
 
   if (input === undefined) {
-    process.stdout.write(`${MERGE_HELP}\n`);
+    printHelp(MERGE_HELP);
 
     return;
   }

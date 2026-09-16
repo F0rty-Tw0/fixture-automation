@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import { prepareSchema } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError, loadSpec, readJsonFile, resolveSchemaName, writeTextFile } from '@fixture-automation/openapi-fixtures';
 
@@ -31,9 +33,10 @@ export const mergeFixture = async (input: MergeInput): Promise<MergeResult> => {
   const populated = await loadPopulated(input.populatedFile);
   const merged = deepFill(corrupt, populated);
 
-  console.error(`filled ${merged.filled.length} path(s)`);
+  console.error(styleText('green', `filled ${merged.filled.length} path(s)`, { stream: process.stderr }));
 
-  if (input.spec === undefined) console.error('warning: result not validated (no --spec)');
+  if (input.spec === undefined)
+    console.error(styleText('yellow', 'warning: result not validated (no --spec)', { stream: process.stderr }));
   else await assertValid(input.spec, merged.value);
 
   const json: unknown = JSON.stringify(merged.value, null, 2);

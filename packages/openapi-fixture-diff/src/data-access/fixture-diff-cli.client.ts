@@ -1,4 +1,14 @@
-import { FixtureError, loadSpec, readJsonFile, resolveSchemaName, silentInputs, writeTextFile } from '@fixture-automation/openapi-fixtures';
+import { styleText } from 'node:util';
+
+import {
+  FixtureError,
+  loadSpec,
+  printHelp,
+  readJsonFile,
+  resolveSchemaName,
+  silentInputs,
+  writeTextFile
+} from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { diffFixture } from './fixture-diff.client.ts';
@@ -7,15 +17,11 @@ import { DIFF_INPUTS, FIXTURE_DIFF_HELP, FIXTURE_DIFF_USAGE } from '../common/fi
 import { dropPaths } from '../utils/drop-path.util.ts';
 import { parseCorruptArgs, parseDiffArgs } from '../utils/fixture-diff-cli.util.ts';
 
-const printHelp = (): void => {
-  process.stdout.write(`${FIXTURE_DIFF_HELP}\n`);
-};
-
 const runCorrupt = async (args: string[], inputs: Inputs): Promise<void> => {
   const parsed = await parseCorruptArgs(args, inputs);
 
   if (parsed === undefined) {
-    printHelp();
+    printHelp(FIXTURE_DIFF_HELP);
 
     return;
   }
@@ -30,7 +36,7 @@ const runDiff = async (args: string[], inputs: Inputs): Promise<void> => {
   const parsed = await parseDiffArgs(args, inputs);
 
   if (parsed === undefined) {
-    printHelp();
+    printHelp(FIXTURE_DIFF_HELP);
 
     return;
   }
@@ -43,7 +49,7 @@ const runDiff = async (args: string[], inputs: Inputs): Promise<void> => {
 
   await writeMissingFiles(diff, outDir);
 
-  if (!diff.paths.length) console.error('no missing fields');
+  if (!diff.paths.length) console.error(styleText('green', 'no missing fields', { stream: process.stderr }));
 };
 
 export const runFixtureDiffCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
@@ -51,7 +57,7 @@ export const runFixtureDiffCli = async (args: string[], inputs: Inputs = silentI
   const isHelp = firstArg === '--help' || firstArg === '-h';
 
   if (isHelp) {
-    printHelp();
+    printHelp(FIXTURE_DIFF_HELP);
 
     return;
   }

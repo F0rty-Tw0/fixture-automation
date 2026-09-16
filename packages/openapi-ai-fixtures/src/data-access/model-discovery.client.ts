@@ -1,81 +1,33 @@
-import { readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-
-import { isRecord } from '@fixture-automation/shared';
-
+import { antigravityModels } from './antigravity-models.client.ts';
+import { claudeModels } from './claude-models.client.ts';
+import { codexModels } from './codex-models.client.ts';
+import { copilotModels } from './copilot-models.client.ts';
+import { geminiModels } from './gemini-models.client.ts';
 import type { AiTool } from '../common/ai-fixtures.type.ts';
-import type { ModelDiscovery } from '../common/model.type.ts';
-import { CURATED_MODELS } from '../common/models.const.ts';
+import type { ModelDiscovery, ModelDiscoveryOptions } from '../common/model.type.ts';
 
-// ponytail: no live list command for claude/gemini/copilot/agy; add per-harness discovery when one ships.
-const CODEX_CACHE_FILE = 'models_cache.json';
-
-const listedSlug = (entry: unknown): string | undefined => {
-  if (!isRecord(entry)) return undefined;
-
-  if (entry['visibility'] !== 'list') return undefined;
-
-  const slug = entry['slug'];
-
-  if (typeof slug !== 'string' || slug.length === 0) return undefined;
-
-  return slug;
+const providerModels: Record<AiTool, (options: ModelDiscoveryOptions) => Promise<string[]>> = {
+  antigravity: antigravityModels,
+  claude: claudeModels,
+  codex: codexModels,
+  copilot: copilotModels,
+  gemini: geminiModels
 };
 
-const cachedSlugs = (text: string): string[] => {
-  const parsed: unknown = JSON.parse(text);
-
-  if (!isRecord(parsed)) return [];
-
-  const models = parsed['models'];
-
-  if (!Array.isArray(models)) return [];
-
-  const slugs: string[] = [];
-
-  for (const entry of models) {
-    const slug = listedSlug(entry);
-
-    if (slug !== undefined) slugs.push(slug);
-  }
-
-  return slugs;
-};
-
-const codexHome = (): string => {
-  const configured = process.env['CODEX_HOME'];
-
-  if (configured !== undefined && configured.length > 0) return configured;
-
-  return join(homedir(), '.codex');
-};
-
-const codexCacheModels = async (): Promise<string[]> => {
+/** Query the installed provider's selectable models without sending a generation prompt. Never substitutes a static catalog. */
+export const discoverModels = async (tool: AiTool, options: ModelDiscoveryOptions = {}): Promise<ModelDiscovery> => {
   try {
-    const text = await readFile(join(codexHome(), CODEX_CACHE_FILE), 'utf8');
+    const models = await providerModels[tool](options);
 
-    return cachedSlugs(text);
-  } catch {
-    return [];
+    if (models.length === 0) throw new Error('Provider returned no selectable models');
+
+    const discovery: ModelDiscovery = { models, source: `${tool}-cli` };
+
+    return discovery;
+  } catch (cause: unknown) {
+    const detail = cause instanceof Error ? cause.message : 'Unknown provider error';
+    const message = `${tool} model discovery failed: ${detail}. Check the installed CLI version and login, or pass --model explicitly.`;
+
+    throw new Error(message, { cause });
   }
-};
-
-const curatedDiscovery = (tool: AiTool): ModelDiscovery => {
-  const discovery: ModelDiscovery = { models: CURATED_MODELS[tool], source: 'curated' };
-
-  return discovery;
-};
-
-/** List a harness's selectable models, preferring its own cache and falling back to the curated list. */
-export const discoverModels = async (tool: AiTool): Promise<ModelDiscovery> => {
-  if (tool !== 'codex') return curatedDiscovery(tool);
-
-  const models = await codexCacheModels();
-
-  if (models.length === 0) return curatedDiscovery(tool);
-
-  const discovered: ModelDiscovery = { models, source: 'codex-cache' };
-
-  return discovered;
 };

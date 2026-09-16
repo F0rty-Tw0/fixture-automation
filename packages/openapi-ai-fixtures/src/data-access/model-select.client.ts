@@ -2,6 +2,7 @@ import { styleText } from 'node:util';
 
 import { terminalQuestion } from '@fixture-automation/openapi-fixtures';
 
+import { discoverModels } from './model-discovery.client.ts';
 import type { AiTool } from '../common/ai-fixtures.type.ts';
 import type { ModelSelection } from '../common/model.type.ts';
 import { DEFAULT_MODEL } from '../utils/model-flag.util.ts';
@@ -38,9 +39,8 @@ const chosenModel = (answer: string, models: string[]): string | undefined => {
   return models[position - 1];
 };
 
-const askForModel = async (selection: ModelSelection): Promise<string> => {
+const askForModel = async (selection: ModelSelection, models: string[]): Promise<string> => {
   const ask = selection.prompt ?? terminalQuestion;
-  const { models } = selection.discovery;
 
   printModels(selection.tool, models);
 
@@ -78,12 +78,16 @@ export const selectModel = async (selection: ModelSelection): Promise<string> =>
   const { tool, requested, discovery } = selection;
 
   if (requested !== undefined) {
-    warnUnlisted(tool, requested, discovery.models);
+    if (discovery !== undefined) warnUnlisted(tool, requested, discovery.models);
 
     return requested;
   }
 
-  if (selection.interactive) return askForModel(selection);
+  if (selection.interactive) {
+    const catalog = discovery ?? (await discoverModels(tool, selection.discoveryOptions));
+
+    return askForModel(selection, catalog.models);
+  }
 
   const notice = styleText('yellow', `no --model given; using the ${tool} harness default`, {
     stream: process.stderr

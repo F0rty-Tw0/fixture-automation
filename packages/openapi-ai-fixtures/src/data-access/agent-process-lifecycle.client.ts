@@ -3,16 +3,9 @@ import type { ChildProcessByStdio } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
 
 import { AgentProcessExecution } from './agent-process-execution.client.ts';
+import { pipeAgentProcess } from './agent-process-input.client.ts';
+import type { AgentProcess } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
-
-type AgentProcess = {
-  readonly args: string[];
-  readonly environment: NodeJS.ProcessEnv;
-  readonly executable: string;
-  readonly input: string;
-  readonly scratchDirectory: string;
-  readonly timeoutMs: number;
-};
 
 type SpawnedAgentProcess = ChildProcessByStdio<Writable, Readable, Readable>;
 type AgentSettlement = {
@@ -29,15 +22,6 @@ const detachAgentProcess = (child: SpawnedAgentProcess): void => {
   child.stdout.destroy();
   child.stderr.destroy();
   child.unref();
-};
-
-const pipeAgentProcess = (child: SpawnedAgentProcess, input: string, execution: AgentProcessExecution): void => {
-  child.stdout.on('data', (chunk: Buffer): void => execution.receiveOutput(chunk, 'stdout'));
-  child.stderr.on('data', (chunk: Buffer): void => execution.receiveOutput(chunk, 'stderr'));
-  child.stdin.once('error', (error: Error): void => {
-    execution.stop(new Error(`Agent stdin failed: ${error.message}`));
-  });
-  child.stdin.end(input);
 };
 
 const cancellationError = (reason: unknown): Error => {
@@ -97,7 +81,7 @@ const waitForAgentProcess = async (child: SpawnedAgentProcess, process: AgentPro
 
   try {
     if (isCanceled) abort();
-    else pipeAgentProcess(child, process.input, execution);
+    else pipeAgentProcess(child, process, execution);
 
     return await promise;
   } finally {

@@ -23,6 +23,24 @@ const childCommand = (mode: string, args: string[], input = ''): AgentCommand =>
 };
 
 describe('FEATURE: agent process execution', (): void => {
+  describe('GIVEN a provider that requires a response before listing models', (): void => {
+    it('WHEN exchanging split lines THEN waits for the catalog before closing stdin', async (): Promise<void> => {
+      const executable = processFixture('process-child', 'conversation.mjs');
+      const respond = (line: string): string | null | undefined => {
+        if (line === 'ready') return 'models\n';
+
+        if (line === 'model-from-provider') return null;
+
+        return undefined;
+      };
+      const command: AgentCommand = { executable: process.execPath, args: [executable], input: 'initialize\n', respond };
+
+      const output = await runAgent(command, PROCESS_OPTIONS);
+
+      expect(output).toBe('ready\nnotification\nmodel-from-provider\n');
+    });
+  });
+
   describe('GIVEN a child that reads stdin, arguments, a staged file, and environment', (): void => {
     it('WHEN running THEN returns exact stdout from an isolated working directory', async (): Promise<void> => {
       const workspace = await processWorkspace();

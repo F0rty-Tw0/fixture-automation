@@ -56,6 +56,9 @@ const runInScratchDirectory = async (command: AgentCommand, options: AiFixtureOp
       environment,
       executable,
       input: command.input,
+      respond: command.respond,
+      messageFormat: command.messageFormat,
+      stopOnComplete: command.stopOnComplete,
       scratchDirectory,
       timeoutMs
     };

@@ -26,19 +26,30 @@ export class AgentProcessExecution {
     this.onTerminationFailure = onTerminationFailure;
   }
 
-  public stop(error: Error): void {
-    if (this.failure !== undefined) return;
+  private terminate(): void {
+    if (this.termination !== undefined) return;
 
-    this.failure = error;
     const termination = terminateAgentTree(this.pid);
 
     this.termination = termination.catch((cause: unknown): void => {
-      const failure = new AgentTerminationError(`${error.message}; agent process tree termination failed`, { cause });
+      const reason = this.failure?.message ?? 'Agent shutdown';
+      const failure = new AgentTerminationError(`${reason}; agent process tree termination failed`, { cause });
 
       this.failure = failure;
 
       this.onTerminationFailure(failure);
     });
+  }
+
+  public stop(error: Error): void {
+    if (this.failure !== undefined) return;
+
+    this.failure = error;
+    this.terminate();
+  }
+
+  public complete(): void {
+    this.terminate();
   }
 
   public receiveOutput(chunk: Buffer, destination: 'stderr' | 'stdout'): void {
@@ -63,7 +74,7 @@ export class AgentProcessExecution {
 
     const output = this.output.complete();
 
-    if (code !== 0) throw exitError(executable, code, signal, output.stderr);
+    if (code !== 0 && termination === undefined) throw exitError(executable, code, signal, output.stderr);
 
     return output.stdout;
   }

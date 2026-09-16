@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { selectModel } from './model-select.client.ts';
 import type { ModelDiscovery, ModelSelection } from '../common/model.type.ts';
 
-const discovery: ModelDiscovery = { models: ['alpha', 'beta'], source: 'curated' };
+const discovery: ModelDiscovery = { models: ['alpha', 'beta'], source: 'codex-cli' };
 
 const answering = (...answers: string[]): ((question: string) => Promise<string>) => {
   const queue = [...answers];
@@ -60,6 +60,18 @@ describe('FEATURE: AI model selection', (): void => {
     });
   });
 
+  describe('GIVEN an explicit model without a catalog', (): void => {
+    it('WHEN selecting THEN preserves the request without starting discovery', async (): Promise<void> => {
+      const executable = '/unavailable-provider';
+      const discoveryOptions = { executable };
+      const selection: ModelSelection = { tool: 'claude', interactive: true, requested: 'future-model', discoveryOptions };
+
+      const model = await selectModel(selection);
+
+      expect(model).toBe('future-model');
+    });
+  });
+
   describe('GIVEN no model request on an interactive terminal', (): void => {
     it('WHEN a listed number is entered THEN returns the matching model', async (): Promise<void> => {
       vi.spyOn(console, 'error').mockImplementation(silence);
@@ -100,7 +112,7 @@ describe('FEATURE: AI model selection', (): void => {
   describe('GIVEN no model request outside a terminal', (): void => {
     it('WHEN a model is selected THEN reports the harness default on stderr', async (): Promise<void> => {
       const warn = vi.spyOn(console, 'error').mockImplementation(silence);
-      const selection: ModelSelection = { tool: 'claude', interactive: false, discovery };
+      const selection: ModelSelection = { tool: 'claude', interactive: false };
 
       const model = await selectModel(selection);
 

@@ -13,33 +13,24 @@ import type { AiFixtureCliOptions } from '../common/ai-fixtures-cli.type.ts';
 import type { AiFixtureOptions, AiTool } from '../common/ai-fixtures.type.ts';
 import { MISSING_SCHEMA_NAME } from '../common/missing.const.ts';
 import type { AiMissingRequest, MissingFile } from '../common/missing.type.ts';
-import type { ModelDiscovery, ModelSelection } from '../common/model.type.ts';
+import type { ModelDiscoveryOptions, ModelSelection } from '../common/model.type.ts';
 import { parseAiFixtureArgs, parseListModelsArgs, requiredValue } from '../utils/ai-fixtures-cli.util.ts';
 import { parseMissingFile } from '../utils/missing-file.util.ts';
 
-const listModels = async (tool: AiTool): Promise<void> => {
-  const discovery = await discoverModels(tool);
+const listModels = async (options: AiFixtureOptions): Promise<void> => {
+  const { tool } = options;
+  const discovery = await discoverModels(tool, options);
 
   for (const model of discovery.models) process.stdout.write(`${model}\n`);
-
-  const isEmpty = discovery.models.length === 0;
-
-  if (isEmpty) {
-    const warning = styleText('yellow', `${tool} has no model switch; only its harness default is available\n`, {
-      stream: process.stderr
-    });
-
-    process.stderr.write(warning);
-  }
 
   const source = styleText('cyan', `source: ${discovery.source}\n`, { stream: process.stderr });
 
   process.stderr.write(source);
 };
 
-const modelSelection = (tool: AiTool, requested: string | undefined, discovery: ModelDiscovery): ModelSelection => {
+const modelSelection = (tool: AiTool, requested: string | undefined, discoveryOptions: ModelDiscoveryOptions): ModelSelection => {
   const interactive = process.stdin.isTTY === true;
-  const selection: ModelSelection = { tool, interactive, discovery };
+  const selection: ModelSelection = { tool, interactive, discoveryOptions };
 
   if (requested === undefined) return selection;
 
@@ -49,8 +40,7 @@ const modelSelection = (tool: AiTool, requested: string | undefined, discovery: 
 };
 
 const resolveModel = async (options: AiFixtureOptions): Promise<AiFixtureOptions> => {
-  const discovery = await discoverModels(options.tool);
-  const selection = modelSelection(options.tool, options.model, discovery);
+  const selection = modelSelection(options.tool, options.model, options);
   const model = await selectModel(selection);
   const resolved: AiFixtureOptions = { ...options, model };
 

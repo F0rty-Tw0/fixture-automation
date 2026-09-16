@@ -12,6 +12,12 @@ assert.equal(process.env.NO_BROWSER, 'true');
 assert.equal(process.env.GEMINI_CLI_TRUST_WORKSPACE, 'true');
 assert.notEqual(process.env.GEMINI_RESTRICTED_MODE, 'true');
 assert.equal(process.env.GEMINI_SANDBOX, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_AUTH_TOKEN, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_PID, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_SERVER_PORT, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_SERVER_STDIO_ARGS, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_SERVER_STDIO_COMMAND, undefined);
+assert.equal(process.env.GEMINI_CLI_IDE_WORKSPACE_PATH, undefined);
 assert.equal(isAbsolute(process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH), true);
 assert.equal(isAbsolute(process.env.GEMINI_CLI_SYSTEM_DEFAULTS_PATH), true);
 assert.equal(process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH.endsWith('gemini-system-safe.json'), true);
@@ -30,6 +36,10 @@ assert.deepEqual(settings, {
   },
   hooksConfig: {
     enabled: false
+  },
+  ide: {
+    enabled: false,
+    hasSeenNudge: true
   },
   skills: {
     enabled: false

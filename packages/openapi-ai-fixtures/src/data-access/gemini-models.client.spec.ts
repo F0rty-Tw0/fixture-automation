@@ -18,10 +18,17 @@ describe('FEATURE: Gemini model discovery', (): void => {
     vi.unstubAllEnvs();
   });
 
-  describe('GIVEN a Gemini ACP catalog and isolated discovery settings', (): void => {
+  describe('GIVEN a Gemini ACP catalog, an inherited IDE connection, and isolated discovery settings', (): void => {
     it('WHEN discovering models THEN returns the provider model identifiers after protocol completion', async (): Promise<void> => {
       vi.stubEnv('GEMINI_CLI_SYSTEM_SETTINGS_PATH', GEMINI_SYSTEM_SAFE);
       vi.stubEnv('GEMINI_CLI_SYSTEM_DEFAULTS_PATH', GEMINI_SYSTEM_DEFAULTS);
+      vi.stubEnv('GEMINI_CLI_IDE_AUTH_TOKEN', 'inherited-token');
+      vi.stubEnv('GEMINI_CLI_IDE_PID', '1234');
+      vi.stubEnv('GEMINI_CLI_IDE_SERVER_PORT', '54321');
+      vi.stubEnv('GEMINI_CLI_IDE_SERVER_STDIO_ARGS', '["--ide"]');
+      vi.stubEnv('GEMINI_CLI_IDE_SERVER_STDIO_COMMAND', 'inherited-ide-server');
+      vi.stubEnv('GEMINI_CLI_IDE_WORKSPACE_PATH', process.cwd());
+      vi.stubEnv('GEMINI_CLI_TRUST_WORKSPACE', 'false');
 
       const models = await geminiModels({
         executable: GEMINI,

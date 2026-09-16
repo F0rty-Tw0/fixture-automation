@@ -15,9 +15,10 @@ const SESSION_ID = 2;
 const experimental = { autoMemory: false, enableAgents: false };
 const general = { enableAutoUpdate: false, enableAutoUpdateNotification: false };
 const hooksConfig = { enabled: false };
+const ide = { enabled: false, hasSeenNudge: true };
 const skills = { enabled: false };
 const tools = { core: [], discoveryCommand: '' };
-const settings = { experimental, general, hooksConfig, skills, tools };
+const settings = { experimental, general, hooksConfig, ide, skills, tools };
 const GEMINI_SETTINGS_CONTENT = `${JSON.stringify(settings, null, 2)}\n`;
 
 const geminiSystemSettingsPath = (): string => {
@@ -67,6 +68,12 @@ const geminiCommand = (respond: AgentRespond): AgentCommand => {
   };
   const env: Record<string, string | undefined> = {};
 
+  env['GEMINI_CLI_IDE_AUTH_TOKEN'] = undefined;
+  env['GEMINI_CLI_IDE_PID'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_PORT'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_STDIO_ARGS'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_STDIO_COMMAND'] = undefined;
+  env['GEMINI_CLI_IDE_WORKSPACE_PATH'] = undefined;
   env['GEMINI_CLI_TRUST_WORKSPACE'] = 'true';
   env['GEMINI_SANDBOX'] = undefined;
   env['NO_BROWSER'] = 'true';

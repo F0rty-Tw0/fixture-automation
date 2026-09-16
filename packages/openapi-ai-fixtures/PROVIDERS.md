@@ -8,13 +8,13 @@ A scratch directory and model-tool restrictions are **not** an OS sandbox or a u
 
 ## Status matrix
 
-| Provider           | Executable and transport                                               | Staged control files                                                        | Current evidence                                     | Material qualification                                                                              |
-| ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Claude Code        | `claude`; text stdin, JSON stdout envelope                             | None                                                                        | Implementation plus prior successful real generation | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
-| Codex CLI          | `codex`; stdin placeholder `-`, JSONL stdout                           | None                                                                        | Implementation plus prior successful real generation | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
-| Antigravity        | `agy`; one stream-JSON stdin event and stream-JSON stdout              | `.agents/agents/fixture-enricher/agent.md`                                  | Source-linked documentation review; no local run     | Empty-list inheritance, global hooks/rules/MCP, and native-Windows sandbox behavior are unresolved. |
-| GitHub Copilot CLI | `copilot`; complete prompt on stdin, raw text stdout                   | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source-linked documentation review; no local run     | Model tools are disabled, but global MCP/extensions may still start.                                |
-| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, JSON stdout envelope | `.gemini/system-settings.json`, `.gemini/deny-tools.toml`                   | Source-linked documentation review; no local run     | Released v0.59.0 ignores file-based `admin.*`; inherited configuration remains relevant.            |
+| Provider           | Executable and transport                                               | Staged control files                                                        | Current evidence                                                | Material qualification                                                                              |
+| ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Claude Code        | `claude`; text stdin, JSON stdout envelope                             | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
+| Codex CLI          | `codex`; stdin placeholder `-`, JSONL stdout                           | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
+| Antigravity        | `agy`; one stream-JSON stdin event and stream-JSON stdout              | `.agents/agents/fixture-enricher/agent.md`                                  | Source-linked documentation review; no local run                | Empty-list inheritance, global hooks/rules/MCP, and native-Windows sandbox behavior are unresolved. |
+| GitHub Copilot CLI | `copilot`; complete prompt on stdin, raw text stdout                   | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source-linked documentation review; no local run                | Model tools are disabled, but global MCP/extensions may still start.                                |
+| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, JSON stdout envelope | `.gemini/system-settings.json`                                              | Source review and controlled-process checks; no live generation | Trusted scratch workspace; no custom deny policy; inherited configuration remains relevant.         |
 
 “Source-linked documentation review” means official documentation and released/source-code material were inspected. It is not a runtime pass, authentication check, installed-version assertion, or proof of no side effects.
 
@@ -71,6 +71,8 @@ servers with a per-run allowlist. It preserves managed system settings and refus
 those settings can re-enable hooks or background Auto Memory generation. It also refuses a
 restricted-mode configuration that would prevent the scratch overrides from taking effect.
 `NO_BROWSER=true` prevents opening a login browser; missing authentication still fails or times out.
+Discovery also disables IDE integration and its setup nudge, and clears the Gemini IDE connection
+variables listed in the [Gemini invocation contract](#gemini-cli).
 The released [Auto Memory guide](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/docs/cli/auto-memory.md)
 documents why an unrestricted ACP startup is not a safe substitute for a no-generation catalog lookup.
 
@@ -287,26 +289,38 @@ Additional source anchors: [released trust selection](https://raw.githubusercont
 [system-prompt overrides](https://geminicli.com/docs/cli/system-prompt/), and
 [pinned ownership/ACL checks](https://raw.githubusercontent.com/google-gemini/gemini-cli/9c1b0a610534d6f8120964cf2672c07807d8fc90/packages/core/src/utils/security.ts).
 
+IDE settings and connection variables are defined by the released
+[settings schema](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/cli/src/config/settingsSchema.ts),
+[IDE client](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/core/src/ide/ide-client.ts),
+[connection helpers](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/core/src/ide/ide-connection-utils.ts),
+and [process lookup](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/core/src/ide/process-utils.ts).
+
 ### Invocation, files, and environment
 
-| Item                  | Adapter contract                                                                                                                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Executable            | `gemini`                                                                                                                                                                                                                 |
-| Exact argument vector | `--prompt "Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value." --output-format json --approval-mode default --extensions none --policy .gemini/deny-tools.toml`    |
-| stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. The documented/released behavior composes stdin, two newlines, then the fixed `--prompt` text as model input.                                      |
-| stdout                | One JSON envelope. Its `response` field must be a string containing the fixture JSON value.                                                                                                                              |
-| Environment overlay   | `GEMINI_CLI_SYSTEM_SETTINGS_PATH=.gemini/system-settings.json`; remove inherited `GEMINI_CLI_TRUST_WORKSPACE`; remove inherited `GEMINI_SANDBOX`. All other environment values, including authentication, are inherited. |
-| Authentication        | Existing credentials may be reused in headless mode, but presence and usability were not checked.                                                                                                                        |
-| Model selection       | `-m <slug>` is appended when a non-`default` model is selected. Model choices come from the CLI's ACP session catalog.                                                                                                   |
+| Item                  | Adapter contract                                                                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Executable            | `gemini`                                                                                                                                                                                                    |
+| Exact argument vector | `--prompt "Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value." --output-format json --approval-mode default --extensions none`                        |
+| stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. The documented/released behavior composes stdin, two newlines, then the fixed `--prompt` text as model input.                         |
+| stdout                | One JSON envelope. Its `response` field must be a string containing the fixture JSON value.                                                                                                                 |
+| Environment overlay   | `GEMINI_CLI_SYSTEM_SETTINGS_PATH=.gemini/system-settings.json`; `GEMINI_CLI_TRUST_WORKSPACE=true`; remove inherited Gemini IDE connection variables and `GEMINI_SANDBOX`. Authentication remains inherited. |
+| Authentication        | Existing credentials may be reused in headless mode, but presence and usability were not checked.                                                                                                           |
+| Model selection       | `-m <slug>` is appended when a non-`default` model is selected. Model choices come from the CLI's ACP session catalog.                                                                                      |
 
-The staged policy file, `.gemini/deny-tools.toml`, is:
+No custom policy file is staged and no `--policy` argument is passed. Gemini's built-in,
+ordinary user, and administrator policies still apply.
 
-```toml
-[[rule]]
-toolName = "*"
-decision = "deny"
-priority = 999
-```
+Generation and model discovery disable IDE integration (`ide.enabled: false`) and its setup
+nudge (`ide.hasSeenNudge: true`). Both remove these inherited variables from the child environment:
+
+- `GEMINI_CLI_IDE_AUTH_TOKEN`
+- `GEMINI_CLI_IDE_PID`
+- `GEMINI_CLI_IDE_SERVER_PORT`
+- `GEMINI_CLI_IDE_SERVER_STDIO_ARGS`
+- `GEMINI_CLI_IDE_SERVER_STDIO_COMMAND`
+- `GEMINI_CLI_IDE_WORKSPACE_PATH`
+
+The parent environment and user IDE settings files are not modified.
 
 The staged system settings file, `.gemini/system-settings.json`, is:
 
@@ -314,6 +328,10 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 {
   "general": {
     "enableAutoUpdate": false
+  },
+  "ide": {
+    "enabled": false,
+    "hasSeenNudge": true
   },
   "tools": {
     "core": [],
@@ -333,7 +351,7 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 }
 ```
 
-Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, JSON output envelope, extensions sentinel `none`, wildcard deny rule, priority range, empty core-tool list, empty discovery command, skill switch, and hook switch. `--approval-mode default` is not a deny-all control by itself. The policy is a user-tier rule rather than an absolute maximum: system/administrator policy may take precedence. The settings path is relative to the scratch cwd in the released loader.
+Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, JSON output envelope, extensions sentinel `none`, empty core-tool list, empty discovery command, skill switch, hook switch, and IDE settings. `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
 
 ### Result and failure framing
 
@@ -341,25 +359,21 @@ The adapter parses stdout as one JSON object. Any present `error` field fails. O
 
 ### Evidence, released/source conflict, and unresolved work
 
-No Gemini generation ran: the installed `dist/index.js` entrypoint was reported missing. No installation, repair, or authentication work occurred. The documentation/source review used released **v0.59.0** as its stable code baseline and separately inspected the pinned unreleased `main` revision linked above; neither is an assertion about the unrecorded installed version.
+No live Gemini generation ran for this change. A controlled subprocess verified policy-file removal, disabled IDE settings, stripped IDE connection variables, workspace trust, prompt/model preservation, and scratch cleanup; the ACP protocol fixture verified discovery with inherited IDE variables. The local pnpm wrapper points to `@google/gemini-cli@0.32.1`, but its package and entrypoint are missing. No installation, repair, or authentication work occurred. The documentation/source review uses released **v0.59.0** and the separately pinned unreleased `main` linked above; neither is an assertion about a working installed version.
 
-The material released-code contradiction is `admin.mcp.enabled`: v0.59.0’s settings merge ignores **all file-based `admin.*` settings**, so the staged `admin.mcp.enabled: false` does not disable MCP servers. That matters because inheriting an otherwise trusted user configuration can start MCP processes before a model tool call. The deny policy constrains tool use; it is not a startup barrier.
+The material released-code contradiction is `admin.mcp.enabled`: v0.59.0's settings merge ignores **all file-based `admin.*` settings**, so the staged `admin.mcp.enabled: false` does not disable MCP servers. In a trusted workspace, inherited user configuration can start MCP processes before a model tool call. No adapter-supplied deny policy now supplements the remaining tool settings.
 
-Removing `GEMINI_CLI_TRUST_WORKSPACE` does not guarantee an untrusted workspace: persisted, IDE, and other trust sources can still trust it. The source-traced v0.59.0 candidate is a child overlay of `GEMINI_CLI_TRUST_WORKSPACE=false`; trust checking occurs before those other sources, and the MCP manager checks trust before configured-server startup. This is **not implemented** and not live-tested. It conflicts with public headless/trusted-folder prose that says untrusted headless execution fails, so it must not be generalized to unspecified versions.
+Generation and discovery deliberately set `GEMINI_CLI_TRUST_WORKSPACE=true` for their scratch workspace. In the reviewed release, `GEMINI_RESTRICTED_MODE=true` takes precedence over that trust setting; it is not cleared, and discovery retains its explicit restricted-mode refusal. Workspace trust does not provide sandboxing or disable inherited policy/configuration.
 
 The reviewed empty-list and sentinel alternatives are not safe replacements for the missing MCP gate: `mcp.allowed: []` becomes permissive at connection time; a literal empty `--allowed-mcp-server-names` value is `['']`, not an empty list; `none` is a server name, not a documented all-MCP sentinel; `mcpServers: {}` shallow-merges rather than clears; and `mcp.excluded: ['*']` is not a wildcard connection filter. Do not add a fake deny-all MCP sentinel.
 
-Further inherited-state limits remain: a user `tools.sandbox` setting or `.env` can reintroduce sandbox behavior after `GEMINI_SANDBOX` is merely deleted; global `GEMINI.md` and `GEMINI_SYSTEM_MD` can still influence instructions; and administrator policies can outrank the user-tier deny rule. A child overlay of `GEMINI_SANDBOX=false` and `GEMINI_SYSTEM_MD=false` are reviewed source/documentation candidates, not implemented fixes; the latter still does not suppress global `GEMINI.md`.
+Further inherited-state limits remain: a user `tools.sandbox` setting or `.env` can reintroduce sandbox behavior after `GEMINI_SANDBOX` is merely deleted; global `GEMINI.md` and `GEMINI_SYSTEM_MD` can still influence instructions; and administrator policies remain effective. A child overlay of `GEMINI_SANDBOX=false` and `GEMINI_SYSTEM_MD=false` are reviewed source/documentation candidates, not implemented fixes; the latter still does not suppress global `GEMINI.md`.
 
-In the reviewed release, the explicit deny rule has effective user-tier priority **4.999**;
-administrator rules use tier **5**. Explicit `--policy` replaces ordinary user-policy discovery,
-not administrator policy. Blindly switching to `--admin-policy` is not an established fix:
-supplemental admin paths can be ignored when the standard system policy directory is populated.
-Likewise, `context.fileName: []` does not suppress global `GEMINI.md` in the inspected source.
+Without an explicit `--policy`, ordinary user-policy discovery is no longer replaced by the adapter's custom file. Administrator policy remains separate. `context.fileName: []` does not suppress global `GEMINI.md` in the inspected source.
 
 The unreleased pinned `main` adds system-file ownership/security checks. Ordinary user-owned scratch system-settings files can be skipped under those checks, unlike v0.59.0. Changing the path from relative to absolute does not address ownership. A workspace settings file is not a safe drop-in: forced untrusted mode omits workspace settings, while trusting it can reopen MCP startup. A new configuration/authentication design is needed; blindly changing `GEMINI_CLI_HOME` would also move cached-auth and global-state lookup.
 
-**Unimplemented Gemini work:** replace the inert v0.59.0 file-admin MCP control with an authorized, version-qualified strategy; resolve the source-traced trust-gate candidate against the public headless-doc conflict; design for forthcoming main ownership checks on scratch system settings; address sandbox/system/global instruction inheritance and admin-policy precedence; and preserve cached authentication deliberately if user-home isolation is introduced. None is solved by this adapter today.
+**Unimplemented Gemini work:** replace the inert v0.59.0 file-admin MCP control with an authorized, version-qualified strategy; design for forthcoming main ownership checks on scratch system settings; address sandbox/system/global instruction inheritance and administrator-policy precedence; and preserve cached authentication deliberately if user-home isolation is introduced. None is solved by this adapter today.
 
 ## Verification status
 

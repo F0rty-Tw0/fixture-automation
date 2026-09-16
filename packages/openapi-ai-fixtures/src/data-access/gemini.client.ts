@@ -4,18 +4,13 @@ import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const GEMINI_PROMPT = 'Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value.';
-const GEMINI_POLICY_CONTENT = `[[rule]]
-toolName = "*"
-decision = "deny"
-priority = 999
-`;
 const GEMINI_SETTINGS_CONTENT = `{
   "general": {
     "enableAutoUpdate": false
   },
-  "tools": {
-    "core": [],
-    "discoveryCommand": ""
+  "ide": {
+    "enabled": false,
+    "hasSeenNudge": true
   },
   "skills": {
     "enabled": false
@@ -30,33 +25,18 @@ const GEMINI_SETTINGS_CONTENT = `{
   }
 }
 `;
-const GEMINI_ARGS = [
-  '--prompt',
-  GEMINI_PROMPT,
-  '--output-format',
-  'json',
-  '--approval-mode',
-  'default',
-  '--extensions',
-  'none',
-  '--policy',
-  '.gemini/deny-tools.toml'
-];
+const GEMINI_ARGS = ['--prompt', GEMINI_PROMPT, '--output-format', 'json', '--approval-mode', 'default', '--extensions', 'none'];
 
 /**
  * Enrich through Gemini CLI versions supporting headless JSON envelopes,
- * explicit policy files, `--extensions none`, and system settings paths.
+ * `--extensions none`, and system settings paths.
  */
 export const geminiFixture = async (request: AgentRequest): Promise<string> => {
   const settingsFile: AgentFile = {
     path: '.gemini/system-settings.json',
     content: GEMINI_SETTINGS_CONTENT
   };
-  const policyFile: AgentFile = {
-    path: '.gemini/deny-tools.toml',
-    content: GEMINI_POLICY_CONTENT
-  };
-  const files = [settingsFile, policyFile];
+  const files = [settingsFile];
   const args = [...GEMINI_ARGS];
   const model = selectedModel(request.options);
 
@@ -64,8 +44,14 @@ export const geminiFixture = async (request: AgentRequest): Promise<string> => {
 
   const env: Record<string, string | undefined> = {};
 
+  env['GEMINI_CLI_IDE_AUTH_TOKEN'] = undefined;
+  env['GEMINI_CLI_IDE_PID'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_PORT'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_STDIO_ARGS'] = undefined;
+  env['GEMINI_CLI_IDE_SERVER_STDIO_COMMAND'] = undefined;
+  env['GEMINI_CLI_IDE_WORKSPACE_PATH'] = undefined;
   env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] = '.gemini/system-settings.json';
-  env['GEMINI_CLI_TRUST_WORKSPACE'] = undefined;
+  env['GEMINI_CLI_TRUST_WORKSPACE'] = 'true';
   env['GEMINI_SANDBOX'] = undefined;
   const command: AgentCommand = {
     executable: 'gemini',

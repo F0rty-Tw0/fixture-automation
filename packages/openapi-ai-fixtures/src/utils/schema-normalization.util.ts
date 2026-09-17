@@ -88,6 +88,21 @@ const normalizeNullable = (schema: Record<string, unknown>): Record<string, unkn
   return normalized;
 };
 
+const normalizeExtensibleEnum = (schema: Record<string, unknown>): Record<string, unknown> => {
+  const isExtensibleEnum = schema['format'] === 'x-extensible-enum';
+
+  if (!isExtensibleEnum) return schema;
+
+  const hasEnum = Object.hasOwn(schema, 'enum');
+
+  if (!hasEnum) return schema;
+
+  const entries = Object.entries(schema).filter(([key]) => key !== 'enum');
+  const normalized = Object.fromEntries(entries);
+
+  return normalized;
+};
+
 export function normalizeSchema(schema: unknown, dialect: SchemaDialect): unknown {
   if (!isSchemaRecord(schema)) return schema;
 
@@ -106,13 +121,14 @@ export function normalizeSchema(schema: unknown, dialect: SchemaDialect): unknow
     return [key, valueAfterNormalization];
   });
   const normalized = Object.fromEntries(entries);
+  const withoutExtensibleEnum = normalizeExtensibleEnum(normalized);
 
-  if (dialect === 'openapi-30') return normalizeNullable(normalized);
+  if (dialect === 'openapi-30') return normalizeNullable(withoutExtensibleEnum);
 
   const usesOpenApiBaseDialect =
-    dialect === 'openapi-31' && normalized['$schema'] === 'https://spec.openapis.org/oas/3.1/dialect/base';
+    dialect === 'openapi-31' && withoutExtensibleEnum['$schema'] === 'https://spec.openapis.org/oas/3.1/dialect/base';
 
-  if (usesOpenApiBaseDialect) normalized['$schema'] = SCHEMA_IDENTIFIER['openapi-31'];
+  if (usesOpenApiBaseDialect) withoutExtensibleEnum['$schema'] = SCHEMA_IDENTIFIER['openapi-31'];
 
-  return normalized;
+  return withoutExtensibleEnum;
 }

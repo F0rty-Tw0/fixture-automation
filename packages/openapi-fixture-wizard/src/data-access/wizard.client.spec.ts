@@ -66,7 +66,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'one');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', '');
+        await run(SPEC_URL, outDir, '', 'invoice', '1', '');
         await expect(exists(join(outDir, 'invoice.fixture.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'invoice.d.ts'))).resolves.toBe(false);
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
@@ -87,7 +87,7 @@ describe('FEATURE: fixture wizard', (): void => {
         const outDir = join(directory, 'two');
         const mergedFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.json');
         const provenanceFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.provenance.json');
-        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', 'get', 'v1/invoices/in_2', ''];
+        const answers = [SPEC_URL, outDir, 'get', 'v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', 'get', 'v1/invoices/in_2', ''];
 
         await run(...answers);
 
@@ -117,7 +117,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'three');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', completeFile, '', '');
+        await run(SPEC_URL, outDir, '', 'invoice', '1', completeFile, '', '');
         await expect(exists(join(outDir, 'missing'))).resolves.toBe(false);
       },
       TIMEOUT
@@ -131,7 +131,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'four');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', '', 'n');
+        await run(SPEC_URL, outDir, '', 'invoice', '1', corruptFile, '', '', 'n');
         await expect(exists(join(outDir, 'missing', 'missing.json'))).resolves.toBe(true);
         await expect(exists(join(outDir, 'missing', 'populated.json'))).resolves.toBe(false);
       },
@@ -146,7 +146,7 @@ describe('FEATURE: fixture wizard', (): void => {
         vi.spyOn(console, 'error').mockImplementation(silence);
         const outDir = join(directory, 'five');
 
-        await run(SPEC_URL, outDir, 'invoice', '1', corruptFile, '', '', 'y', '2', '1', '', 'n');
+        await run(SPEC_URL, outDir, '', 'invoice', '1', corruptFile, '', '', 'y', '2', '1', '', 'n');
 
         const outputEntries = await readdir(outDir);
 
@@ -170,6 +170,7 @@ describe('FEATURE: fixture wizard', (): void => {
         const question = answering(
           SPEC_URL,
           outDir,
+          '',
           'invoice',
           '1',
           fixtureFile,

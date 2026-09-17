@@ -2,7 +2,6 @@ import { FixtureError, referenceName, schemaSuggestion } from '@fixture-automati
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
-const ROUTE = /^(get|post|put|patch|delete)\s+(\/\S*)$/i;
 const SUCCESS_STATUS = /^2\d\d$/;
 const JSON_CONTENT = 'application/json';
 const SCHEMA_FIX = 'answer the schema name instead, e.g. invoice';
@@ -65,27 +64,26 @@ const schemaReference = (schema: unknown): string | undefined => {
   return undefined;
 };
 
-const routeSchemaName = (spec: OpenApiSpec, answer: string, route: RegExpExecArray): string => {
-  const verb = route[1]?.toLowerCase() ?? '';
-  const path = route[2] ?? '';
+const routeSchemaName = (spec: OpenApiSpec, method: string, target: string): string => {
+  const verb = method.trim().toLowerCase();
+  const path = `/${target.trim().replace(/^\/+/, '')}`;
+  const route = `${verb.toUpperCase()} ${path}`;
   const operation = operationOf(spec, path, verb);
 
-  if (operation === undefined) throw new FixtureError(`route not found in the spec: ${answer}`, ROUTE_FIX);
+  if (operation === undefined) throw new FixtureError(`route not found in the spec: ${route}`, ROUTE_FIX);
 
   const reference = schemaReference(responseSchema(operation));
 
-  if (reference === undefined) throw new FixtureError(`${answer} has no named response schema`, SCHEMA_FIX);
+  if (reference === undefined) throw new FixtureError(`${route} has no named response schema`, SCHEMA_FIX);
 
   return referenceName(reference);
 };
 
-/** A schema name checked against `components.schemas`, or a `VERB /path` answer mapped to its response `$ref`. */
-export const resolveTarget = (spec: OpenApiSpec, answer: string): string => {
-  const trimmed = answer.trim();
-  const route = ROUTE.exec(trimmed);
+/** With a method, the route's response `$ref` under `paths`; without one, a schema name checked against `components.schemas`. */
+export const resolveTarget = (spec: OpenApiSpec, method: string | undefined, target: string): string => {
+  if (method !== undefined) return routeSchemaName(spec, method, target);
 
-  if (route !== null) return routeSchemaName(spec, trimmed, route);
-
+  const trimmed = target.trim();
   const schemas = spec.components?.schemas ?? {};
   const isDeclared = Object.hasOwn(schemas, trimmed);
 

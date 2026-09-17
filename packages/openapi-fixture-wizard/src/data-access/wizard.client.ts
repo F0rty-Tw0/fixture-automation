@@ -2,10 +2,10 @@ import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 
 import { aiMissingFixture, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
-import { endpointUrlInput, mergeFixture } from '@fixture-automation/openapi-fixture-merge';
+import { HTTP_METHODS, endpointUrlInput, isHttpMethod, mergeFixture } from '@fixture-automation/openapi-fixture-merge';
 import type { MergeInput, MergeSpec } from '@fixture-automation/openapi-fixture-merge';
-import { loadSpec, terminalQuestion } from '@fixture-automation/openapi-fixtures';
-import type { Inputs } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, loadSpec, terminalQuestion } from '@fixture-automation/openapi-fixtures';
+import type { Inputs, OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 
 import { choose } from './choose.client.ts';
 import { diffExisting } from './diff.client.ts';
@@ -68,13 +68,34 @@ const checkExisting = async (context: WizardContext): Promise<string[]> => {
   return fillAndMerge(context, diffed);
 };
 
+/** A route (`method` then `target-url`) resolved to its response schema, or a bare `schema-name` when the method is skipped. */
+const askSchemaName = async (inputs: Inputs, spec: OpenApiSpec): Promise<string> => {
+  const method = await inputs.optional(undefined, WIZARD_INPUTS.method);
+
+  if (method === undefined) {
+    const declaredName = await inputs.required(undefined, WIZARD_INPUTS.schemaName, WIZARD_USAGE);
+
+    return resolveTarget(spec, undefined, declaredName);
+  }
+
+  const isKnownMethod = isHttpMethod(method);
+
+  if (!isKnownMethod) {
+    throw new FixtureError(`unknown HTTP method: ${method}`, `use one of ${HTTP_METHODS.join(', ')}, or Enter for a schema name`);
+  }
+
+  const targetUrl = await inputs.required(undefined, WIZARD_INPUTS.targetUrl, WIZARD_USAGE);
+  const schemaName = resolveTarget(spec, method, targetUrl);
+
+  return schemaName;
+};
+
 const runSteps = async (inputs: Inputs, deps: WizardDeps): Promise<string[]> => {
   const specUrl = await inputs.required(undefined, WIZARD_INPUTS.specUrl, WIZARD_USAGE);
   const outDirAnswer = await inputs.optional(undefined, WIZARD_INPUTS.outDir);
   const outDir = resolve(outDirAnswer ?? DEFAULT_OUT_DIR);
   const spec = await loadSpec(specUrl);
-  const target = await inputs.required(undefined, WIZARD_INPUTS.target, WIZARD_USAGE);
-  const schemaName = resolveTarget(spec, target);
+  const schemaName = await askSchemaName(inputs, spec);
   const format = await choose(deps.question, WIZARD_INPUTS.format, FORMATS);
   const generated = await generateFiles({ spec, schemaName, outDir, format });
   const fixtureFile = await inputs.optional(undefined, WIZARD_INPUTS.existingFixture);

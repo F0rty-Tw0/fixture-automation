@@ -21,10 +21,20 @@ const outDir: InputSpec = {
   description: `directory receiving every file; defaults to ${DEFAULT_OUT_DIR}`,
   example: 'fixtures'
 };
-const target: InputSpec = {
-  label: 'target',
-  description: 'a key under components.schemas, or a route whose JSON response references one',
-  example: 'invoice, or GET /v1/invoices/{id}'
+const method: InputSpec = {
+  label: 'method',
+  description: 'HTTP method of the route whose JSON response names the schema; Enter targets a schema by name instead',
+  example: 'get'
+};
+const targetUrl: InputSpec = {
+  label: 'target-url',
+  description: 'route path from the spec, with or without a leading slash',
+  example: 'v1/invoices/{id}'
+};
+const schemaName: InputSpec = {
+  label: 'schema-name',
+  description: 'a key under components.schemas',
+  example: 'invoice'
 };
 const format: InputSpec = {
   label: 'format',
@@ -76,7 +86,9 @@ const subdirectory: InputSpec = {
 export const WIZARD_INPUTS = {
   specUrl,
   outDir,
-  target,
+  method,
+  targetUrl,
+  schemaName,
   format,
   existingFixture,
   objectShape,
@@ -95,7 +107,9 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
 
   spec-url          http(s):// or file:// URL of the JSON spec (required)
   out-dir           directory receiving every file; Enter = ${DEFAULT_OUT_DIR}
-  target            schema name (invoice) or route (GET /v1/invoices/{id}) (required)
+  method            HTTP method of the route (get, post, …); Enter targets a schema by name
+  target-url        asked after a method; route path from the spec, leading slash optional (v1/invoices/{id})
+  schema-name       asked without a method; a key under components.schemas (invoice)
   format            1) json  2) ts  3) both
   existing-fixture  JSON fixture to check; Enter ends the run after generation
   object-shape      top-level property to compare and merge (body); Enter uses the whole object

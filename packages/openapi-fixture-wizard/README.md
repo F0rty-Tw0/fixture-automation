@@ -7,7 +7,7 @@ It calls the other five packages in-process and asks every question on stderr. E
 ## What it does
 
 - **Generates** `<schema>.fixture.json` and, for the `ts` and `both` formats, `<schema>.spec.json`, `<schema>.d.ts` and a typed `<schema>.fixture.ts` stub.
-- **Targets** a schema by name, or by route: `GET /v1/invoices/{id}` is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints).
+- **Targets** a schema by route or by name: answer `method` (`get`) then `target-url` (`v1/invoices/{id}`, leading slash optional) and the route is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints); press Enter at `method` to answer a `schema-name` instead.
 - **Diffs** one existing fixture against the schema, optionally selecting a top-level payload such as `body`, and writes `missing/missing.json`, `missing/missing.d.ts` and `missing/missing.stub.ts` when fields are absent.
 - **Fills** the missing fields with a local coding harness (`claude`, `codex`, `antigravity`, `copilot` or `gemini`) into `missing/populated.json`.
 - **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar.
@@ -37,9 +37,12 @@ spec-url: https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.
 out-dir (Enter to skip): directory receiving every file; defaults to fixtures
   e.g. fixtures
 out-dir:
-target: a key under components.schemas, or a route whose JSON response references one
-  e.g. invoice, or GET /v1/invoices/{id}
-target: GET /v1/invoices/{id}
+method (Enter to skip): HTTP method of the route whose JSON response names the schema; Enter targets a schema by name instead
+  e.g. get
+method: get
+target-url: route path from the spec, with or without a leading slash
+  e.g. v1/invoices/{id}
+target-url: v1/invoices/{id}
 format: json writes <schema>.fixture.json; ts adds <schema>.spec.json, <schema>.d.ts and a typed stub
   1) json
   2) ts
@@ -103,7 +106,9 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | ------------------ | -------- | --------------------------------------------------------------------------------------------- |
 | `spec-url`         | required | `http(s)://` or `file://` URL of the JSON spec.                                               |
 | `out-dir`          | optional | Directory receiving every file. Enter = `fixtures`.                                           |
-| `target`           | required | A key under `components.schemas`, or `VERB /path` of a route whose JSON response is a `$ref`. |
+| `method`           | optional | HTTP method of the route (`get`, `post`, …). Enter targets a schema by name instead.          |
+| `target-url`       | required | Asked after a method. Route path from the spec, leading slash optional (`v1/invoices/{id}`); its JSON response must be a `$ref`. |
+| `schema-name`      | required | Asked without a method. A key under `components.schemas` (`invoice`).                        |
 | `format`           | choice   | `1) json` `2) ts` `3) both`.                                                                  |
 | `existing-fixture` | optional | JSON fixture to check. Enter ends the run after generation.                                   |
 | `object-shape`     | optional | Top-level property to compare and merge, e.g. `body`. Enter uses the entire fixture.          |
@@ -171,9 +176,10 @@ writes only the validated result to `populated.json`.
 | You see                                      | It means                                                           | Fix                                                                             |
 | -------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | `the wizard needs a terminal`                | stdin is not a TTY (pipe, redirect, CI).                           | Run it in a terminal, or run the individual CLIs instead.                       |
+| `unknown HTTP method: <answer>`              | `method` is not get, post, put, patch, delete, head or options.    | Answer one of those, or press Enter to give a schema name.                      |
 | `<route> has no named response schema`       | The route's JSON response is inline, `oneOf`/`allOf`, or not JSON. | Answer the schema name instead, e.g. `invoice`.                                 |
-| `route not found in the spec: <route>`       | No such path/verb under `paths`.                                   | Check the verb and path, or answer the schema name.                             |
-| `schema not found: <name>`                   | `target` is not a key under `components.schemas`.                  | The fix line suggests close names or lists what exists.                         |
+| `route not found in the spec: <route>`       | No such `target-url`/`method` under `paths`.                       | Check the method and path, or skip `method` and answer the schema name.         |
+| `schema not found: <name>`                   | `schema-name` is not a key under `components.schemas`.             | The fix line suggests close names or lists what exists.                         |
 | `no <prompt> chosen after 3 attempts`        | Three unusable answers to a numbered choice.                       | Answer a number from the list.                                                  |
 | `no <prompt> given after 3 attempts`         | Three blank answers to a required prompt.                          | Answer the prompt.                                                              |
 | `merged fixture violates schema "<name>": …` | The AI-filled values fail validation.                              | Fix `missing/populated.json` and merge with `openapi-fixture-merge`, or re-run. |
@@ -211,6 +217,6 @@ pnpm run lint
 - `src/data-access/wizard.client.ts` sequences the prompts and steps.
 - `src/data-access/generate.client.ts`, `diff.client.ts`, `fill.client.ts` own one step each.
 - `src/data-access/choose.client.ts` is the numbered-list prompt; `src/utils/choice.util.ts` parses the answer.
-- `src/utils/route-schema.util.ts` maps a route answer to its response schema.
+- `src/utils/route-schema.util.ts` maps a `method` + `target-url` answer to its response schema, or checks a `schema-name`.
 - `src/common/wizard.const.ts` holds every prompt text; `src/common/wizard.type.ts` the types.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

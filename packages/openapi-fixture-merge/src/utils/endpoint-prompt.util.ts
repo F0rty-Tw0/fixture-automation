@@ -3,9 +3,10 @@ import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { MERGE_INPUTS } from '../common/fixture-merge-cli.const.ts';
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
+export const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
 
-const isHttpMethod = (method: string): boolean => {
+/** True for a known HTTP method in any casing, surrounding whitespace ignored. */
+export const isHttpMethod = (method: string): boolean => {
   const normalized = method.trim().toLowerCase();
   const known = HTTP_METHODS.some((candidate): boolean => candidate === normalized);
 

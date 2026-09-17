@@ -22,7 +22,8 @@ const REFUND_COMPONENTS = { schemas: REFUND_SCHEMAS };
 const PATHS = { '/v1/invoices': {} };
 
 const spec: OpenApiSpec = { openapi: '3.1.0', info: INFO, jsonSchemaDialect: DIALECT, components: ALL_COMPONENTS };
-const withPaths = { ...spec, paths: PATHS, servers: [] } as OpenApiSpec;
+const UNKNOWN_KEYS: Record<string, unknown> = { servers: [] };
+const withPaths: OpenApiSpec = { ...spec, paths: PATHS, ...UNKNOWN_KEYS };
 const bare: OpenApiSpec = { components: REFUND_COMPONENTS };
 
 describe('FEATURE: spec pruning', (): void => {

@@ -17,7 +17,8 @@ const customer: JSONSchema7 = { type: 'object', properties: CUSTOMER_PROPERTIES 
 const address: JSONSchema7 = { type: 'object', properties: ADDRESS_PROPERTIES };
 const node: JSONSchema7 = { type: 'object', properties: NODE_PROPERTIES };
 const root: JSONSchema7 = { type: 'object', properties: ROOT_PROPERTIES };
-const extended: JSONSchema7 = { type: 'object', 'x-example': CUSTOMER_REF } as JSONSchema7;
+const EXTENSION: Record<string, unknown> = { 'x-example': CUSTOMER_REF };
+const extended: JSONSchema7 = { type: 'object', ...EXTENSION };
 const ghost: JSONSchema7 = { $ref: '#/components/schemas/ghost' };
 const schemas = { customer, address, node, unrelated: TEXT };
 

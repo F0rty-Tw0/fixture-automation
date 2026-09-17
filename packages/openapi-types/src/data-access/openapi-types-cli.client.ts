@@ -126,8 +126,8 @@ export const runTypesCli = async (args: string[], inputs: Inputs = silentInputs)
 
   if (schemaName !== undefined && outFile !== undefined) return generatePruned(specUrl, schemaName, outFile);
 
-  // ponytail: a bare 2-positional run gives positionals[1] to the `schemaName` slot even though it
-  // means out-file there; only a prompt-answered schema name (positionals[1] unset) needs its own out-file
+  // A bare 2-positional run puts the out-file in positionals[1], the `schemaName` slot;
+  // only a prompt-answered schema name (positionals[1] unset) still needs an out-file.
   const schemaWasPrompted = positionals[1] === undefined && schemaName !== undefined;
 
   if (schemaWasPrompted) throw new FixtureError('schema-name needs an out-file', 'answer out-file, e.g. invoice.d.ts');

@@ -1,9 +1,12 @@
+import { strict as assert } from 'node:assert';
+
 import { describe, expect, it } from 'vitest';
 
 import { diffFixture } from './fixture-diff.client.ts';
 import type { SpecSchema } from '../common/schema.type.ts';
 import { cyclicOrder, nestedOrder, nestedSpec } from '../test/utils/nested-spec.spec.util.ts';
 import { dropPaths } from '../utils/drop-path.util.ts';
+import { isSchema } from '../utils/schema-record.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const CYCLE_PATHS = ['parent.id', 'parent.created', 'parent.note', 'parent.customer', 'parent.lines'];
@@ -122,8 +125,14 @@ describe('FEATURE: missing-field diff against an OpenAPI schema', (): void => {
       const fixture = dropPaths(await nestedOrder(), ['lines[1].source']);
 
       const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true });
-      const lines = diff.schema.properties?.['lines'] as SpecSchema;
-      const items = lines.items as SpecSchema;
+      const lines = diff.schema.properties?.['lines'];
+
+      assert(isSchema(lines), 'expected lines schema');
+
+      const items = lines.items;
+
+      assert(isSchema(items), 'expected items schema');
+
       const source = items.properties?.['source'];
 
       const supplierRef = { $ref: '#/components/schemas/supplier' };
@@ -163,7 +172,7 @@ describe('FEATURE: missing-field diff against an OpenAPI schema', (): void => {
   describe('GIVEN a fixture shaped like the sampler leaves it at a cycle', (): void => {
     it('WHEN diffing every field THEN the omitted cyclic property is not missing', async (): Promise<void> => {
       const spec = await nestedSpec();
-      const order = (await nestedOrder()) as Record<string, unknown>;
+      const order = await nestedOrder();
       const fixture = { ...order, parent: order };
 
       const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: false });

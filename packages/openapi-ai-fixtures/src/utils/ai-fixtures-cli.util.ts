@@ -137,8 +137,6 @@ export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silent
 
   if (target.outFile === '') throw new FixtureError('the destination path must not be empty');
 
-  // ponytail: schemaName stays ambiguous vs out-file for a lone second positional; a prompted answer
-  // resolves the same way schemaTarget() does today. Missing mode never asks it: missing.json names the schema.
   let schemaName: string | undefined;
 
   if (!isMissingMode) schemaName = await inputs.optional(target.schemaName, AI_FIXTURES_INPUTS.schemaName);

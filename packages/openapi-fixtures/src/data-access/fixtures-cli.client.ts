@@ -50,7 +50,6 @@ export const runFixturesCli = async (args: string[], inputs: Inputs = silentInpu
   if (positionals.length > 3) throw new FixtureError(FIXTURES_USAGE);
 
   const specUrl = await inputs.required(positionals[0], FIXTURES_INPUTS.specUrl, FIXTURES_USAGE);
-  // ponytail: a lone second positional stays ambiguous (schema or out-file); a prompted answer resolves the same way
   const first = await inputs.optional(positionals[1], FIXTURES_INPUTS.schemaName);
   const second = await inputs.optional(positionals[2], FIXTURES_INPUTS.outFile);
   const typesFile = await inputs.optional(values.ts, FIXTURES_INPUTS.ts);

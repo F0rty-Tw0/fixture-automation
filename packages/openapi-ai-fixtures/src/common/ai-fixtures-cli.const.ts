@@ -25,8 +25,7 @@ const tool: InputSpec = {
 };
 const schemaName: InputSpec = {
   label: 'schema-name',
-  description:
-    'a key under components.schemas; defaults to the x-root-schema of a spec written by openapi-types <spec-url> <schema-name> <out-file>',
+  description: 'a key under components.schemas; asked because this spec carries no x-root-schema to default to',
   example: 'invoice'
 };
 const outFile: InputSpec = {

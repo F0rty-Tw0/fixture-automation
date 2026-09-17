@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises';
-
+import { loadSpec } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -11,7 +10,7 @@ describe('FEATURE: wizard target resolution', (): void => {
   let spec: OpenApiSpec;
 
   beforeAll(async (): Promise<void> => {
-    spec = JSON.parse(await readFile(SPEC_URL, 'utf8')) as OpenApiSpec;
+    spec = await loadSpec(SPEC_URL);
   });
 
   describe('GIVEN no method and a schema name', (): void => {

@@ -103,6 +103,17 @@ describe('FEATURE: fixture merge command', (): void => {
     }, 30000);
   });
 
+  describe('GIVEN a silent run omitting out-dir', (): void => {
+    it('WHEN out-dir is omitted THEN writes into fixtures', async (): Promise<void> => {
+      const args = [project.corruptFile, project.populatedFile, '--endpoint-url', project.endpointUrl];
+      const outFile = join(project.directory, 'fixtures', 'FX3lkh+jltt9JHg45q6JuuKrxvw=.json');
+
+      await project.run(args);
+
+      await expect(access(outFile)).resolves.toBeUndefined();
+    }, 30000);
+  });
+
   describe('GIVEN no spec option', (): void => {
     it('WHEN merging THEN it warns and still writes the fixture', async (): Promise<void> => {
       const args = [project.corruptFile, project.populatedFile, project.directory, '--endpoint-url', project.endpointUrl];

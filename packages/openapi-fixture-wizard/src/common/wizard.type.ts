@@ -45,6 +45,8 @@ export type WizardContext = {
   readonly specUrl: string;
   readonly spec: OpenApiSpec;
   readonly schemaName: string;
+  /** `METHOD,path` of the route that named the schema; `undefined` makes the merge ask for its endpoint. */
+  readonly endpointUrl: string | undefined;
   readonly outDir: string;
   readonly fixtureFile: string;
   readonly objectShape: string | undefined;

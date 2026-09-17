@@ -113,6 +113,12 @@ export const parseListModelsArgs = (args: string[]): AiFixtureOptions | undefine
   return toolOptions(values.tool, values.executable, values.timeout, undefined);
 };
 
+/**
+ * Parse the command line; `undefined` means the caller should print help.
+ *
+ * `schemaName` is the raw positional: whether to ask for it depends on the loaded spec, so the
+ * caller asks after `loadSpec`.
+ */
 export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silentInputs): Promise<AiFixtureCliOptions | undefined> => {
   const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
 
@@ -137,11 +143,6 @@ export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silent
 
   if (target.outFile === '') throw new FixtureError('the destination path must not be empty');
 
-  // ponytail: schemaName stays ambiguous vs out-file for a lone second positional; a prompted answer
-  // resolves the same way schemaTarget() does today. Missing mode never asks it: missing.json names the schema.
-  let schemaName: string | undefined;
-
-  if (!isMissingMode) schemaName = await inputs.optional(target.schemaName, AI_FIXTURES_INPUTS.schemaName);
   const outFile = await inputs.optional(target.outFile, AI_FIXTURES_INPUTS.outFile);
   const typesFile = await inputs.optional(values.ts, AI_FIXTURES_INPUTS.ts);
 
@@ -150,7 +151,8 @@ export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silent
   const executable = await inputs.optional(values.executable, AI_FIXTURES_INPUTS.executable);
   const timeout = await inputs.optional(values.timeout, AI_FIXTURES_INPUTS.timeout);
   const options = toolOptions(toolName, executable, timeout, values.model);
-  const parsed: AiFixtureCliOptions = { specUrl: target.specUrl, schemaName, fixtureFile, scenario, options, outFile, typesFile };
+  const { specUrl, schemaName } = target;
+  const parsed: AiFixtureCliOptions = { specUrl, schemaName, fixtureFile, scenario, options, outFile, typesFile };
 
   if (missingFile === undefined) return parsed;
 

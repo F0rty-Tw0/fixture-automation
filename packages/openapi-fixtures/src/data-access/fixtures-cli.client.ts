@@ -9,7 +9,7 @@ import { loadSpec } from './openapi-spec.client.ts';
 import { FixtureError } from '../common/fixture.error.ts';
 import { FIXTURES_HELP, FIXTURES_INPUTS, FIXTURES_USAGE } from '../common/fixtures-cli.const.ts';
 import type { Inputs } from '../common/input.type.ts';
-import { schemaTarget } from '../utils/schema-name.util.ts';
+import { askSchemaName, schemaTarget } from '../utils/schema-name.util.ts';
 import { silentInputs } from '../utils/silent-inputs.util.ts';
 import { typescriptImport } from '../utils/typescript-import.util.ts';
 import { typescriptStub } from '../utils/typescript-stub.util.ts';
@@ -50,12 +50,11 @@ export const runFixturesCli = async (args: string[], inputs: Inputs = silentInpu
   if (positionals.length > 3) throw new FixtureError(FIXTURES_USAGE);
 
   const specUrl = await inputs.required(positionals[0], FIXTURES_INPUTS.specUrl, FIXTURES_USAGE);
-  // ponytail: a lone second positional stays ambiguous (schema or out-file); a prompted answer resolves the same way
-  const first = await inputs.optional(positionals[1], FIXTURES_INPUTS.schemaName);
+  const spec = await loadSpec(specUrl);
+  const first = await askSchemaName(spec, positionals[1], FIXTURES_INPUTS.schemaName, inputs);
   const second = await inputs.optional(positionals[2], FIXTURES_INPUTS.outFile);
   const typesFile = await inputs.optional(values.ts, FIXTURES_INPUTS.ts);
   const requiredOnly = await inputs.flag(values['required-only'], FIXTURES_INPUTS.requiredOnly);
-  const spec = await loadSpec(specUrl);
   const { schemaName, outFile } = schemaTarget(spec, first, second);
   let typesImport: string | undefined;
 

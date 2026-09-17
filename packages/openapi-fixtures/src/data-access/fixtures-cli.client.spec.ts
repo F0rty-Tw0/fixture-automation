@@ -3,8 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
+import { runFixturesCli } from './fixtures-cli.client.ts';
+import { promptedInputs } from './input-prompt.client.ts';
 import type { CliResult } from '../test/common/cli-result.type.ts';
 import { hasStackFrame, spawnFixturesCli } from '../test/utils/cli-result.spec.util.ts';
 
@@ -20,7 +24,24 @@ const stderrLines = (result: CliResult): string[] => {
   return result.stderr.trimEnd().split('\n');
 };
 
+const capturedStdout = (): string[] => {
+  const chunks: string[] = [];
+  const write = (chunk: unknown): boolean => {
+    chunks.push(String(chunk));
+
+    return true;
+  };
+
+  vi.spyOn(process.stdout, 'write').mockImplementation(write);
+
+  return chunks;
+};
+
 describe('FEATURE: fixtures command line', (): void => {
+  afterEach((): void => {
+    vi.restoreAllMocks();
+  });
+
   describe('GIVEN the help flag', (): void => {
     it(
       'WHEN running THEN it prints the help on stdout and succeeds',
@@ -93,6 +114,17 @@ describe('FEATURE: fixtures command line', (): void => {
       TIMEOUT
     );
 
+    it('WHEN the spec URL is typed in a terminal THEN the schema name is not asked', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const outFile = join(directory, 'typed.json');
+      const question = vi.fn(answering(prunedUrl, outFile, '', ''));
+
+      await runFixturesCli([], promptedInputs(question));
+
+      expect(JSON.parse(await readFile(outFile, 'utf8'))).toMatchObject({ id: 'in_123' });
+      expect(question).toHaveBeenCalledTimes(4);
+    });
+
     it(
       'WHEN the plain spec is given without a schema THEN it asks for the name',
       async (): Promise<void> => {
@@ -164,6 +196,30 @@ describe('FEATURE: fixtures command line', (): void => {
       },
       TIMEOUT
     );
+  });
+
+  describe('GIVEN no arguments in a terminal', (): void => {
+    it('WHEN the spec URL and schema are typed THEN writes the fixture to stdout', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const chunks = capturedStdout();
+      const question = vi.fn(answering(SPEC_URL, 'invoice', '', '', ''));
+
+      await runFixturesCli([], promptedInputs(question));
+
+      expect(JSON.parse(chunks.join(''))).toMatchObject({ id: 'in_123', status: 'draft' });
+      expect(question).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe('GIVEN the spec URL and schema as arguments', (): void => {
+    it('WHEN running THEN never asks', async (): Promise<void> => {
+      capturedStdout();
+      const question = vi.fn(answering('unused'));
+
+      await runFixturesCli([SPEC_URL, 'invoice'], promptedInputs(question));
+
+      expect(question).not.toHaveBeenCalled();
+    });
   });
 
   describe('GIVEN a types file that does not exist', (): void => {

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveSchemaName, schemaTarget } from './schema-name.util.ts';
+import { askSchemaName, resolveSchemaName, schemaTarget } from './schema-name.util.ts';
+import { silentInputs } from './silent-inputs.util.ts';
+import { FIXTURES_INPUTS } from '../common/fixtures-cli.const.ts';
 import type { OpenApiSpec, SchemaTarget } from '../common/openapi.type.ts';
+import { inputsMock } from '../test/mocks/inputs.mock.ts';
 
 const INVOICE = { type: 'object' } as const;
 const SCHEMAS = { invoice: INVOICE };
@@ -10,6 +13,8 @@ const NAME_FIX = 'pass <schema-name>, or use a spec written by openapi-types <sp
 
 const plain: OpenApiSpec = { components: COMPONENTS };
 const pruned: OpenApiSpec = { 'x-root-schema': 'invoice', components: COMPONENTS };
+const blankRoot: OpenApiSpec = { 'x-root-schema': '', components: COMPONENTS };
+const SCHEMA_INPUT = FIXTURES_INPUTS.schemaName;
 
 describe('FEATURE: schema name defaulting', (): void => {
   describe('GIVEN an explicit name', (): void => {
@@ -30,6 +35,52 @@ describe('FEATURE: schema name defaulting', (): void => {
 
       expect(failure).toThrow('schema name required');
       expect(failure).toThrow(expect.objectContaining({ fix: NAME_FIX }));
+    });
+  });
+
+  describe('GIVEN a prompt session and a pruned spec', (): void => {
+    describe('WHEN asking for the schema name', (): void => {
+      it('THEN nothing is asked and the name is left to the root', async (): Promise<void> => {
+        const inputs = inputsMock('invoic');
+
+        const name = await askSchemaName(pruned, undefined, SCHEMA_INPUT, inputs);
+
+        expect(name).toBeUndefined();
+        expect(inputs.optional).not.toHaveBeenCalled();
+      });
+
+      it('THEN a given name still wins over the root', async (): Promise<void> => {
+        const name = await askSchemaName(pruned, 'refund', SCHEMA_INPUT, inputsMock('invoic'));
+
+        expect(name).toBe('refund');
+      });
+    });
+  });
+
+  describe('GIVEN a prompt session and a spec without a root', (): void => {
+    it('WHEN asking for the schema name THEN the typed answer is the name', async (): Promise<void> => {
+      const inputs = inputsMock('invoice');
+
+      const name = await askSchemaName(plain, undefined, SCHEMA_INPUT, inputs);
+
+      expect(name).toBe('invoice');
+      expect(inputs.optional).toHaveBeenCalledWith(undefined, SCHEMA_INPUT);
+    });
+  });
+
+  describe('GIVEN a prompt session and a blank x-root-schema', (): void => {
+    it('WHEN asking for the schema name THEN it is asked like a spec without a root', async (): Promise<void> => {
+      const name = await askSchemaName(blankRoot, undefined, SCHEMA_INPUT, inputsMock('invoice'));
+
+      expect(name).toBe('invoice');
+    });
+  });
+
+  describe('GIVEN a silent run and a spec without a root', (): void => {
+    it('WHEN asking for the schema name THEN the given value comes back unasked', async (): Promise<void> => {
+      const name = await askSchemaName(plain, undefined, SCHEMA_INPUT, silentInputs);
+
+      expect(name).toBeUndefined();
     });
   });
 });

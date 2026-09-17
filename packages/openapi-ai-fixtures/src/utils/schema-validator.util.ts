@@ -30,7 +30,6 @@ export const compileFixtureSchema = <TFixture>(schema: AnySchema, dialect: Schem
 
   addFormats.default(validator);
 
-  // ponytail: unknown formats accept anything; add real validators per format if a fixture ever needs it.
   for (const format of unknownFormats(schema)) validator.addFormat(format, true);
 
   return validator.compile<TFixture>(schema);

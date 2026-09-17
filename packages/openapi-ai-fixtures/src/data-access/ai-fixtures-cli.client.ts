@@ -1,6 +1,14 @@
 import { styleText } from 'node:util';
 
-import { loadSpec, printHelp, readJsonFile, readTextFile, schemaTarget, silentInputs } from '@fixture-automation/openapi-fixtures';
+import {
+  askSchemaName,
+  loadSpec,
+  printHelp,
+  readJsonFile,
+  readTextFile,
+  schemaTarget,
+  silentInputs
+} from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { aiFixtures } from './ai-fixtures.client.ts';
@@ -9,7 +17,7 @@ import { createAiProgressReporter } from './ai-progress.client.ts';
 import { prepareOutput, writeFixtureOutput } from './fixture-output.client.ts';
 import { discoverModels } from './model-discovery.client.ts';
 import { selectModel } from './model-select.client.ts';
-import { AI_FIXTURES_HELP, AI_FIXTURES_USAGE } from '../common/ai-fixtures-cli.const.ts';
+import { AI_FIXTURES_HELP, AI_FIXTURES_INPUTS, AI_FIXTURES_USAGE } from '../common/ai-fixtures-cli.const.ts';
 import type { AiFixtureCliOptions } from '../common/ai-fixtures-cli.type.ts';
 import type { AiFixtureOptions, AiTool } from '../common/ai-fixtures.type.ts';
 import { MISSING_SCHEMA_NAME } from '../common/missing.const.ts';
@@ -71,12 +79,13 @@ const generateMissing = async (options: AiFixtureCliOptions, missingFile: string
   await writeFixtureOutput(target, MISSING_SCHEMA_NAME, filled);
 };
 
-const generate = async (options: AiFixtureCliOptions): Promise<void> => {
+const generate = async (options: AiFixtureCliOptions, inputs: Inputs): Promise<void> => {
   if (options.missingFile !== undefined) return generateMissing(options, options.missingFile);
 
   const specUrl = requiredValue(options.specUrl, AI_FIXTURES_USAGE);
   const spec = await loadSpec(specUrl);
-  const { schemaName, outFile } = schemaTarget(spec, options.schemaName, options.outFile);
+  const given = await askSchemaName(spec, options.schemaName, AI_FIXTURES_INPUTS.schemaName, inputs);
+  const { schemaName, outFile } = schemaTarget(spec, given, options.outFile);
   const resolved: AiFixtureCliOptions = { ...options, schemaName, outFile };
   const fixture = await readJsonFile('--fixture', options.fixtureFile);
   const target = await prepareOutput(resolved);
@@ -107,5 +116,5 @@ export const runAiFixturesCli = async (args: string[], inputs: Inputs = silentIn
     return;
   }
 
-  await generate(options);
+  await generate(options, inputs);
 };

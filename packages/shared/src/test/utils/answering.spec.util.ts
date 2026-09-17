@@ -1,4 +1,4 @@
-import type { Question } from '@fixture-automation/openapi-fixtures';
+import type { Question } from '../../common/question.type.ts';
 
 /** A fake terminal that returns the given answers in order, then blank lines. */
 export const answering = (...answers: string[]): Question => {

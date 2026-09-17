@@ -45,7 +45,6 @@ const responseSchema = (operation: Record<string, unknown>): unknown => {
   return json['schema'];
 };
 
-// ponytail: $ref and items.$ref only; oneOf/allOf responses → answer the schema name
 const schemaReference = (schema: unknown): string | undefined => {
   if (!isRecord(schema)) return undefined;
 

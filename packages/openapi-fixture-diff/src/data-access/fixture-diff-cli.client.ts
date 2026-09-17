@@ -2,6 +2,7 @@ import { styleText } from 'node:util';
 
 import {
   FixtureError,
+  askSchemaName,
   loadSpec,
   printHelp,
   readJsonFile,
@@ -43,7 +44,8 @@ const runDiff = async (args: string[], inputs: Inputs): Promise<void> => {
 
   const { specUrl, fixtureFile, outDir, requiredOnly, objectShape } = parsed;
   const spec = await loadSpec(specUrl);
-  const schemaName = resolveSchemaName(spec, parsed.schemaName);
+  const given = await askSchemaName(spec, parsed.schemaName, DIFF_INPUTS.schemaName, inputs);
+  const schemaName = resolveSchemaName(spec, given);
   const fixture = await readJsonFile('--fixture', fixtureFile);
   const diff = diffFixture({ spec, schemaName, fixture, requiredOnly, objectShape });
 

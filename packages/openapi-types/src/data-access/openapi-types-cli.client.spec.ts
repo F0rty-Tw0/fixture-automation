@@ -3,25 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { promptedInputs } from '@fixture-automation/openapi-fixtures';
-import type { Question } from '@fixture-automation/openapi-fixtures';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import { answering, silence } from '@fixture-automation/shared/testing';
 
 import { runTypesCli } from './openapi-types-cli.client.ts';
 import { specUrl } from '../test/utils/spec-url.spec.util.ts';
 
 const SPEC_URL = specUrl().href;
-
-const answering = (...answers: string[]): Question => {
-  const queue = [...answers];
-
-  return async (): Promise<string> => {
-    const answer = await Promise.resolve(queue.shift());
-
-    return answer ?? '';
-  };
-};
-
-const silence = (): void => undefined;
 
 const capturedStdout = (): string[] => {
   const chunks: string[] = [];

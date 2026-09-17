@@ -9,5 +9,9 @@
   },
   "include": ["src/**/*.spec.ts", "src/**/test/**/*.ts", "vitest.config.ts"],
   "exclude": ["src/**/test/fixtures/**"],
-  "references": [{ "path": "./tsconfig.lib.json" }, { "path": "../openapi-fixtures/tsconfig.lib.json" }]
+  "references": [
+    { "path": "./tsconfig.lib.json" },
+    { "path": "../openapi-fixtures/tsconfig.lib.json" },
+    { "path": "../shared/tsconfig.testing.json" }
+  ]
 }

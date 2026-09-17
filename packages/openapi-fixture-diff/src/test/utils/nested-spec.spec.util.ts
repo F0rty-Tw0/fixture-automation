@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSpec } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
+import { isRecord } from '@fixture-automation/shared';
 
 export const nestedFile = (name: string): string => {
   const url = new URL(`../fixtures/nested/${name}`, import.meta.url);
@@ -20,19 +21,18 @@ export const nestedSpec = async (): Promise<OpenApiSpec> => {
   return spec;
 };
 
-export const nestedOrder = async (): Promise<unknown> => {
+export const nestedOrder = async (): Promise<Record<string, unknown>> => {
   const text = await readFile(nestedFile('order.json'), 'utf8');
   const value: unknown = JSON.parse(text);
+
+  if (!isRecord(value)) throw new Error('the order fixture must be an object');
 
   return value;
 };
 
 /** The complete order plus the empty object a sampler leaves behind at the `parent` schema cycle. */
-export const cyclicOrder = async (): Promise<unknown> => {
+export const cyclicOrder = async (): Promise<Record<string, unknown>> => {
   const order = await nestedOrder();
-
-  if (typeof order !== 'object' || order === null) throw new Error('the order fixture must be an object');
-
   const value = { ...order, parent: {} };
 
   return value;

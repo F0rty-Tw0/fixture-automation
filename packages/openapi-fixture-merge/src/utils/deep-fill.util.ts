@@ -48,7 +48,6 @@ const fillScalar = (base: unknown, fill: unknown, path: string, filled: string[]
   return fill;
 };
 
-// ponytail: index-zip; keyed merge if ids matter
 function fillValue(base: unknown, fill: unknown, path: string, filled: string[]): unknown {
   const isArrayMerge = Array.isArray(base) && Array.isArray(fill);
 

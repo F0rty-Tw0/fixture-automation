@@ -20,13 +20,15 @@ export { reachableSchemas } from './utils/reachable-schemas.util.ts';
 
 export { referenceName } from './utils/schema-reference.util.ts';
 
-export { resolveSchemaName, schemaTarget } from './utils/schema-name.util.ts';
+export { askSchemaName, resolveSchemaName, schemaTarget } from './utils/schema-name.util.ts';
 
 export { typescriptImport } from './utils/typescript-import.util.ts';
 
 export { typescriptStub } from './utils/typescript-stub.util.ts';
 
 export { FixtureError } from './common/fixture.error.ts';
+
+export { DEFAULT_OUT_DIR, MISSING_DIR } from './common/output-paths.const.ts';
 
 export type { InputSpec, Inputs, Question } from './common/input.type.ts';
 

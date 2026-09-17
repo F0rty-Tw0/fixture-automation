@@ -1,8 +1,9 @@
 import { FixtureError, promptedInputs, silentInputs } from '@fixture-automation/openapi-fixtures';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering } from '@fixture-automation/shared/testing';
+
 import { endpointUrlInput } from './endpoint-prompt.util.ts';
-import { answering } from '../test/utils/answering.spec.util.ts';
 
 const USAGE = 'usage: test';
 

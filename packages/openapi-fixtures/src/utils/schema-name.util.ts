@@ -1,4 +1,5 @@
 import { FixtureError } from '../common/fixture.error.ts';
+import type { InputSpec, Inputs } from '../common/input.type.ts';
 import type { OpenApiSpec, SchemaTarget } from '../common/openapi.type.ts';
 
 const NAME_FIX = 'pass <schema-name>, or use a spec written by openapi-types <spec-url> <schema-name> <out-file>';
@@ -12,6 +13,21 @@ export const resolveSchemaName = (spec: OpenApiSpec, given: string | undefined):
   if (typeof root === 'string' && root !== '') return root;
 
   throw new FixtureError('schema name required', NAME_FIX);
+};
+
+/** A terminal run is asked for the schema name only when the spec carries no root to default to. */
+export const askSchemaName = async (
+  spec: OpenApiSpec,
+  given: string | undefined,
+  input: InputSpec,
+  inputs: Inputs
+): Promise<string | undefined> => {
+  const root = spec['x-root-schema'];
+  const hasRoot = typeof root === 'string' && root !== '';
+
+  if (hasRoot) return given;
+
+  return inputs.optional(given, input);
 };
 
 /**

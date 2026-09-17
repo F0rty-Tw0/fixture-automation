@@ -1,27 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { selectModel } from './model-select.client.ts';
 import type { ModelDiscovery, ModelSelection } from '../common/model.type.ts';
 
 const discovery: ModelDiscovery = { models: ['alpha', 'beta'], source: 'codex-cli' };
-
-const answering = (...answers: string[]): ((question: string) => Promise<string>) => {
-  const queue = [...answers];
-
-  return async (): Promise<string> => {
-    const answer = await Promise.resolve(queue.shift());
-
-    return answer ?? '';
-  };
-};
 
 const interactiveSelection = (prompt: (question: string) => Promise<string>): ModelSelection => {
   const selection: ModelSelection = { tool: 'codex', interactive: true, discovery, prompt };
 
   return selection;
 };
-
-const silence = (): void => undefined;
 
 describe('FEATURE: AI model selection', (): void => {
   afterEach((): void => {

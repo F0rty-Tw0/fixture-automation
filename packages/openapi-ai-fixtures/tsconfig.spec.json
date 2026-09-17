@@ -12,6 +12,7 @@
   "references": [
     { "path": "./tsconfig.lib.json" },
     { "path": "../openapi-fixtures/tsconfig.lib.json" },
-    { "path": "../shared/tsconfig.lib.json" }
+    { "path": "../shared/tsconfig.lib.json" },
+    { "path": "../shared/tsconfig.testing.json" }
   ]
 }

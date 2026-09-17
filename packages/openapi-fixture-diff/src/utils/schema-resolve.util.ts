@@ -27,7 +27,6 @@ const resolveRef = (schema: SpecSchema, schemas: SpecSchemas): SpecSchema => {
   return current;
 };
 
-// ponytail: allOf merges properties, required and the remaining keywords; add smarter unions when a spec needs them.
 const mergeInto = (base: SpecSchema, extra: SpecSchema): SpecSchema => {
   const merged: SpecSchema = { ...base, ...extra };
   const properties = { ...base.properties, ...extra.properties };
@@ -75,8 +74,10 @@ const branchScore = (branch: SpecSchema, value: Record<string, unknown>): number
   return matched.length;
 };
 
-// ponytail: over-approximates the sampler, which enters only the first anyOf/oneOf member.
-/** Component names reached from `schema` through `$ref` chains and `allOf`/`anyOf`/`oneOf` members. */
+/**
+ * Component names reached from `schema` through `$ref` chains and `allOf`/`anyOf`/`oneOf` members.
+ * Over-approximates openapi-sampler, which enters only the first anyOf/oneOf member.
+ */
 export const referencedNames = (schema: SpecSchema, schemas: SpecSchemas): string[] => {
   const seen = new Set<string>();
   const names: string[] = [];
@@ -120,8 +121,10 @@ export const referencedNames = (schema: SpecSchema, schemas: SpecSchemas): strin
   return names;
 };
 
-// ponytail: mirrors openapi-sampler, which samples only the first anyOf/oneOf member.
-/** Collapse an absent property's anyOf/oneOf to the single branch the sampler would have picked. */
+/**
+ * Collapse an absent property's anyOf/oneOf to the single branch the sampler would have picked.
+ * Mirrors openapi-sampler, which samples only the first anyOf/oneOf member.
+ */
 export const firstBranch = (schema: SpecSchema): SpecSchema => {
   if (Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
     const collapsed: SpecSchema = { ...schema, anyOf: schema.anyOf.slice(0, 1) };

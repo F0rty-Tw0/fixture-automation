@@ -1,24 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { promptedInputs } from './input-prompt.client.ts';
-import type { InputSpec, Question } from '../common/input.type.ts';
+import type { InputSpec } from '../common/input.type.ts';
 
 const SPEC_URL: InputSpec = { label: 'spec-url', description: 'URL of the spec', example: 'file:///spec.json' };
 const SCHEMA: InputSpec = { label: 'schema-name', description: 'a key under components.schemas', example: 'invoice' };
 const REQUIRED_ONLY: InputSpec = { label: '--required-only', description: 'required properties only', example: '' };
 const USAGE = 'usage: <spec-url> [schema-name]';
-
-const answering = (...answers: string[]): Question => {
-  const queue = [...answers];
-
-  return async (): Promise<string> => {
-    const answer = await Promise.resolve(queue.shift());
-
-    return answer ?? '';
-  };
-};
-
-const silence = (): void => undefined;
 
 describe('FEATURE: prompted inputs', (): void => {
   afterEach((): void => {

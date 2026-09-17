@@ -3,7 +3,7 @@ import type { AiFixtureOptions } from './ai-fixtures.type.ts';
 export type AiFixtureCliOptions = {
   /** Absent in missing-field mode, which never reads the spec. */
   readonly specUrl: string | undefined;
-  /** Absent when the name is defaulted from the spec's `x-root-schema` or from `missing.json`. */
+  /** The raw positional; absent means the spec's `x-root-schema` (or a prompt when it has none), or `missing.json`. */
   readonly schemaName: string | undefined;
   readonly fixtureFile: string;
   readonly scenario: string;

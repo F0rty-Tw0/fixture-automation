@@ -249,7 +249,7 @@ console.log(result.outFile, result.provenanceFile, result.provenance.sha256);
 ```
 
 - `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Optional `objectShape` selects the same literal top-level payload key in both inputs; optional `subdirectory` prefixes the endpoint path before hashing. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
-- `deepFill(base: unknown, fill: unknown): FillResult` — copies values from `fill` into keys `base` does not already have, recursing into objects and zipping arrays by index. Returns `{ value, filled }` (`filled` is the list of paths it supplied).
+- `deepFill(base: unknown, fill: unknown): FillResult` — copies values from `fill` into keys `base` does not already have, recursing into objects and zipping arrays by index. Also replaces a baseline value when JSON types differ (neither null) or two strings differ only in casing. Returns `{ value, filled }` (`filled` is the list of paths it supplied or replaced).
 - `loadPopulated(file: string): Promise<unknown>` — reads a `.json` file, or `import()`s a `.ts`/`.mts`/`.js`/`.mjs` module and returns its single export.
 - Types: `FillResult`, `MergeInput`, `MergeProvenance`, `MergeResult`, `MergeSpec`.
 

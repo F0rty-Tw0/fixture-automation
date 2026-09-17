@@ -80,15 +80,82 @@ describe('FEATURE: deep fill of absent fixture fields', (): void => {
   });
 
   describe('GIVEN a scalar in the fixture where the fill holds an object', (): void => {
-    it('WHEN filling THEN the fixture scalar is kept', (): void => {
+    it('WHEN filling THEN the fill object replaces the scalar and records the path', (): void => {
       const base = { customer: 'cus_1' };
       const fillCustomer = { id: 'cus_ai' };
       const fill = { customer: fillCustomer };
+      const expected = { customer: fillCustomer };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['customer']);
+    });
+  });
+
+  describe('GIVEN a string in the fixture where the fill holds a string differing only in casing', (): void => {
+    it('WHEN filling THEN the fill casing replaces the fixture and records the path', (): void => {
+      const base = { status: 'Open' };
+      const fill = { status: 'open' };
+      const expected = { status: 'open' };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['status']);
+    });
+  });
+
+  describe('GIVEN a string in the fixture where the fill holds a number', (): void => {
+    it('WHEN filling THEN the fill number replaces the string and records the path', (): void => {
+      const base = { amount_due: '4200' };
+      const fill = { amount_due: 4200 };
+      const expected = { amount_due: 4200 };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['amount_due']);
+    });
+  });
+
+  describe('GIVEN a null in the fixture where the fill holds a string', (): void => {
+    it('WHEN filling THEN the null is kept and nothing is recorded', (): void => {
+      const base = { memo: null };
+      const fill = { memo: 'replaced' };
 
       const result = deepFill(base, fill);
 
       expect(result.value).toStrictEqual(base);
       expect(result.filled).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN a string in the fixture where the fill holds null', (): void => {
+    it('WHEN filling THEN the string is kept and nothing is recorded', (): void => {
+      const base = { memo: 'keep' };
+      const fill = { memo: null };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(base);
+      expect(result.filled).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN a casing mismatch inside an array element', (): void => {
+    it('WHEN filling THEN the nested string is replaced and the indexed path is recorded', (): void => {
+      const baseLine = { status: 'Paid' };
+      const base = { lines: [baseLine] };
+      const fillLine = { status: 'paid' };
+      const fill = { lines: [fillLine] };
+      const expectedLine = { status: 'paid' };
+      const expected = { lines: [expectedLine] };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['lines[0].status']);
     });
   });
 

@@ -9,9 +9,10 @@ import { loadSpec, silentInputs, writeTextFile } from '@fixture-automation/opena
 import type { Inputs, OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { fillMissing } from './fill.client.ts';
 import type { DiffResult, WizardContext, WizardDeps } from '../common/wizard.type.ts';
-import { answering, silence } from '../test/utils/answering.spec.util.ts';
 
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;
 const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'codex-cli' };
@@ -47,6 +48,7 @@ describe('FEATURE: missing field fill', (): void => {
       specUrl: SPEC_URL,
       spec,
       schemaName: 'invoice',
+      endpointUrl: undefined,
       outDir: directory,
       fixtureFile: join(directory, 'corrupt.json'),
       objectShape: undefined

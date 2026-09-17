@@ -6,12 +6,14 @@ import type { AiMissingFactory, ModelDiscovery } from '@fixture-automation/opena
 import { promptedInputs } from '@fixture-automation/openapi-fixtures';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { runWizard } from './wizard.client.ts';
 import type { WizardDeps } from '../common/wizard.type.ts';
-import { answering, silence } from '../test/utils/answering.spec.util.ts';
 
 const TIMEOUT = 30000;
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;
+const PRUNED_SPEC_URL = new URL('../test/fixtures/invoice/pruned.json', import.meta.url).href;
 const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'codex-cli' };
 const FILLED = { amount_due: 4200, status: 'open', memo: 'paid by card' };
 const CORRUPT = { id: 'in_1' };
@@ -85,9 +87,9 @@ describe('FEATURE: fixture wizard', (): void => {
           messages.push(message);
         });
         const outDir = join(directory, 'two');
-        const mergedFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.json');
-        const provenanceFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.provenance.json');
-        const answers = [SPEC_URL, outDir, 'get', 'v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', 'get', 'v1/invoices/in_2', ''];
+        const mergedFile = join(outDir, 'HiGglABFLx4DXxZ48qyjaogB4bM=.json');
+        const provenanceFile = join(outDir, 'HiGglABFLx4DXxZ48qyjaogB4bM=.provenance.json');
+        const answers = [SPEC_URL, outDir, 'get', 'v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', ''];
 
         await run(...answers);
 
@@ -105,6 +107,60 @@ describe('FEATURE: fixture wizard', (): void => {
         await expect(exists(provenanceFile)).resolves.toBe(true);
         expect(messages).toContainEqual(expect.stringContaining(`wrote ${mergedFile}`));
         expect(messages).toContainEqual(expect.stringContaining(`wrote ${provenanceFile}`));
+      },
+      TIMEOUT
+    );
+
+    it(
+      'WHEN the merge is accepted THEN reuses the route as METHOD,path without asking method or target-url again',
+      async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const outDir = join(directory, 'route-reuse');
+        const provenanceFile = join(outDir, 'HiGglABFLx4DXxZ48qyjaogB4bM=.provenance.json');
+
+        await run(SPEC_URL, outDir, 'get', 'v1/invoices/{id}', '1', corruptFile, '', '', 'y', '2', '1', '', 'y', '');
+
+        const provenance: unknown = JSON.parse(await readFile(provenanceFile, 'utf8'));
+
+        expect(provenance).toMatchObject({ endpointUrl: 'GET,v1/invoices/{id}' });
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN a schema targeted by name, a corrupt fixture, an AI fill and a merge', (): void => {
+    it(
+      'WHEN the merge is accepted THEN asks method and target-url once and hashes that endpoint',
+      async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const outDir = join(directory, 'named');
+        const provenanceFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.provenance.json');
+
+        await run(SPEC_URL, outDir, '', 'invoice', '1', corruptFile, '', '', 'y', '2', '1', '', 'y', 'get', 'v1/invoices/in_2', '');
+
+        const provenance: unknown = JSON.parse(await readFile(provenanceFile, 'utf8'));
+
+        expect(provenance).toMatchObject({ endpointUrl: 'GET,v1/invoices/in_2' });
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN a pruned spec carrying x-root-schema', (): void => {
+    it(
+      'WHEN the run ends THEN neither method nor schema-name is asked and the root schema is generated',
+      async (): Promise<void> => {
+        const messages: unknown[] = [];
+
+        vi.spyOn(console, 'error').mockImplementation((message: unknown): void => {
+          messages.push(message);
+        });
+        const outDir = join(directory, 'rooted');
+
+        await run(PRUNED_SPEC_URL, outDir, '1', '');
+
+        await expect(exists(join(outDir, 'invoice.fixture.json'))).resolves.toBe(true);
+        expect(messages).toContainEqual(expect.stringContaining('using root schema invoice from the spec'));
       },
       TIMEOUT
     );

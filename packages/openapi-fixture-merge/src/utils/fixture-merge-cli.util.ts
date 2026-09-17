@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 
-import { FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
+import { DEFAULT_OUT_DIR, FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { endpointUrlInput } from './endpoint-prompt.util.ts';
@@ -49,7 +49,8 @@ export const parseMergeArgs = async (args: string[], inputs: Inputs = silentInpu
 
   const corruptFile = await inputs.required(positionals[0], MERGE_INPUTS.corruptFile, MERGE_USAGE);
   const populatedFile = await inputs.required(positionals[1], MERGE_INPUTS.populatedFile, MERGE_USAGE);
-  const outDir = await inputs.required(positionals[2], MERGE_INPUTS.outDir, MERGE_USAGE);
+  const outDirAnswer = await inputs.optional(positionals[2], MERGE_INPUTS.outDir);
+  const outDir = optionalValue(outDirAnswer) ?? DEFAULT_OUT_DIR;
   const endpointUrl = await endpointUrlInput(inputs, values['endpoint-url'], MERGE_USAGE);
   const subdirectoryAnswer = await inputs.optional(values.subdirectory, MERGE_INPUTS.subdirectory);
   const objectShapeAnswer = await inputs.optional(values['object-shape'], MERGE_INPUTS.objectShape);

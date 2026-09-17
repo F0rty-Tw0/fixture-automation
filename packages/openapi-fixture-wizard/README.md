@@ -7,10 +7,10 @@ It calls the other five packages in-process and asks every question on stderr. E
 ## What it does
 
 - **Generates** `<schema>.fixture.json` and, for the `ts` and `both` formats, `<schema>.spec.json`, `<schema>.d.ts` and a typed `<schema>.fixture.ts` stub.
-- **Targets** a schema by route or by name: answer `method` (`get`) then `target-url` (`v1/invoices/{id}`, leading slash optional) and the route is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints); press Enter at `method` to answer a `schema-name` instead.
+- **Targets** a schema by route or by name: answer `method` (`get`) then `target-url` (`v1/invoices/{id}`, leading slash optional) and the route is mapped to the `$ref` of its first `2xx` JSON response (`items.$ref` for list endpoints); press Enter at `method` to answer a `schema-name` instead. A pruned spec written by `openapi-types` carries `x-root-schema`, so neither is asked.
 - **Diffs** one existing fixture against the schema, optionally selecting a top-level payload such as `body`, and writes `missing/missing.json`, `missing/missing.d.ts` and `missing/missing.stub.ts` when fields are absent.
 - **Fills** the missing fields with a local coding harness (`claude`, `codex`, `antigravity`, `copilot` or `gemini`) into `missing/populated.json`.
-- **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar.
+- **Merges** the filled values into the existing fixture and validates the result against the spec. Only merged outputs use an endpoint-hashed `.json` filename and a SHA-256 provenance sidecar. A route target is reused as the `METHOD,path` endpoint; a schema targeted by name asks `method` and `target-url` after `merge`.
 
 During AI fill, the wizard displays the child process PID and deadline, provider output, and
 quiet-period heartbeats on stderr. Gemini assistant text and Copilot response text stream as they
@@ -76,12 +76,6 @@ extra-prompt (Enter to skip): what the missing values should describe; Enter kee
 extra-prompt:
 merge (y/N): merge the filled values into the existing fixture and validate the result
 merge: y
-method: HTTP method of the endpoint being fixtured
-  e.g. get
-method: get
-target-url: endpoint path, with or without a leading slash; hashed as METHOD,path
-  e.g. v1/invoices/in_1
-target-url: v1/invoices/in_1
 subdirectory (Enter to skip): optional endpoint path prefix for hashing; Enter skips the prefix
   e.g. billing (get + v1/invoices/in_1 becomes GET,billing/v1/invoices/in_1)
 subdirectory:
@@ -94,8 +88,8 @@ wrote E:\work\fixtures\missing\missing.json
 wrote E:\work\fixtures\missing\missing.d.ts
 wrote E:\work\fixtures\missing\missing.stub.ts
 wrote E:\work\fixtures\missing\populated.json
-wrote E:\work\fixtures\xVnnitVJTSqxZj5wBCkI1WJ3H9U=.json
-wrote E:\work\fixtures\xVnnitVJTSqxZj5wBCkI1WJ3H9U=.provenance.json
+wrote E:\work\fixtures\HiGglABFLx4DXxZ48qyjaogB4bM=.json
+wrote E:\work\fixtures\HiGglABFLx4DXxZ48qyjaogB4bM=.provenance.json
 ```
 
 ## Prompts
@@ -106,7 +100,7 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | ------------------ | -------- | --------------------------------------------------------------------------------------------- |
 | `spec-url`         | required | `http(s)://` or `file://` URL of the JSON spec.                                               |
 | `out-dir`          | optional | Directory receiving every file. Enter = `fixtures`.                                           |
-| `method`           | optional | HTTP method of the route (`get`, `post`, …). Enter targets a schema by name instead.          |
+| `method`           | optional | HTTP method of the route (`get`, `post`, …). Enter targets a schema by name instead. Skipped when the spec carries `x-root-schema`. |
 | `target-url`       | required | Asked after a method. Route path from the spec, leading slash optional (`v1/invoices/{id}`); its JSON response must be a `$ref`. |
 | `schema-name`      | required | Asked without a method. A key under `components.schemas` (`invoice`).                        |
 | `format`           | choice   | `1) json` `2) ts` `3) both`.                                                                  |
@@ -118,8 +112,8 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | `model number`     | choice   | Models the harness offers; `0` keeps the harness default.                                     |
 | `extra-prompt`     | optional | Scenario for the missing values. Enter keeps the default missing-field scenario.              |
 | `merge`            | y/N      | Merge the filled values into the existing fixture.                                            |
-| `method`           | required | Asked only after accepting merge. HTTP method: `get`, `post`, `put`, `patch`, `delete`, `head`, `options`. |
-| `target-url`       | required | Endpoint path such as `v1/invoices/in_1`; leading slash optional. Hashed as uppercase `METHOD,path`. |
+| `method`           | required | Asked after `merge` only when the schema was targeted by name; a route target is reused. HTTP method: `get`, `post`, `put`, `patch`, `delete`, `head`, `options`. |
+| `target-url`       | required | Asked with the post-merge `method`. Endpoint path such as `v1/invoices/in_1`; leading slash optional. Hashed as uppercase `METHOD,path`. |
 | `subdirectory`     | optional | Prefix inserted into the endpoint path before hashing. Enter skips the prefix.                |
 
 Every required prompt and every choice allows three attempts before the run fails.

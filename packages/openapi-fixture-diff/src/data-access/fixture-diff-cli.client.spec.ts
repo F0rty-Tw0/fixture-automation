@@ -2,12 +2,14 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { promptedInputs } from '@fixture-automation/openapi-fixtures';
+import { loadSpec, promptedInputs } from '@fixture-automation/openapi-fixtures';
+import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { answering, silence } from '@fixture-automation/shared/testing';
 
 import { runFixtureDiffCli } from './fixture-diff-cli.client.ts';
 import type { DiffProject } from '../test/common/diff-project.type.ts';
-import { answering } from '../test/utils/answering.spec.util.ts';
 import { diffProject } from '../test/utils/diff-project.spec.util.ts';
 import { dropPaths } from '../utils/drop-path.util.ts';
 
@@ -22,7 +24,22 @@ const started = async (): Promise<DiffProject> => {
   return project;
 };
 
-const silence = (): void => undefined;
+/** The project spec rewritten with `x-root-schema: order`, as openapi-types would prune it. */
+const prunedUrl = async (active: DiffProject): Promise<string> => {
+  const spec = await loadSpec(active.specUrl);
+  const pruned: OpenApiSpec = { ...spec, 'x-root-schema': 'order' };
+  const file = join(active.directory, 'pruned.json');
+
+  await writeFile(file, JSON.stringify(pruned));
+
+  return pathToFileURL(file).href;
+};
+
+const missingSchemaName = async (active: DiffProject): Promise<unknown> => {
+  const missing: unknown = JSON.parse(await readFile(join(active.directory, 'missing.json'), 'utf8'));
+
+  return missing;
+};
 
 describe('FEATURE: fixture diff command line', (): void => {
   afterEach(async (): Promise<void> => {
@@ -44,6 +61,41 @@ describe('FEATURE: fixture diff command line', (): void => {
       expect(corrupted).not.toHaveProperty('id');
       expect(question).toHaveBeenCalledTimes(4);
     });
+  });
+
+  describe('GIVEN a silent corrupt run omitting out.json', (): void => {
+    it(
+      'WHEN out.json is omitted THEN writes <fixture>.corrupt.json beside the fixture',
+      async (): Promise<void> => {
+        const active = await started();
+
+        await active.run(['corrupt', active.fixtureFile, '--drop', 'id']);
+
+        const corrupted: unknown = JSON.parse(await readFile(join(active.directory, 'order.corrupt.json'), 'utf8'));
+
+        expect(corrupted).not.toHaveProperty('id');
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN a silent diff run omitting --out-dir', (): void => {
+    it(
+      'WHEN --out-dir is omitted THEN writes the missing files into fixtures/missing',
+      async (): Promise<void> => {
+        const active = await started();
+        const dropArgs = ['corrupt', active.fixtureFile, active.corruptFile, '--drop', DROPPED.join(',')];
+        const missingFile = join(active.directory, 'fixtures', 'missing', 'missing.json');
+
+        await active.run(dropArgs);
+        await active.run(['diff', active.specUrl, 'order', '--fixture', active.corruptFile, '--required-only']);
+
+        const missing: unknown = JSON.parse(await readFile(missingFile, 'utf8'));
+
+        expect(missing).toMatchObject({ schemaName: 'order', paths: DROPPED });
+      },
+      TIMEOUT
+    );
   });
 
   describe('GIVEN a sampled fixture and its spec', (): void => {
@@ -123,26 +175,43 @@ describe('FEATURE: fixture diff command line', (): void => {
       'WHEN diffing without a schema name THEN the root schema is used',
       async (): Promise<void> => {
         const active = await started();
-        const spec = JSON.parse(await readFile(join(active.directory, 'spec.json'), 'utf8')) as object;
-        const pruned = { ...spec, 'x-root-schema': 'order' };
-        const prunedFile = join(active.directory, 'pruned.json');
-
-        await writeFile(prunedFile, JSON.stringify(pruned));
-
-        const prunedUrl = pathToFileURL(prunedFile).href;
+        const specUrl = await prunedUrl(active);
         const dropArgs = ['corrupt', active.fixtureFile, active.corruptFile, '--drop', DROPPED.join(',')];
-        const diffArgs = ['diff', prunedUrl, '--fixture', active.corruptFile, '--out-dir', active.directory];
+        const diffArgs = ['diff', specUrl, '--fixture', active.corruptFile, '--out-dir', active.directory];
 
         await active.run(dropArgs);
         await active.run([...diffArgs, '--required-only']);
 
-        const missing: unknown = JSON.parse(await readFile(join(active.directory, 'missing.json'), 'utf8'));
+        const missing = await missingSchemaName(active);
         const expected = { schemaName: 'order', paths: DROPPED };
 
         expect(missing).toMatchObject(expected);
       },
       TIMEOUT
     );
+
+    it('WHEN diffing in a terminal missing --fixture THEN the schema name is not asked', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const active = await started();
+      const specUrl = await prunedUrl(active);
+      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', 'nope'));
+
+      await runFixtureDiffCli(['diff', specUrl], promptedInputs(question));
+
+      expect(await missingSchemaName(active)).toMatchObject({ schemaName: 'order' });
+      expect(question).toHaveBeenCalledTimes(4);
+    });
+
+    it('WHEN diffing a plain spec in a terminal missing --fixture THEN the schema name is asked last', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const active = await started();
+      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', 'order'));
+
+      await runFixtureDiffCli(['diff', active.specUrl], promptedInputs(question));
+
+      expect(await missingSchemaName(active)).toMatchObject({ schemaName: 'order' });
+      expect(question).toHaveBeenCalledTimes(5);
+    });
 
     it(
       'WHEN diffing a plain spec without a schema name THEN it asks for one',

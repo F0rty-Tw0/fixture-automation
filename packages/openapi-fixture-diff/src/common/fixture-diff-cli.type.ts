@@ -6,7 +6,7 @@ export type CorruptOptions = {
 
 export type DiffOptions = {
   readonly specUrl: string;
-  /** Absent means the name comes from the spec's `x-root-schema`. */
+  /** The raw positional; absent means the spec's `x-root-schema`, or a prompt when it has none. */
   readonly schemaName: string | undefined;
   readonly fixtureFile: string;
   readonly outDir: string;

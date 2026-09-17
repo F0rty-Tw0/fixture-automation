@@ -5,10 +5,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { runFixturesCli } from './fixtures-cli.client.ts';
 import { promptedInputs } from './input-prompt.client.ts';
 import type { CliResult } from '../test/common/cli-result.type.ts';
-import { answering, silence } from '../test/utils/answering.spec.util.ts';
 import { hasStackFrame, spawnFixturesCli } from '../test/utils/cli-result.spec.util.ts';
 
 const TIMEOUT = 30000;
@@ -112,6 +113,17 @@ describe('FEATURE: fixtures command line', (): void => {
       },
       TIMEOUT
     );
+
+    it('WHEN the spec URL is typed in a terminal THEN the schema name is not asked', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const outFile = join(directory, 'typed.json');
+      const question = vi.fn(answering(prunedUrl, outFile, '', ''));
+
+      await runFixturesCli([], promptedInputs(question));
+
+      expect(JSON.parse(await readFile(outFile, 'utf8'))).toMatchObject({ id: 'in_123' });
+      expect(question).toHaveBeenCalledTimes(4);
+    });
 
     it(
       'WHEN the plain spec is given without a schema THEN it asks for the name',

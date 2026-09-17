@@ -1,11 +1,42 @@
 import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { loadSpec, promptedInputs } from '@fixture-automation/openapi-fixtures';
+import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
+import { runAiFixturesCli } from './ai-fixtures-cli.client.ts';
 import type { IntegrationProject } from '../test/common/integration.type.ts';
 import { integrationArgs } from '../test/utils/integration-cli.spec.util.ts';
 import { integrationProject } from '../test/utils/integration-project.spec.util.ts';
+
+const SCENARIO = 'An open invoice for 4200 cents.';
+const ENRICHED = { id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' };
+
+/** The project spec rewritten with `x-root-schema: invoice`, as openapi-types would prune it. */
+const prunedUrl = async (project: IntegrationProject): Promise<string> => {
+  const spec = await loadSpec(project.specUrl);
+  const pruned: OpenApiSpec = { ...spec, 'x-root-schema': 'invoice' };
+  const file = join(project.directory, 'pruned.json');
+
+  await writeFile(file, JSON.stringify(pruned));
+
+  return pathToFileURL(file).href;
+};
+
+/** Everything but `--scenario`, so a terminal run opens a prompt session; no schema-name positional. */
+const unscriptedArgs = (project: IntegrationProject, specUrl: string): string[] => {
+  return [specUrl, '--fixture', project.fixtureFile, '--tool', 'claude', '--executable', project.executable, '--timeout', '10000'];
+};
+
+const writtenFixture = async (project: IntegrationProject): Promise<unknown> => {
+  const fixture: unknown = JSON.parse(await readFile(project.outputFile, 'utf8'));
+
+  return fixture;
+};
 
 describe('FEATURE: AI fixture command', (): void => {
   describe('GIVEN local inputs and a controlled external tool', (): void => {
@@ -244,6 +275,49 @@ describe('FEATURE: AI fixture command', (): void => {
 
       await expect(failure).rejects.toThrow('schema "invoic" is unavailable');
       await expect(failure).rejects.toThrow('fix: did you mean invoice?');
+    });
+  });
+
+  describe('GIVEN a pruned spec carrying x-root-schema', (): void => {
+    let project: IntegrationProject;
+
+    beforeEach(async (): Promise<void> => {
+      project = await integrationProject();
+    });
+
+    afterEach(async (): Promise<void> => {
+      vi.restoreAllMocks();
+      await project.dispose();
+    });
+
+    it('WHEN the scenario is typed in a terminal THEN the schema name is not asked', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const specUrl = await prunedUrl(project);
+      const question = vi.fn(answering(SCENARIO, project.outputFile, '', 'invoic'));
+
+      await runAiFixturesCli(unscriptedArgs(project, specUrl), promptedInputs(question));
+
+      expect(await writtenFixture(project)).toStrictEqual(ENRICHED);
+      expect(question).toHaveBeenCalledTimes(3);
+    });
+
+    it('WHEN the scenario is typed in a terminal for a plain spec THEN the schema name is asked last', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const question = vi.fn(answering(SCENARIO, project.outputFile, '', 'invoice'));
+
+      await runAiFixturesCli(unscriptedArgs(project, project.specUrl), promptedInputs(question));
+
+      expect(await writtenFixture(project)).toStrictEqual(ENRICHED);
+      expect(question).toHaveBeenCalledTimes(4);
+    });
+
+    it('WHEN running silently without a schema name THEN the root schema is used', async (): Promise<void> => {
+      const specUrl = await prunedUrl(project);
+      const args = integrationArgs({ ...project, specUrl }, SCENARIO, false).toSpliced(1, 1);
+
+      await project.run(args);
+
+      expect(await writtenFixture(project)).toStrictEqual(ENRICHED);
     });
   });
 

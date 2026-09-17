@@ -51,16 +51,17 @@ export type Missing = components['schemas']['missing'];
 ```
 usage: openapi-fixture-diff <command> [options]
 
-  corrupt <fixture.json> <out.json> --drop <path,path,...>
-      copy the fixture with the listed paths removed
+  corrupt <fixture.json> [out.json] --drop <path,path,...>
+      copy the fixture with the listed paths removed; out.json defaults to
+      <fixture>.corrupt.json beside the fixture
 
-  diff <spec-url> [schema-name] --fixture <corrupt.json> --out-dir <dir>
+  diff <spec-url> [schema-name] --fixture <corrupt.json> [--out-dir <dir>]
       compare the corrupt fixture to the schema and write missing.json,
       missing.d.ts and missing.stub.ts into the directory; the schema name
       defaults to the x-root-schema of a spec written by openapi-types
 ```
 
-**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`schema-name`, `object-shape`, `--required-only`); Enter skips an optional. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
+**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`out.json` or `--out-dir`, `schema-name`, `object-shape`, `--required-only`); Enter takes the default or skips. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
 
 `schema-name` is optional with a spec written by `openapi-types <spec-url> <schema-name> <out-file>`: that file carries `x-root-schema`, so `diff "$LOCAL" --fixture corrupt.json --out-dir out` reads the name from it. A plain spec still needs the name (`schema name required` otherwise).
 
@@ -68,7 +69,7 @@ usage: openapi-fixture-diff <command> [options]
 | ---------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `--drop <paths>`       | Yes, for `corrupt` | Comma separated fixture paths to delete, e.g. `id,customer.email,lines[1].sku`.                                                           |
 | `--fixture <file>`     | Yes, for `diff`    | Corrupt JSON fixture to compare against the schema.                                                                                       |
-| `--out-dir <dir>`      | Yes, for `diff`    | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`.                                                              |
+| `--out-dir <dir>`      | No                 | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`; omitted or Enter writes into `fixtures/missing`.             |
 | `--object-shape <key>` | No                 | Compare the schema against one literal top-level property, e.g. `body`. Blank or omitted compares the whole fixture.                      |
 | `--required-only`      | No                 | Report only fields the schema lists in `required` (schema marks these mandatory). Without it, every optional missing property counts too. |
 | `-h, --help`           | No                 | Print this usage and exit 0.                                                                                                              |
@@ -117,10 +118,9 @@ Exit code `0`. No files are written.
 
 | You see                                                                           | It means                                                                 | Fix                                                       |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `usage: corrupt <fixture.json> <out.json> --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`, or was missing (piped/CI run).      | Use one of those two subcommands.                         |
+| `usage: corrupt <fixture.json> [out.json] --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`, or was missing (piped/CI run).      | Use one of those two subcommands.                         |
 | `--fixture file "<path>" does not exist`                                          | The `--fixture` path is wrong.                                           | Check the path; it resolves from the current directory.   |
 | `--fixture file "<path>" is not valid JSON: <parse error>`                        | The fixture file is not parseable JSON.                                  | Fix the file, or point at a real JSON fixture.            |
-| `--out-dir requires a destination directory`                                      | `diff` was run without `--out-dir`.                                      | Add `--out-dir <dir>`.                                    |
 | `schema "<name>" is unavailable`                                                  | `<name>` is not a key under `components.schemas`.                        | The message lists the available schema names; pick one.   |
 | `unknown fixture path "<path>"` + `fix: did you mean <key>?`                      | `--drop` named a key that is not in the fixture, but a close key exists. | Use the suggested key.                                    |
 | `unknown fixture path "<path>"` + `fix: available: <keys>`                        | `--drop` named a key that is not on that object.                         | Pick one of the listed keys.                              |

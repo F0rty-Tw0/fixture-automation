@@ -1,11 +1,10 @@
 import type { AiTool } from '@fixture-automation/openapi-ai-fixtures';
+import { DEFAULT_OUT_DIR } from '@fixture-automation/openapi-fixtures';
 import type { InputSpec } from '@fixture-automation/openapi-fixtures';
 
 import type { WizardFormat } from './wizard.type.ts';
 
 export const WIZARD_USAGE = 'usage: openapi-fixture-wizard (answers every prompt on stderr; -h for help)';
-
-export const DEFAULT_OUT_DIR = 'fixtures';
 
 export const FORMATS: WizardFormat[] = ['json', 'ts', 'both'];
 
@@ -23,7 +22,8 @@ const outDir: InputSpec = {
 };
 const method: InputSpec = {
   label: 'method',
-  description: 'HTTP method of the route whose JSON response names the schema; Enter targets a schema by name instead',
+  description:
+    'HTTP method of the route whose JSON response names the schema; Enter targets a schema by name instead; skipped when the spec carries x-root-schema',
   example: 'get'
 };
 const targetUrl: InputSpec = {
@@ -107,9 +107,9 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
 
   spec-url          http(s):// or file:// URL of the JSON spec (required)
   out-dir           directory receiving every file; Enter = ${DEFAULT_OUT_DIR}
-  method            HTTP method of the route (get, post, …); Enter targets a schema by name
+  method            HTTP method of the route (get, post, …); Enter targets a schema by name; skipped when the spec carries x-root-schema
   target-url        asked after a method; route path from the spec, leading slash optional (v1/invoices/{id})
-  schema-name       asked without a method; a key under components.schemas (invoice)
+  schema-name       asked without a method; a key under components.schemas (invoice); skipped when the spec carries x-root-schema
   format            1) json  2) ts  3) both
   existing-fixture  JSON fixture to check; Enter ends the run after generation
   object-shape      top-level property to compare and merge (body); Enter uses the whole object
@@ -119,7 +119,6 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
   model             numbered list from the harness; 0 = harness default
   extra-prompt      scenario for the missing values; Enter keeps the default
   merge             y/N, merge the filled values into the existing fixture
-  method            required after merge; HTTP method (get, post, put, patch, delete)
-  target-url        required after merge; endpoint path, leading slash optional (v1/invoices/in_1)
+  method / target-url  asked after merge only when the schema was targeted by name; a route target is reused as METHOD,path
   subdirectory      optional hash prefix, e.g. billing gives GET,billing/v1/invoices/in_1; Enter skips the prefix
   -h, --help        print this help`;

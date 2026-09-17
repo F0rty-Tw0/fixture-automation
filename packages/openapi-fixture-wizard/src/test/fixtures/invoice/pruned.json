@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Fixture API", "version": "1.0.0" },
+  "x-root-schema": "invoice",
+  "components": {
+    "schemas": {
+      "invoice": {
+        "type": "object",
+        "required": ["id", "amount_due", "status"],
+        "properties": {
+          "id": { "type": "string", "example": "in_123" },
+          "amount_due": { "type": "integer" },
+          "status": { "type": "string", "enum": ["draft", "open"] },
+          "memo": { "type": "string" }
+        }
+      }
+    }
+  }
+}

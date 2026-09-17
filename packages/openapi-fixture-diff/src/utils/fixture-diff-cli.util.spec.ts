@@ -1,15 +1,16 @@
+import { join } from 'node:path';
+
 import { promptedInputs } from '@fixture-automation/openapi-fixtures';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { parseCorruptArgs, parseDiffArgs } from './fixture-diff-cli.util.ts';
 import { CORRUPT_USAGE, DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
-import { answering } from '../test/utils/answering.spec.util.ts';
 
 const DROP_FIX = 'example: --drop id,customer.email,lines[1].sku';
 const DIFF_ARGS = ['file:///spec.json', '--fixture', 'corrupt.json', '--out-dir', 'out'];
 const DIFF_FLAGS = DIFF_ARGS.slice(1);
-
-const silence = (): void => undefined;
 
 describe('FEATURE: fixture diff command line argument parsing', (): void => {
   afterEach((): void => {
@@ -59,11 +60,39 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
     });
   });
 
-  describe('GIVEN the out file is missing in a silent, non-interactive run', (): void => {
-    it('WHEN parsing corrupt args THEN it fails with the corrupt usage', async (): Promise<void> => {
-      const failure = parseCorruptArgs(['fixture.json', '--drop', 'id']);
+  describe('GIVEN the out file is omitted in a silent, non-interactive run', (): void => {
+    it.each([
+      ['invoice.json', 'invoice.corrupt.json'],
+      ['dir/invoice.fixture.json', 'dir/invoice.fixture.corrupt.json'],
+      ['invoice', 'invoice.corrupt.json'],
+      ['invoice.corrupt.json', 'invoice.corrupt.corrupt.json']
+    ])(
+      'WHEN parsing corrupt args for %s THEN the out file is %s beside it',
+      async (fixtureFile: string, outFile: string): Promise<void> => {
+        const parsed = await parseCorruptArgs([fixtureFile, '--drop', 'id']);
 
-      await expect(failure).rejects.toThrow(CORRUPT_USAGE);
+        expect(parsed?.outFile).toBe(outFile);
+      }
+    );
+  });
+
+  describe('GIVEN an empty-string out file in a silent, non-interactive run', (): void => {
+    it('WHEN parsing corrupt args THEN the out file falls back beside the fixture', async (): Promise<void> => {
+      const parsed = await parseCorruptArgs(['invoice.json', '', '--drop', 'id']);
+
+      expect(parsed?.outFile).toBe('invoice.corrupt.json');
+    });
+  });
+
+  describe('GIVEN a terminal missing the fixture and the out file', (): void => {
+    it('WHEN Enter answers out.json THEN the out file defaults beside the fixture', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const question = vi.fn(answering('invoice.json', '', 'id'));
+
+      const parsed = await parseCorruptArgs([], promptedInputs(question));
+
+      expect(parsed?.outFile).toBe('invoice.corrupt.json');
+      expect(question).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -136,28 +165,49 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
     });
   });
 
-  describe('GIVEN --out-dir is missing in a silent, non-interactive run', (): void => {
-    it('WHEN parsing diff args THEN it names the flag', async (): Promise<void> => {
-      const failure = parseDiffArgs(['file:///spec.json', '--fixture', 'corrupt.json']);
+  describe('GIVEN --out-dir is omitted in a silent, non-interactive run', (): void => {
+    it('WHEN parsing diff args THEN the out dir defaults to fixtures/missing', async (): Promise<void> => {
+      const parsed = await parseDiffArgs(['file:///spec.json', '--fixture', 'corrupt.json']);
 
-      await expect(failure).rejects.toThrow('--out-dir requires a destination directory');
+      expect(parsed?.outDir).toBe(join('fixtures', 'missing'));
+    });
+  });
+
+  describe('GIVEN an empty-string --out-dir in a silent, non-interactive run', (): void => {
+    it('WHEN parsing diff args THEN the out dir falls back to fixtures/missing', async (): Promise<void> => {
+      const parsed = await parseDiffArgs(['file:///spec.json', '--fixture', 'corrupt.json', '--out-dir', '']);
+
+      expect(parsed?.outDir).toBe(join('fixtures', 'missing'));
     });
   });
 
   describe('GIVEN a terminal missing spec-url, --fixture and --out-dir', (): void => {
-    it('WHEN schema-name and object-shape are skipped and required-only is confirmed THEN resolves the rest', async (): Promise<void> => {
-      vi.spyOn(console, 'error').mockImplementation(silence);
-      const question = answering('file:///spec.json', 'corrupt.json', 'out', '', '', 'y');
+    describe('WHEN object-shape is skipped and required-only is confirmed', (): void => {
+      it('THEN resolves the rest and leaves schema-name to the caller', async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', 'out', '', 'y', 'order'));
 
-      const parsed = await parseDiffArgs([], promptedInputs(question));
+        const parsed = await parseDiffArgs([], promptedInputs(question));
 
-      expect(parsed).toMatchObject({
-        specUrl: 'file:///spec.json',
-        fixtureFile: 'corrupt.json',
-        outDir: 'out',
-        schemaName: undefined,
-        objectShape: undefined,
-        requiredOnly: true
+        expect(parsed).toMatchObject({
+          specUrl: 'file:///spec.json',
+          fixtureFile: 'corrupt.json',
+          outDir: 'out',
+          schemaName: undefined,
+          objectShape: undefined,
+          requiredOnly: true
+        });
+        expect(question).toHaveBeenCalledTimes(5);
+      });
+
+      it('THEN Enter on --out-dir defaults to fixtures/missing', async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', '', '', 'y'));
+
+        const parsed = await parseDiffArgs([], promptedInputs(question));
+
+        expect(parsed?.outDir).toBe(join('fixtures', 'missing'));
+        expect(question).toHaveBeenCalledTimes(5);
       });
     });
   });

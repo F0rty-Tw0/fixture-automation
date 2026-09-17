@@ -60,11 +60,11 @@ Stderr reports `filled 2 path(s)` and both output paths. The merged fixture is
 ## Command
 
 ```
-usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <out-dir> --endpoint-url <url> [options]
+usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> [out-dir] --endpoint-url <url> [options]
 
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
-  <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
+  [out-dir]           directory receiving the merged JSON and provenance sidecar; Enter = fixtures
   --endpoint-url <url> endpoint identity: a URL or METHOD, path, e.g. "GET, v1/invoices/in_1" (required);
                        interactive runs ask method then target-url instead
   --object-shape <key> literal top-level property to merge and validate; defaults to the fixture root
@@ -79,7 +79,7 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
 | ----------------------- | ------------- | ------------------------------------------------------------------------------------------- |
 | `<corrupt.json>`        | Yes           | Fixture with fields removed, resolved from the current directory.                           |
 | `<populated>`           | Yes           | `.json` file, or a `.ts`/`.mts`/`.js`/`.mjs` module exporting exactly one value.            |
-| `<out-dir>`             | Yes           | Directory receiving the endpoint-named JSON and its provenance sidecar.                     |
+| `[out-dir]`             | No            | Directory receiving the endpoint-named JSON and provenance sidecar; omitted = `fixtures`.   |
 | `--endpoint-url <url>`  | Yes           | Endpoint identity whose UTF-8 bytes determine the filename. Accepts URLs or `METHOD, path`. |
 | `--object-shape <key>`  | No            | Merge the same top-level payload property in both inputs and validate only that payload.    |
 | `--subdirectory <path>` | No            | Prefix the endpoint path before hashing; blank or omitted skips the prefix.                 |
@@ -216,7 +216,7 @@ Exit code `1`. Neither the merged JSON nor its provenance sidecar is written.
 
 | You see                                                      | It means                                             | Fix                                                                                                  |
 | ------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `usage: <corrupt.json> … <out-dir> --endpoint-url <url> …`   | Missing required inputs.                             | Pass both input files, the output directory, and the endpoint URL.                                   |
+| `usage: <corrupt.json> … [out-dir] --endpoint-url <url> …`   | Missing required inputs.                             | Pass both input files and the endpoint URL.                                                          |
 | `--schema requires --spec`                                   | `--schema` was given without `--spec`.               | Add `--spec <url>`.                                                                                  |
 | `schema name required`                                       | `--spec` alone, and the spec has no `x-root-schema`. | Add `--schema <name>`, or use a spec written by `openapi-types <spec-url> <schema-name> <out-file>`. |
 | `corrupt fixture file "<path>" does not exist`               | The `<corrupt.json>` path is wrong.                  | Check the path; it resolves from the current directory.                                              |

@@ -1,22 +1,11 @@
 import { promptedInputs } from '@fixture-automation/openapi-fixtures';
-import type { Question } from '@fixture-automation/openapi-fixtures';
 import { describe, expect, it, vi } from 'vitest';
+
+import { answering, silence } from '@fixture-automation/shared/testing';
 
 import { parseAiFixtureArgs } from './ai-fixtures-cli.util.ts';
 import { TOOL_FIX } from './ai-tool.util.ts';
 import { MISSING_SCENARIO } from '../common/ai-fixtures-cli.const.ts';
-
-const answering = (...answers: string[]): Question => {
-  const queue = [...answers];
-
-  return async (): Promise<string> => {
-    const answer = await Promise.resolve(queue.shift());
-
-    return answer ?? '';
-  };
-};
-
-const silence = (): void => undefined;
 
 describe('FEATURE: AI fixture CLI arguments', (): void => {
   describe('GIVEN required fixture generation inputs', (): void => {
@@ -158,10 +147,10 @@ describe('FEATURE: AI fixture CLI arguments', (): void => {
   });
 
   describe('GIVEN a terminal missing every required input', (): void => {
-    it('WHEN every prompt is answered THEN parses the answers and asks the unset optionals', async (): Promise<void> => {
+    it('WHEN every prompt is answered THEN parses the answers, asks the unset optionals and leaves schema-name to the caller', async (): Promise<void> => {
       vi.spyOn(console, 'error').mockImplementation(silence);
       const question = vi.fn(
-        answering('file:///spec.json', 'base.json', 'Open invoice', 'codex', 'invoice', 'x.json', '', '', '1000')
+        answering('file:///spec.json', 'base.json', 'Open invoice', 'codex', 'x.json', '', '', '1000', 'invoice')
       );
 
       const parsed = await parseAiFixtureArgs([], promptedInputs(question));
@@ -170,14 +159,14 @@ describe('FEATURE: AI fixture CLI arguments', (): void => {
         specUrl: 'file:///spec.json',
         fixtureFile: 'base.json',
         scenario: 'Open invoice',
-        schemaName: 'invoice',
         outFile: 'x.json',
         typesFile: undefined,
+        schemaName: undefined,
         options: expectedOptions
       };
 
       expect(parsed).toMatchObject(expected);
-      expect(question).toHaveBeenCalledTimes(9);
+      expect(question).toHaveBeenCalledTimes(8);
     });
   });
 

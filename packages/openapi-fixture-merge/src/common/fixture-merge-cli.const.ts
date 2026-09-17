@@ -1,15 +1,16 @@
+import { DEFAULT_OUT_DIR } from '@fixture-automation/openapi-fixtures';
 import type { InputSpec } from '@fixture-automation/openapi-fixtures';
 
 export const MERGE_USAGE =
-  'usage: <corrupt.json> <populated.json|populated.stub.ts> <out-dir> --endpoint-url <url> [--object-shape <property>] [--subdirectory <path>] [--spec <url> [--schema <name>]]';
+  'usage: <corrupt.json> <populated.json|populated.stub.ts> [out-dir] --endpoint-url <url> [--object-shape <property>] [--subdirectory <path>] [--spec <url> [--schema <name>]]';
 
-export const MERGE_HELP = `usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <out-dir> --endpoint-url <url> [options]
+export const MERGE_HELP = `usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> [out-dir] --endpoint-url <url> [options]
 
 Fill the corrupt fixture and write endpoint-named JSON with SHA-256 provenance.
 
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
-  <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
+  [out-dir]           directory receiving the merged JSON and provenance sidecar; Enter = ${DEFAULT_OUT_DIR}
   --endpoint-url <url> endpoint identity (URL or METHOD, path, e.g. "GET, v1/invoices/in_1") hashed with SHA-1 Base64;
                       / becomes x (required); interactive runs ask method then target-url instead
   --object-shape <property>
@@ -39,7 +40,7 @@ const populatedFile: InputSpec = {
 };
 const outDir: InputSpec = {
   label: 'out-dir',
-  description: 'directory receiving the merged JSON and its provenance sidecar',
+  description: `directory receiving the merged JSON and its provenance sidecar; Enter = ${DEFAULT_OUT_DIR}`,
   example: 'fixtures'
 };
 const method: InputSpec = {

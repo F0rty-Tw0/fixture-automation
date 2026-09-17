@@ -1,147 +1,150 @@
 import assert from 'node:assert/strict';
+import { isAbsolute } from 'node:path';
+import { createInterface } from 'node:readline';
 
 const mode = process.env['COPILOT_MODEL_DISCOVERY_FIXTURE_MODE'];
-const headerDelimiter = Buffer.from('\r\n\r\n');
-let input = Buffer.alloc(0);
-let phase = 'connect';
 
-assert.ok(process.argv.includes('--headless'));
-assert.ok(process.argv.includes('--stdio'));
+assert.ok(process.argv.includes('--acp'));
 assert.ok(process.argv.includes('--no-auto-update'));
-assert.ok(process.argv.includes('--log-level'));
-assert.ok(process.argv.includes('none'));
+assert.equal(process.argv.includes('--headless'), false);
+assert.equal(process.argv.includes('--stdio'), false);
 
-const framed = (message) => {
-  const body = JSON.stringify(message);
-  const contentLength = Buffer.byteLength(body, 'utf8');
-  const header = `Content-Length: ${contentLength}\r\n\r\n`;
-
-  return Buffer.from(`${header}${body}`, 'utf8');
+const CONFIG_OPTIONS_RESULT = {
+  sessionId: 'sess_fixture',
+  modes: { currentModeId: 'agent', availableModes: [{ id: 'agent', name: 'Agent' }] },
+  configOptions: [
+    {
+      id: 'mode',
+      name: 'Mode',
+      category: 'mode',
+      type: 'select',
+      currentValue: 'agent',
+      options: [{ value: 'agent', name: 'Agent' }]
+    },
+    {
+      id: 'model',
+      name: 'Model',
+      category: 'model',
+      type: 'select',
+      currentValue: 'gpt-fixture',
+      groups: [
+        { name: 'OpenAI', options: [{ value: 'gpt-fixture', name: 'GPT fixture' }] },
+        {
+          name: 'Anthropic',
+          options: [
+            { value: 'opaque:provider/模型?deployment=production', name: 'Unicode' },
+            { value: 'gpt-fixture', name: 'Duplicate' }
+          ]
+        }
+      ]
+    }
+  ]
 };
 
-const writeOutput = (output) => {
-  const headerFragmentEnd = 7;
-  const modelIdentifier = Buffer.from('模', 'utf8');
-  const modelIdentifierStart = output.indexOf(modelIdentifier);
+const LEGACY_MODELS_RESULT = {
+  sessionId: 'sess_fixture',
+  models: {
+    availableModels: [
+      { modelId: 'legacy-a', name: 'A' },
+      { modelId: 'legacy-b', name: 'B' }
+    ],
+    currentModelId: 'legacy-a'
+  }
+};
 
-  process.stdout.write(output.subarray(0, headerFragmentEnd));
+const MALFORMED_RESULT = {
+  sessionId: 'sess_fixture',
+  configOptions: [
+    {
+      id: 'model',
+      name: 'Model',
+      category: 'model',
+      type: 'select',
+      currentValue: '',
+      options: [{ value: '' }]
+    }
+  ]
+};
 
-  if (modelIdentifierStart < 0) {
-    process.stdout.write(output.subarray(headerFragmentEnd));
+// Split mid-line so the client has to reassemble the response from two stdout chunks.
+const writeSplit = (line) => {
+  const splitAt = 40;
 
-    return;
+  process.stdout.write(line.slice(0, splitAt));
+  process.stdout.write(line.slice(splitAt));
+};
+
+const sessionResult = () => {
+  if (mode === 'legacy-models') return LEGACY_MODELS_RESULT;
+
+  if (mode === 'malformed') return MALFORMED_RESULT;
+
+  return CONFIG_OPTIONS_RESULT;
+};
+
+const input = createInterface({ input: process.stdin });
+let requests = 0;
+
+for await (const line of input) {
+  const request = JSON.parse(line);
+
+  requests += 1;
+
+  if (request.method === 'initialize') {
+    assert.equal(request.jsonrpc, '2.0');
+    assert.equal(request.id, 1);
+    assert.deepEqual(request.params, {
+      clientCapabilities: {},
+      protocolVersion: 1
+    });
+    process.stdout.write('{"jsonrpc":"2.0","method":"session/update","params":{}}\n');
+    process.stdout.write(
+      `${JSON.stringify({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: {
+          protocolVersion: mode === 'unsupported-protocol' ? 2 : 1,
+          agentCapabilities: {},
+          authMethods: [],
+          agentInfo: { name: 'copilot', version: 'fixture' }
+        }
+      })}\n`
+    );
+    continue;
   }
 
-  process.stdout.write(output.subarray(headerFragmentEnd, modelIdentifierStart + 1));
-  process.stdout.write(output.subarray(modelIdentifierStart + 1));
-};
-
-const response = (id, result) => {
-  const notification = { jsonrpc: '2.0', method: 'runtime.notice', params: {} };
-  const message = { jsonrpc: '2.0', id, result };
-  const notificationOutput = framed(notification);
-  const responseOutput = framed(message);
-  const output = Buffer.concat([notificationOutput, responseOutput]);
-
-  writeOutput(output);
-};
-
-const error = (id, code, detail) => {
-  const error = { code, message: detail };
-  const message = { jsonrpc: '2.0', id, error };
-
-  process.stdout.write(framed(message));
-};
-
-const models = [
-  { id: 'opaque:provider/模型?deployment=production' },
-  { id: 'disabled-model', policy: { state: 'disabled', terms: 'disabled for this account' } },
-  { id: 'unconfigured-model', policy: { state: 'unconfigured', terms: 'pending configuration' } }
-];
-
-if (mode === 'unknown-policy') models.push({ id: 'blocked-model', policy: { state: 'blocked' } });
-
-const handle = (request) => {
-  assert.equal(request.jsonrpc, '2.0');
-
-  if (phase === 'connect') {
-    const configuredToken = process.env['COPILOT_CONNECTION_TOKEN'];
-    const includesToken = typeof request.params.token === 'string';
-
-    assert.equal(request.method, 'connect');
-    assert.equal(includesToken, configuredToken !== undefined);
-
-    phase = 'models';
-    const protocolVersion = mode === 'unsupported-protocol' ? 4 : 3;
-    response(request.id, { ok: true, protocolVersion, version: 'fixture' });
-
-    return;
-  }
-
-  if (phase === 'models') {
-    assert.equal(request.method, 'models.list');
-    assert.deepEqual(request.params, {});
+  if (request.method === 'session/new') {
+    assert.equal(request.jsonrpc, '2.0');
+    assert.equal(request.id, 2);
+    assert.equal(isAbsolute(request.params.cwd), true);
+    assert.equal(request.params.cwd, process.cwd());
+    assert.deepEqual(request.params.mcpServers, []);
 
     if (mode === 'auth-error') {
-      phase = 'wait';
-      error(request.id, -32000, 'Copilot authentication is required');
-
-      return;
+      process.stdout.write(
+        `${JSON.stringify({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: { code: -32000, message: 'Copilot authentication is required', data: { authMethods: [] } }
+        })}\n`
+      );
+      continue;
     }
 
-    if (mode === 'malformed') {
-      phase = 'wait';
-      response(request.id, { models: [{ id: '' }] });
-
-      return;
-    }
-
-    phase = 'shutdown';
-    response(request.id, { models });
-
-    return;
+    writeSplit(
+      `${JSON.stringify({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: sessionResult()
+      })}\n`
+    );
+    continue;
   }
 
-  if (phase === 'shutdown') {
-    assert.equal(request.method, 'runtime.shutdown');
-    assert.deepEqual(request.params, {});
-    phase = 'wait';
-    response(request.id, {});
+  throw new Error(`Unexpected Copilot ACP request: ${request.method}`);
+}
 
-    return;
-  }
+// The client throws in these modes, so the harness kills the process before both requests arrive.
+const isFailureMode = mode === 'auth-error' || mode === 'malformed' || mode === 'unsupported-protocol';
 
-  throw new Error(`Unexpected request after ${phase}: ${request.method}`);
-};
-
-const drain = () => {
-  while (true) {
-    const headerEnd = input.indexOf(headerDelimiter);
-
-    if (headerEnd < 0) return;
-
-    const header = input.subarray(0, headerEnd).toString('ascii');
-    const match = /^Content-Length: (\d+)$/m.exec(header);
-
-    assert.notEqual(match, null);
-
-    const contentLength = Number(match[1]);
-    const bodyStart = headerEnd + headerDelimiter.length;
-    const frameEnd = bodyStart + contentLength;
-
-    if (input.length < frameEnd) return;
-
-    const body = input.subarray(bodyStart, frameEnd).toString('utf8');
-    const request = JSON.parse(body);
-
-    input = input.subarray(frameEnd);
-    handle(request);
-  }
-};
-
-process.stdin.on('data', (chunk) => {
-  input = Buffer.concat([input, chunk]);
-  drain();
-});
-
-await new Promise(() => {});
+if (!isFailureMode) assert.equal(requests, 2);

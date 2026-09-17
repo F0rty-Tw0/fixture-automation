@@ -1,3 +1,4 @@
+import { isRecord } from '@fixture-automation/shared';
 import type { ValidateFunction } from 'ajv';
 import type { JSONSchema7 } from 'json-schema';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -79,6 +80,34 @@ describe('FEATURE: OpenAPI fixtures', (): void => {
       const fx = fixtures(spec);
 
       expect((): unknown => fx('scalar')).toThrow(Error);
+    });
+  });
+
+  describe('GIVEN a schema whose optional property cycles back to an ancestor', (): void => {
+    it('WHEN sampled THEN omits the looping property and stays schema-valid', (): void => {
+      const id: JSONSchema7 = { type: 'string' };
+      const amount: JSONSchema7 = { type: 'integer' };
+      const errorType: JSONSchema7 = { type: 'string' };
+      const paymentIntentRef: JSONSchema7 = { $ref: '#/components/schemas/payment_intent' };
+      const apiErrorsRef: JSONSchema7 = { $ref: '#/components/schemas/api_errors' };
+      const invoiceProperties = { id, payment_intent: paymentIntentRef };
+      const invoice: JSONSchema7 = { type: 'object', required: ['id'], properties: invoiceProperties };
+      const paymentIntentProperties = { id, amount, last_error: apiErrorsRef };
+      const paymentIntent: JSONSchema7 = { type: 'object', required: ['id', 'amount'], properties: paymentIntentProperties };
+      const apiErrorsProperties = { type: errorType, payment_intent: paymentIntentRef };
+      const apiErrors: JSONSchema7 = { type: 'object', required: ['type'], properties: apiErrorsProperties };
+      const schemas = { invoice, payment_intent: paymentIntent, api_errors: apiErrors };
+      const components = { schemas };
+      const spec: OpenApiSpec = { components };
+      const validate = invoiceValidator(spec);
+
+      const sampled = fixtures(spec)('invoice');
+      const sampledPaymentIntent = isRecord(sampled) ? sampled['payment_intent'] : undefined;
+      const lastError = isRecord(sampledPaymentIntent) ? sampledPaymentIntent['last_error'] : undefined;
+
+      expect(isRecord(lastError)).toBe(true);
+      expect(lastError).not.toHaveProperty('payment_intent');
+      expect(validate(sampled)).toBe(true);
     });
   });
 });

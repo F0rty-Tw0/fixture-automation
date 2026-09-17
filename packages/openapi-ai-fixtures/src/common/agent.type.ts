@@ -26,8 +26,6 @@ export type AgentCommand = {
   readonly files?: AgentFile[];
   readonly env?: Record<string, string | undefined>;
   readonly respond?: AgentRespond;
-  readonly messageFormat?: 'content-length';
-  readonly stopOnComplete?: boolean;
 };
 
 export type AgentProcess = {
@@ -36,19 +34,11 @@ export type AgentProcess = {
   readonly executable: string;
   readonly input: string;
   readonly respond: AgentRespond | undefined;
-  readonly messageFormat: 'content-length' | undefined;
-  readonly stopOnComplete: boolean | undefined;
   readonly scratchDirectory: string;
   readonly timeoutMs: number;
 };
 
-export type AgentMessage = {
-  readonly message: string;
-  readonly rest: Buffer;
-};
-
 export type AgentExecution = {
-  readonly complete: () => void;
   readonly receiveOutput: (chunk: Buffer, destination: 'stderr' | 'stdout') => void;
   readonly stop: (error: Error) => void;
 };

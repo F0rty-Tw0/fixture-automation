@@ -81,10 +81,6 @@ export class AgentProcessExecution {
     this.terminate();
   }
 
-  public complete(): void {
-    this.terminate();
-  }
-
   public reportStatus(text: string): Error | undefined {
     const progress: AiFixtureProgress = { stream: 'status', text };
 

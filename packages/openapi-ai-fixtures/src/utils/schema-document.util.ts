@@ -91,6 +91,9 @@ const assertResourceDialect = (schema: Record<string, unknown>, dialect: SchemaD
 
 const assertSchema = (schema: Record<string, unknown>, dialect: SchemaDialect): void => {
   const keywords = SCHEMA_KEYWORDS[dialect];
+  const hasNullable = Object.hasOwn(schema, 'nullable');
+
+  if (dialect === 'openapi-31' && hasNullable) throw new Error('OpenAPI 3.1 does not support nullable; use a null type instead');
 
   for (const keyword of Object.keys(schema)) {
     const isExtension = keyword.startsWith('x-');
@@ -103,10 +106,6 @@ const assertSchema = (schema: Record<string, unknown>, dialect: SchemaDialect): 
   assertResourceDialect(schema, dialect);
 
   if (dialect === 'openapi-30') assertOpenApi30Values(schema);
-
-  const hasNullable = Object.hasOwn(schema, 'nullable');
-
-  if (dialect === 'openapi-31' && hasNullable) throw new Error('OpenAPI 3.1 does not support nullable; use a null type instead');
 
   assertStringFormat(schema);
 };

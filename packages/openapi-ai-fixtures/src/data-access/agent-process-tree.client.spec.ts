@@ -1,20 +1,55 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { access, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import { describe, expect, it, vi } from 'vitest';
 
 import { AgentTerminationError } from './agent-process-termination.error.ts';
+import { terminateAgentTree } from './agent-process-tree.client.ts';
 import { runAgent } from './agent-process.client.ts';
-import type { AgentCommand } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
+import { childCommand } from '../test/utils/process-child.spec.util.ts';
 import { processFixture } from '../test/utils/process-fixture.spec.util.ts';
 import { processWorkspace } from '../test/utils/process-workspace.spec.util.ts';
 
-const PROCESS_CHILD = processFixture('process-child', 'process-child.mjs');
 const executeFile = promisify(execFile);
 
-describe('FEATURE: agent process containment failures', (): void => {
+/** A detached Node child, as the lifecycle spawns it on POSIX, so its pid doubles as its process group. */
+const detachedChild = (script: string): ChildProcess => {
+  return spawn(process.execPath, ['-e', script], { detached: true, stdio: 'ignore' });
+};
+
+describe('FEATURE: agent process tree termination', (): void => {
+  describe('GIVEN no process id', (): void => {
+    it('WHEN terminating THEN resolves without signaling anything', async (): Promise<void> => {
+      await expect(terminateAgentTree(undefined)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('GIVEN a detached running child', (): void => {
+    it.runIf(process.platform !== 'win32')('WHEN terminating THEN the child exits by signal', async (): Promise<void> => {
+      const child = detachedChild('setInterval(() => undefined, 1000)');
+      const exited = once(child, 'exit');
+
+      await once(child, 'spawn');
+      await terminateAgentTree(child.pid);
+
+      await expect(exited).resolves.toStrictEqual([null, 'SIGTERM']);
+    });
+  });
+
+  describe('GIVEN a child that already exited', (): void => {
+    it.runIf(process.platform !== 'win32')('WHEN terminating THEN resolves because nothing is running', async (): Promise<void> => {
+      const child = detachedChild('');
+
+      await once(child, 'exit');
+
+      await expect(terminateAgentTree(child.pid)).resolves.toBeUndefined();
+    });
+  });
+
   describe('GIVEN an unavailable Windows tree terminator', (): void => {
     it.runIf(process.platform === 'win32')(
       'WHEN aborting a running child THEN reports the failure and retains its workspace',
@@ -22,7 +57,7 @@ describe('FEATURE: agent process containment failures', (): void => {
         const workspace = await processWorkspace();
         const controller = new AbortController();
         const marker = workspace.file('child-cwd.txt');
-        const command: AgentCommand = { executable: process.execPath, args: [PROCESS_CHILD, 'wait', marker], input: '' };
+        const command = childCommand('wait', [marker]);
         const options: AiFixtureOptions = { tool: 'claude', timeoutMs: 5_000, signal: controller.signal };
         const execution = runAgent(command, options);
         const outcome = execution.catch((error: unknown): unknown => error);

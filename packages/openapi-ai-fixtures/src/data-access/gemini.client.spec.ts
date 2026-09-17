@@ -4,12 +4,14 @@ import { runAgent } from './agent-process.client.ts';
 import { geminiFixture } from './gemini.client.ts';
 import type { AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureProgress } from '../common/ai-fixtures.type.ts';
+import { agentArgs, modelRequest } from '../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 
 vi.mock('./agent-process.client.ts');
 
 const options = { tool: 'gemini' } as const;
 const request: AgentRequest = { prompt: 'Return a fixture.', options };
+const geminiEnvelope = agentResponse('gemini', '{}');
 
 describe('FEATURE: Gemini fixture response handling', (): void => {
   beforeEach((): void => {
@@ -202,6 +204,24 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
       const fixture = await geminiFixture(request);
 
       expect(fixture).toBe(fixtureText);
+    });
+  });
+
+  describe('GIVEN a selected Gemini model', (): void => {
+    it('WHEN the fixture is requested THEN appends -m and the slug', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(modelRequest('gemini', 'gemini-3-pro'));
+
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).slice(-2)).toStrictEqual(['-m', 'gemini-3-pro']);
+    });
+
+    it('WHEN the model is omitted THEN appends no model flag', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(modelRequest('gemini'));
+
+      expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('-m');
     });
   });
 });

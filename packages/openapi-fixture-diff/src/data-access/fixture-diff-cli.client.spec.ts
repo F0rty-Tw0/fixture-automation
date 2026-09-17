@@ -2,9 +2,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { promptedInputs } from '@fixture-automation/openapi-fixtures';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { runFixtureDiffCli } from './fixture-diff-cli.client.ts';
 import type { DiffProject } from '../test/common/diff-project.type.ts';
+import { answering } from '../test/utils/answering.spec.util.ts';
 import { diffProject } from '../test/utils/diff-project.spec.util.ts';
 import { dropPaths } from '../utils/drop-path.util.ts';
 
@@ -19,10 +22,28 @@ const started = async (): Promise<DiffProject> => {
   return project;
 };
 
+const silence = (): void => undefined;
+
 describe('FEATURE: fixture diff command line', (): void => {
   afterEach(async (): Promise<void> => {
+    vi.restoreAllMocks();
     await project?.dispose();
     project = undefined;
+  });
+
+  describe('GIVEN a terminal missing the command and corrupt args', (): void => {
+    it('WHEN corrupt is chosen and the paths are typed THEN writes the corrupted fixture to the out file', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation(silence);
+      const active = await started();
+      const question = vi.fn(answering('corrupt', active.fixtureFile, active.corruptFile, 'id'));
+
+      await runFixtureDiffCli([], promptedInputs(question));
+
+      const corrupted: unknown = JSON.parse(await readFile(active.corruptFile, 'utf8'));
+
+      expect(corrupted).not.toHaveProperty('id');
+      expect(question).toHaveBeenCalledTimes(4);
+    });
   });
 
   describe('GIVEN a sampled fixture and its spec', (): void => {

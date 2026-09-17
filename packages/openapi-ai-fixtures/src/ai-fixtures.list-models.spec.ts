@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { runModelCli } from '../test/utils/model-cli.spec.util.ts';
-import { processFixture } from '../test/utils/process-fixture.spec.util.ts';
+import { runModelCli } from './test/utils/model-cli.spec.util.ts';
+import { processFixture } from './test/utils/process-fixture.spec.util.ts';
 
 const CODEX = processFixture('model-discovery', 'codex.mjs');
 

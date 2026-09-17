@@ -3,9 +3,9 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { IntegrationProject } from '../test/common/integration.type.ts';
-import { missingArgs } from '../test/utils/integration-cli.spec.util.ts';
-import { integrationProject } from '../test/utils/integration-project.spec.util.ts';
+import type { IntegrationProject } from './test/common/integration.type.ts';
+import { missingArgs } from './test/utils/integration-cli.spec.util.ts';
+import { integrationProject } from './test/utils/integration-project.spec.util.ts';
 
 const SCENARIO = 'missing-mode: fill the absent invoice status.';
 const INVALID_SCENARIO = 'missing-mode invalid: return a status outside the enum.';

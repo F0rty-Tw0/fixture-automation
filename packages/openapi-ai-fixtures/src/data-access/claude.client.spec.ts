@@ -3,11 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runAgent } from './agent-process.client.ts';
 import { claudeFixture } from './claude.client.ts';
 import type { AgentRequest } from '../common/agent.type.ts';
+import { agentArgs, modelRequest } from '../test/utils/agent-model.spec.util.ts';
 
 vi.mock('./agent-process.client.ts');
 
 const options = { tool: 'claude' } as const;
 const request: AgentRequest = { prompt: 'Return a fixture.', options };
+const claudeResult = { type: 'result', subtype: 'success', is_error: false, result: '{}' };
+const claudeEnvelope = JSON.stringify(claudeResult);
 
 describe('FEATURE: Claude fixture response handling', (): void => {
   beforeEach((): void => {
@@ -64,6 +67,24 @@ describe('FEATURE: Claude fixture response handling', (): void => {
       const fixture = await claudeFixture(request);
 
       expect(fixture).toBe(result);
+    });
+  });
+
+  describe('GIVEN a selected Claude model', (): void => {
+    it('WHEN the fixture is requested THEN appends --model and the slug', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(claudeEnvelope);
+
+      await claudeFixture(modelRequest('claude', 'opus'));
+
+      expect(agentArgs(vi.mocked(runAgent).mock.calls).slice(-2)).toStrictEqual(['--model', 'opus']);
+    });
+
+    it('WHEN the harness default is selected THEN appends no model flag', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(claudeEnvelope);
+
+      await claudeFixture(modelRequest('claude', 'default'));
+
+      expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('--model');
     });
   });
 });

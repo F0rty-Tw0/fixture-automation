@@ -2,7 +2,7 @@ import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 
 import { aiMissingFixture, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
-import { mergeFixture } from '@fixture-automation/openapi-fixture-merge';
+import { endpointUrlInput, mergeFixture } from '@fixture-automation/openapi-fixture-merge';
 import type { MergeInput, MergeSpec } from '@fixture-automation/openapi-fixture-merge';
 import { loadSpec, terminalQuestion } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
@@ -21,7 +21,7 @@ const defaultDeps: WizardDeps = { question: terminalQuestion, discover: discover
 
 const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string[]> => {
   const { fixtureFile, inputs, objectShape, outDir, schemaName, specUrl } = context;
-  const endpointUrl = await inputs.required(undefined, WIZARD_INPUTS.endpointUrl, WIZARD_USAGE);
+  const endpointUrl = await endpointUrlInput(inputs, undefined, WIZARD_USAGE);
   const subdirectory = await inputs.optional(undefined, WIZARD_INPUTS.subdirectory);
   const spec: MergeSpec = { url: specUrl, schemaName };
   const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory, spec };

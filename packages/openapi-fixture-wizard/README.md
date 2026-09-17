@@ -73,11 +73,14 @@ extra-prompt (Enter to skip): what the missing values should describe; Enter kee
 extra-prompt:
 merge (y/N): merge the filled values into the existing fixture and validate the result
 merge: y
-endpoint-url: endpoint identity (URL or METHOD,path); method names are uppercased before hashing
-  e.g. GET, custodies/v2
-endpoint-url: https://api.stripe.com/v1/invoices/in_1
+method: HTTP method of the endpoint being fixtured
+  e.g. get
+method: get
+target-url: endpoint path, with or without a leading slash; hashed as METHOD,path
+  e.g. v1/invoices/in_1
+target-url: v1/invoices/in_1
 subdirectory (Enter to skip): optional endpoint path prefix for hashing; Enter skips the prefix
-  e.g. savings (get, custodies/v2 becomes GET,savings/custodies/v2)
+  e.g. billing (get + v1/invoices/in_1 becomes GET,billing/v1/invoices/in_1)
 subdirectory:
 filled 3 path(s)
 wrote E:\work\fixtures\invoice.spec.json
@@ -88,8 +91,8 @@ wrote E:\work\fixtures\missing\missing.json
 wrote E:\work\fixtures\missing\missing.d.ts
 wrote E:\work\fixtures\missing\missing.stub.ts
 wrote E:\work\fixtures\missing\populated.json
-wrote E:\work\fixtures\VtG1yi3hV6d7VOQZTf4OuvUuyfM=.json
-wrote E:\work\fixtures\VtG1yi3hV6d7VOQZTf4OuvUuyfM=.provenance.json
+wrote E:\work\fixtures\xVnnitVJTSqxZj5wBCkI1WJ3H9U=.json
+wrote E:\work\fixtures\xVnnitVJTSqxZj5wBCkI1WJ3H9U=.provenance.json
 ```
 
 ## Prompts
@@ -110,7 +113,8 @@ There are no flags. `-h` / `--help` prints the list below and exits 0.
 | `model number`     | choice   | Models the harness offers; `0` keeps the harness default.                                     |
 | `extra-prompt`     | optional | Scenario for the missing values. Enter keeps the default missing-field scenario.              |
 | `merge`            | y/N      | Merge the filled values into the existing fixture.                                            |
-| `endpoint-url`     | required | Asked only after accepting merge. URL or method identity; methods normalize to uppercase `METHOD,path`. |
+| `method`           | required | Asked only after accepting merge. HTTP method: `get`, `post`, `put`, `patch`, `delete`, `head`, `options`. |
+| `target-url`       | required | Endpoint path such as `v1/invoices/in_1`; leading slash optional. Hashed as uppercase `METHOD,path`. |
 | `subdirectory`     | optional | Prefix inserted into the endpoint path before hashing. Enter skips the prefix.                |
 
 Every required prompt and every choice allows three attempts before the run fails.
@@ -140,8 +144,8 @@ to uppercase `METHOD,path` with no whitespace around the comma. A blank subdirec
 skips the prefix, not method normalization. Plain URL identities without a subdirectory
 remain unchanged. The identity is never inferred from the spec URL, schema, or route.
 
-With `endpoint-url: get, custodies/v2` and `subdirectory: savings-v2`, the exact hash input
-is `GET,savings-v2/custodies/v2`, producing `pr3BjNLuLB11QZrlaK508hgrGXY=.json`.
+With `method: get`, `target-url: v1/invoices/in_1` and `subdirectory: billing`, the exact hash
+input is `GET,billing/v1/invoices/in_1`, producing `cGMVAnshdqvCmcWHNl7TWnPJZDU=.json`.
 Leading/trailing subdirectory slashes and leading endpoint slashes are removed at the join.
 The merged fixture stays plain JSON. Its sidecar records the canonical identity as
 `endpointUrl` and a lowercase hexadecimal `sha256` checksum of the exact merged file bytes,

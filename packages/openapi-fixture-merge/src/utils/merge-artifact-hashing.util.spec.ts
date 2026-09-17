@@ -46,6 +46,17 @@ describe('FEATURE: merge artifact hashing', (): void => {
     });
   });
 
+  describe('GIVEN a method endpoint with a leading slash and no subdirectory', (): void => {
+    it('WHEN deriving the artifact identity THEN it strips the leading slash so both spellings hash alike', (): void => {
+      const identity = endpointIdentity('GET, /v1/invoices', undefined);
+      const fileName = endpointArtifactFileName(identity);
+
+      expect(identity).toBe('GET,v1/invoices');
+      expect(identity).toBe(endpointIdentity('GET, v1/invoices', undefined));
+      expect(fileName).toBe('OWzbMzaHATEVIEad+9Zr9i1sJwQ=.json');
+    });
+  });
+
   describe('GIVEN a bare endpoint and a subdirectory', (): void => {
     it('WHEN deriving the artifact identity THEN it prefixes the endpoint path', (): void => {
       const endpointUrl = '/custodies/v2';

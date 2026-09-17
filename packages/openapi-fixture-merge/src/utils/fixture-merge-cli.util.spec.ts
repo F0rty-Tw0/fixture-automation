@@ -1,11 +1,16 @@
-import { FixtureError } from '@fixture-automation/openapi-fixtures';
-import { describe, expect, it } from 'vitest';
+import { FixtureError, promptedInputs } from '@fixture-automation/openapi-fixtures';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { parseMergeArgs } from './fixture-merge-cli.util.ts';
+import { answering } from '../test/utils/answering.spec.util.ts';
 
 const ENDPOINT_URL = 'https://api.example.com/v1/invoices/in_2';
 
 describe('FEATURE: fixture merge argument parsing', (): void => {
+  afterEach((): void => {
+    vi.restoreAllMocks();
+  });
+
   describe('GIVEN a schema without a spec', (): void => {
     it('WHEN parsing THEN it rejects incomplete validation configuration', async (): Promise<void> => {
       const args = ['a.json', 'b.json', 'fixtures', '--endpoint-url', ENDPOINT_URL, '--schema', 'invoice'];
@@ -54,6 +59,17 @@ describe('FEATURE: fixture merge argument parsing', (): void => {
       const args = ['a.json', 'b.json', 'fixtures', '--endpoint-url', ''];
 
       await expect(parseMergeArgs(args)).rejects.toThrow(FixtureError);
+    });
+  });
+
+  describe('GIVEN no endpoint flag and a terminal answering method then target-url', (): void => {
+    it('WHEN parsing THEN joins the prompted answers into the endpoint identity', async (): Promise<void> => {
+      vi.spyOn(console, 'error').mockImplementation((): void => undefined);
+      const inputs = promptedInputs(answering('get', 'v1/invoices/in_1', '', '', ''));
+
+      const input = await parseMergeArgs(['a.json', 'b.json', 'fixtures'], inputs);
+
+      expect(input).toMatchObject({ endpointUrl: 'get,v1/invoices/in_1' });
     });
   });
 

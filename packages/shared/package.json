@@ -11,6 +11,10 @@
       "@fixture-automation/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@fixture-automation/source": "./src/test/index.ts",
+      "default": "./src/test/index.ts"
     }
   },
   "files": [

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { choose } from './choose.client.ts';
 import { WIZARD_INPUTS } from '../common/wizard.const.ts';
-import { answering, silence } from '../test/utils/answering.spec.util.ts';
 
 const OPTIONS = ['json', 'ts', 'both'];
 

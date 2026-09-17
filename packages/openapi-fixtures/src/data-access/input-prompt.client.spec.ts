@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { answering, silence } from '@fixture-automation/shared/testing';
+
 import { promptedInputs } from './input-prompt.client.ts';
 import type { InputSpec } from '../common/input.type.ts';
-import { answering, silence } from '../test/utils/answering.spec.util.ts';
 
 const SPEC_URL: InputSpec = { label: 'spec-url', description: 'URL of the spec', example: 'file:///spec.json' };
 const SCHEMA: InputSpec = { label: 'schema-name', description: 'a key under components.schemas', example: 'invoice' };

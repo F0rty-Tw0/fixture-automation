@@ -1,7 +1,8 @@
+import type { Question } from '@fixture-automation/shared';
+
 export type InputSpec = { readonly label: string; readonly description: string; readonly example: string };
 
-/** One line of operator input; injected so prompting is testable. */
-export type Question = (prompt: string) => Promise<string>;
+export type { Question };
 
 export type Inputs = {
   /** Given value, else prompt; no terminal → throw FixtureError(usage, fix). */

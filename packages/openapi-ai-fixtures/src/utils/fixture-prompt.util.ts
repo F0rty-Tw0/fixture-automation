@@ -3,8 +3,10 @@ import type { MissingPromptInput } from '../common/missing.type.ts';
 
 const AUTHORITY = 'The schema is authoritative. The result must conform to it even when the scenario or baseline conflicts.';
 const RESTRICTIONS = 'Do not access tools, code, project files, or external resources.';
+const FIXTURE_BASELINE =
+  'Use the baseline fixture as an editable starting point; its values are not immutable. Return the complete fixture: keep every baseline key the schema allows, populate every key the schema requires but the baseline lacks, and correct any value whose type or enum casing does not match the schema. Every array must keep exactly its baseline length, edited index by index; never add, drop, or reorder elements.';
 const MISSING_RESPONSE =
-  'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals).';
+  'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals). The result is merged into `baseline` index by index, so every array that also exists in `baseline` must have exactly the baseline array length.';
 const MISSING_OVERSIZE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
 
@@ -40,7 +42,7 @@ export const fixturePrompt = (context: string, fixtureJson: string, scenario: st
   const baseline: unknown = JSON.parse(fixtureJson);
   const instructions: FixturePromptInstructions = {
     authority: AUTHORITY,
-    baseline: 'Use the baseline fixture as an editable starting point; its values are not immutable.',
+    baseline: FIXTURE_BASELINE,
     response: 'Return exactly one JSON value with no markdown or explanatory text.',
     restrictions: RESTRICTIONS
   };

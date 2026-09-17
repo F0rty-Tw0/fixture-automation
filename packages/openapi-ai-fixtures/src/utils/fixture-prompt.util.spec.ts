@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { missingPrompt } from './fixture-prompt.util.ts';
+import { fixturePrompt, missingPrompt } from './fixture-prompt.util.ts';
 import { missingDocument } from './missing-document.util.ts';
 import { isSchemaRecord } from './schema-record.util.ts';
 import type { MissingFile, MissingPromptInput } from '../common/missing.type.ts';
@@ -13,8 +13,11 @@ const SCHEMAS = { missing: PROJECTION };
 const COMPONENTS = { schemas: SCHEMAS };
 const DOCUMENT = { $ref: '#/components/schemas/missing', components: COMPONENTS };
 const SCENARIO = 'Fill the absent status.';
+const SCHEMA_JSON = '{"type":"object","required":["status"],"properties":{"status":{"type":"string","enum":["open","paid"]}}}';
+const BASELINE_RULE =
+  'Use the baseline fixture as an editable starting point; its values are not immutable. Return the complete fixture: keep every baseline key the schema allows, populate every key the schema requires but the baseline lacks, and correct any value whose type or enum casing does not match the schema. Every array must keep exactly its baseline length, edited index by index; never add, drop, or reorder elements.';
 const RESPONSE_RULE =
-  'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals).';
+  'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals). The result is merged into `baseline` index by index, so every array that also exists in `baseline` must have exactly the baseline array length.';
 const OVERSIZE_RULE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
@@ -99,6 +102,26 @@ describe('FEATURE: missing-field prompt payload', (): void => {
       const text = missingPrompt(promptInput(sizedDocument(1000)));
 
       expect(text.length).toBeGreaterThan(1000);
+    });
+  });
+});
+
+describe('FEATURE: full fixture prompt payload', (): void => {
+  describe('GIVEN a schema, baseline fixture, and scenario', (): void => {
+    it('WHEN building the prompt THEN instructs the agent to fill gaps, fix type/enum casing, and keep array lengths', (): void => {
+      const text = fixturePrompt(SCHEMA_JSON, FIXTURE_JSON, SCENARIO);
+      const parsed: unknown = JSON.parse(text);
+
+      if (!isSchemaRecord(parsed)) throw new Error('the prompt payload is not a JSON object');
+
+      const instructions: unknown = parsed['instructions'];
+
+      expect(instructions).toStrictEqual({
+        authority: 'The schema is authoritative. The result must conform to it even when the scenario or baseline conflicts.',
+        baseline: BASELINE_RULE,
+        response: 'Return exactly one JSON value with no markdown or explanatory text.',
+        restrictions: 'Do not access tools, code, project files, or external resources.'
+      });
     });
   });
 });

@@ -85,10 +85,9 @@ describe('FEATURE: fixture wizard', (): void => {
           messages.push(message);
         });
         const outDir = join(directory, 'two');
-        const endpointUrl = 'https://api.example.com/v1/invoices/in_2';
-        const mergedFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.json');
-        const provenanceFile = join(outDir, 'FX3lkh+jltt9JHg45q6JuuKrxvw=.provenance.json');
-        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', endpointUrl, ''];
+        const mergedFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.json');
+        const provenanceFile = join(outDir, '3DUc12LG279NKuk8HnrFr4oZLws=.provenance.json');
+        const answers = [SPEC_URL, outDir, 'GET /v1/invoices/{id}', '3', corruptFile, '', '', 'y', '2', '1', '', 'y', 'get', 'v1/invoices/in_2', ''];
 
         await run(...answers);
 
@@ -181,7 +180,8 @@ describe('FEATURE: fixture wizard', (): void => {
           '1',
           '',
           'y',
-          'get, custodies/v2',
+          'get',
+          'custodies/v2',
           'savings-v2'
         );
         const enrichBody: AiMissingFactory = async (): Promise<Record<string, unknown>> => Promise.resolve(populated);

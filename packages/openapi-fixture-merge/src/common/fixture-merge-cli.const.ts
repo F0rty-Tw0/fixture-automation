@@ -10,7 +10,8 @@ Fill the corrupt fixture and write endpoint-named JSON with SHA-256 provenance.
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
   <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
-  --endpoint-url <url> endpoint identity (URL or METHOD, path) hashed with SHA-1 Base64; / becomes x (required)
+  --endpoint-url <url> endpoint identity (URL or METHOD, path, e.g. "GET, v1/invoices/in_1") hashed with SHA-1 Base64;
+                      / becomes x (required); interactive runs ask method then target-url instead
   --object-shape <property>
                       literal top-level property to merge and validate; defaults to the fixture root
   --subdirectory <path>
@@ -41,10 +42,15 @@ const outDir: InputSpec = {
   description: 'directory receiving the merged JSON and its provenance sidecar',
   example: 'fixtures'
 };
-const endpointUrl: InputSpec = {
-  label: '--endpoint-url',
-  description: 'endpoint identity (URL or METHOD,path); method names are uppercased before hashing',
-  example: 'GET, custodies/v2'
+const method: InputSpec = {
+  label: 'method',
+  description: 'HTTP method of the endpoint being fixtured',
+  example: 'get'
+};
+const targetUrl: InputSpec = {
+  label: 'target-url',
+  description: 'endpoint path, with or without a leading slash; hashed as METHOD,path',
+  example: 'v1/invoices/in_1'
 };
 const objectShape: InputSpec = {
   label: 'object-shape',
@@ -54,7 +60,7 @@ const objectShape: InputSpec = {
 const subdirectory: InputSpec = {
   label: 'subdirectory',
   description: 'path segment prefixed to endpoint identity before hashing',
-  example: 'savings'
+  example: 'billing (get + v1/invoices/in_1 becomes GET,billing/v1/invoices/in_1)'
 };
 
 const spec: InputSpec = {
@@ -69,4 +75,4 @@ const schema: InputSpec = {
 };
 
 /** What each prompt says when a terminal run is missing the input. */
-export const MERGE_INPUTS = { corruptFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory, spec, schema };
+export const MERGE_INPUTS = { corruptFile, populatedFile, outDir, method, targetUrl, objectShape, subdirectory, spec, schema };

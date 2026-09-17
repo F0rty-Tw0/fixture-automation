@@ -65,7 +65,8 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
   <corrupt.json>       fixture with fields removed (required)
   <populated>          .json fixture, or a .ts/.mts/.js/.mjs module with a single export (required)
   <out-dir>           directory receiving the merged JSON and provenance sidecar (required)
-  --endpoint-url <url> endpoint identity: a URL or METHOD, path (required)
+  --endpoint-url <url> endpoint identity: a URL or METHOD, path, e.g. "GET, v1/invoices/in_1" (required);
+                       interactive runs ask method then target-url instead
   --object-shape <key> literal top-level property to merge and validate; defaults to the fixture root
   --subdirectory <path> prefix inserted into the endpoint path before hashing
   --spec <url>         http(s):// or file:// URL of the spec used to validate the result
@@ -86,7 +87,7 @@ usage: openapi-fixture-merge <corrupt.json> <populated.json|populated.stub.ts> <
 | `--schema <name>`       | With `--spec` | Schema key under `components.schemas`; defaults to the spec's `x-root-schema`.              |
 | `-h, --help`            | No            | Print this usage and exit 0.                                                                |
 
-**Interactive:** in a terminal, a missing required input starts a prompt session on stderr that asks for it and every unset optional; Enter skips an optional. Piped/CI runs get the usage error instead.
+**Interactive:** in a terminal, a missing required input starts a prompt session on stderr that asks for it and every unset optional; Enter skips an optional. Piped/CI runs get the usage error instead. Without `--endpoint-url`, the session asks `method` (`get`, `post`, `put`, `patch`, `delete`, `head`, `options`) and then `target-url` (`v1/invoices/in_1`; leading slash optional) and hashes them as `METHOD,path`. The `--endpoint-url` flag is unchanged for scripts.
 
 For `{ "statusCode": 200, "body": { ... } }`, select `--object-shape body`.
 Both corrupt and populated inputs must have a `body` property. Only their payloads
@@ -114,11 +115,13 @@ are not otherwise normalized. Plain URL identities without a subdirectory keep t
 bytes, including commas in query values. Interactive answers use the shared prompt's
 whitespace trimming.
 
-With a subdirectory, its leading/trailing slashes and the endpoint path's leading
-slashes are removed at the join. The method stays outside the path:
-`get, custodies/v2` plus `savings-v2` becomes exactly `GET,savings-v2/custodies/v2`,
-hashed to `pr3BjNLuLB11QZrlaK508hgrGXY=.json`. Similarly, `GET, /custodies/v2` plus
-`/savings/` becomes `GET,savings/custodies/v2`, hashed to `A1eWVIW3jNsYQIoF4+npW9FHXp0=.json`.
+Method identities drop the endpoint path's leading slashes, so `GET, /v1/invoices` and
+`GET, v1/invoices` both hash `GET,v1/invoices`. With a subdirectory, its leading/trailing
+slashes are removed at the join too. The method stays outside the path:
+`get` plus `v1/invoices/in_1` plus subdirectory `billing` becomes exactly
+`GET,billing/v1/invoices/in_1`, hashed to `cGMVAnshdqvCmcWHNl7TWnPJZDU=.json`. Similarly,
+`GET, /custodies/v2` plus `/savings/` becomes `GET,savings/custodies/v2`, hashed to
+`A1eWVIW3jNsYQIoF4+npW9FHXp0=.json`.
 The method is part of the hash when supplied. Fixture content, schema name, and output
 directory do not affect the filename.
 

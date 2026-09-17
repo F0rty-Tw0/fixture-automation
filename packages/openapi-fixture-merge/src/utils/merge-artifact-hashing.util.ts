@@ -21,7 +21,7 @@ const endpointPath = (endpointUrl: string): [string | undefined, string] => {
   if (!isMethod) return [undefined, endpointUrl];
 
   const prefix = method.toUpperCase();
-  const path = endpointUrl.slice(commaIndex + 1).trimStart();
+  const path = endpointUrl.slice(commaIndex + 1).trimStart().replace(/^\/+/, '');
 
   return [prefix, path];
 };

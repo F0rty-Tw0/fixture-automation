@@ -66,15 +66,10 @@ const merge: InputSpec = {
   description: 'merge the filled values into the existing fixture and validate the result',
   example: 'y'
 };
-const endpointUrl: InputSpec = {
-  label: 'endpoint-url',
-  description: 'endpoint identity (URL or METHOD,path); method names are uppercased before hashing',
-  example: 'GET, custodies/v2'
-};
 const subdirectory: InputSpec = {
   label: 'subdirectory',
   description: 'optional endpoint path prefix for hashing; Enter skips the prefix',
-  example: 'savings (get, custodies/v2 becomes GET,savings/custodies/v2)'
+  example: 'billing (get + v1/invoices/in_1 becomes GET,billing/v1/invoices/in_1)'
 };
 
 /** What each prompt says, in the order the wizard asks. */
@@ -90,7 +85,6 @@ export const WIZARD_INPUTS = {
   tool,
   extraPrompt,
   merge,
-  endpointUrl,
   subdirectory
 };
 
@@ -111,6 +105,7 @@ Every answer is read on stderr; there are no flags, so run the individual CLIs f
   model             numbered list from the harness; 0 = harness default
   extra-prompt      scenario for the missing values; Enter keeps the default
   merge             y/N, merge the filled values into the existing fixture
-  endpoint-url      required after merge; method identities normalize to uppercase METHOD,path before hashing
-  subdirectory      optional hash prefix, e.g. savings gives GET,savings/custodies/v2; Enter skips the prefix
+  method            required after merge; HTTP method (get, post, put, patch, delete)
+  target-url        required after merge; endpoint path, leading slash optional (v1/invoices/in_1)
+  subdirectory      optional hash prefix, e.g. billing gives GET,billing/v1/invoices/in_1; Enter skips the prefix
   -h, --help        print this help`;

@@ -3,117 +3,112 @@ import { isRecord } from '@fixture-automation/shared';
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentRespond } from '../common/agent.type.ts';
 import type { ModelDiscoveryOptions } from '../common/model.type.ts';
-import { modelRpcResult } from '../utils/model-discovery.util.ts';
+import { modelNames, modelRpcRequest, modelRpcResult } from '../utils/model-discovery.util.ts';
 
-type DiscoveryPhase = 'connect' | 'models' | 'shutdown';
+const INITIALIZE_ID = 1;
+const SESSION_ID = 2;
 
-const framedRequest = (id: number, method: string, params: Record<string, unknown>): string => {
-  const request = { jsonrpc: '2.0', id, method, params };
-  const body = JSON.stringify(request);
-  const contentLength = Buffer.byteLength(body, 'utf8');
+const modelConfigOption = (result: Record<string, unknown>): Record<string, unknown> | undefined => {
+  const configOptions = result['configOptions'];
+  const isList = Array.isArray(configOptions);
 
-  return `Content-Length: ${contentLength}\r\n\r\n${body}`;
-};
+  if (!isList) return undefined;
 
-const isKnownPolicyState = (state: unknown): boolean => state === 'enabled' || state === 'disabled' || state === 'unconfigured';
-
-const copilotModelNames = (result: Record<string, unknown>): string[] => {
-  const entries = result['models'];
-  const isList = Array.isArray(entries);
-
-  if (!isList) throw new Error('Copilot returned an invalid model list');
-
-  const models = new Set<string>();
+  const entries: unknown[] = configOptions;
 
   for (const entry of entries) {
-    if (!isRecord(entry)) throw new Error('Copilot returned an invalid model entry');
+    if (!isRecord(entry)) continue;
 
-    const id = entry['id'];
-
-    if (typeof id !== 'string') throw new Error('Copilot returned a model without an identifier');
-
-    const trimmed = id.trim();
-
-    if (trimmed.length === 0) throw new Error('Copilot returned a model without an identifier');
-
-    const policy = entry['policy'];
-
-    if (policy !== undefined) {
-      if (!isRecord(policy)) throw new Error('Copilot returned an invalid model policy');
-
-      const state = policy['state'];
-
-      const isKnownState = isKnownPolicyState(state);
-
-      if (!isKnownState) throw new Error('Copilot returned an invalid model policy');
-
-      if (state === 'disabled') continue;
-    }
-
-    models.add(id);
+    if (entry['category'] === 'model') return entry;
   }
 
-  return [...models];
+  return undefined;
 };
 
-const requireSupportedProtocol = (result: Record<string, unknown>): void => {
-  const protocolVersion = result['protocolVersion'];
+const configOptionEntries = (option: Record<string, unknown>): unknown[] => {
+  const groups = option['groups'];
+  const isGrouped = Array.isArray(groups);
 
-  if (protocolVersion !== 3) throw new Error('Copilot returned an unsupported SDK protocol version');
+  if (!isGrouped) {
+    const options = option['options'];
+    const isList = Array.isArray(options);
+
+    if (!isList) throw new Error('Copilot returned an invalid model list');
+
+    return options;
+  }
+
+  const entries: unknown[] = [];
+
+  for (const group of groups) {
+    if (!isRecord(group)) throw new Error('Copilot returned an invalid model entry');
+
+    const options = group['options'];
+    const isList = Array.isArray(options);
+
+    if (!isList) throw new Error('Copilot returned an invalid model list');
+
+    const groupEntries: unknown[] = options;
+
+    entries.push(...groupEntries);
+  }
+
+  return entries;
 };
 
-const requireConnection = (result: Record<string, unknown>): void => {
-  if (result['ok'] !== true) throw new Error('Copilot rejected the discovery connection');
+const copilotModelNames = (result: Record<string, unknown>): string[] => {
+  const option = modelConfigOption(result);
 
-  requireSupportedProtocol(result);
+  if (option !== undefined) return modelNames(configOptionEntries(option), 'value');
+
+  const catalog = result['models'];
+
+  if (isRecord(catalog)) return modelNames(catalog['availableModels'], 'modelId');
+
+  throw new Error('Copilot returned no model catalog');
+};
+
+const copilotCommand = (respond: AgentRespond): AgentCommand => {
+  const clientCapabilities = {};
+  const initializeParams = { clientCapabilities, protocolVersion: 1 };
+  const input = modelRpcRequest(INITIALIZE_ID, 'initialize', initializeParams);
+  const command: AgentCommand = {
+    executable: 'copilot',
+    args: ['--acp', '--no-auto-update'],
+    input,
+    respond
+  };
+
+  return command;
 };
 
 export const copilotModels = async (options: ModelDiscoveryOptions): Promise<string[]> => {
-  const connectionToken = process.env['COPILOT_CONNECTION_TOKEN'];
-  const connectParams: Record<string, unknown> = {};
-
-  if (connectionToken !== undefined) connectParams['token'] = connectionToken;
-  let id = 1;
   let models: string[] | undefined;
-  let phase: DiscoveryPhase = 'connect';
-  let completedModels: string[] | undefined;
-  const respond: AgentRespond = (message): string | null | undefined => {
-    const result = modelRpcResult(message, id);
+  let initialized = false;
+  const respond: AgentRespond = (message, scratchDirectory): string | null | undefined => {
+    const requestId = initialized ? SESSION_ID : INITIALIZE_ID;
+    const result = modelRpcResult(message, requestId);
 
     if (result === undefined) return undefined;
 
-    if (phase === 'connect') {
-      requireConnection(result);
-      id += 1;
-      phase = 'models';
+    if (!initialized) {
+      if (result['protocolVersion'] !== 1) throw new Error('Copilot returned an unsupported ACP protocol version');
 
-      return framedRequest(id, 'models.list', {});
+      initialized = true;
+      const params = { cwd: scratchDirectory, mcpServers: [] };
+
+      return modelRpcRequest(SESSION_ID, 'session/new', params);
     }
 
-    if (phase === 'models') {
-      models = copilotModelNames(result);
-      id += 1;
-      phase = 'shutdown';
-
-      return framedRequest(id, 'runtime.shutdown', {});
-    }
-
-    completedModels = models;
+    models = copilotModelNames(result);
 
     return null;
   };
-  const command: AgentCommand = {
-    executable: 'copilot',
-    args: ['--headless', '--stdio', '--no-auto-update', '--log-level', 'none'],
-    input: framedRequest(id, 'connect', connectParams),
-    messageFormat: 'content-length',
-    respond,
-    stopOnComplete: true
-  };
+  const command = copilotCommand(respond);
 
   await runAgent(command, { ...options, tool: 'copilot' });
 
-  if (completedModels === undefined) throw new Error('Copilot closed before returning its model catalog');
+  if (models === undefined) throw new Error('Copilot closed before returning its model catalog');
 
-  return completedModels;
+  return models;
 };

@@ -8,13 +8,13 @@ A scratch directory and model-tool restrictions are **not** an OS sandbox or a u
 
 ## Status matrix
 
-| Provider           | Executable and transport                                               | Staged control files                                                        | Current evidence                                                | Material qualification                                                                              |
-| ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Claude Code        | `claude`; text stdin, JSON stdout envelope                             | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
-| Codex CLI          | `codex`; stdin placeholder `-`, JSONL stdout                           | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
-| Antigravity        | `agy`; one stream-JSON stdin event and stream-JSON stdout              | `.agents/agents/fixture-enricher/agent.md`                                  | Source-linked documentation review; no local run                | Empty-list inheritance, global hooks/rules/MCP, and native-Windows sandbox behavior are unresolved. |
-| GitHub Copilot CLI | `copilot`; complete prompt on stdin, streaming raw text stdout        | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source review and controlled-process checks; no live generation | Model tools are disabled, but global MCP/extensions may still start.                                |
-| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, stream-JSON stdout  | `.gemini/system-settings.json`                                              | Source review and controlled-process checks; no live generation | Trusted scratch workspace; no custom deny policy; inherited configuration remains relevant.         |
+| Provider           | Executable and transport                                             | Staged control files                                                        | Current evidence                                                | Material qualification                                                                              |
+| ------------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Claude Code        | `claude`; text stdin, JSON stdout envelope                           | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
+| Codex CLI          | `codex`; stdin placeholder `-`, JSONL stdout                         | None                                                                        | Implementation plus prior successful real generation            | No equivalent upstream-documentation audit was performed here; do not infer universal isolation.    |
+| Antigravity        | `agy`; one stream-JSON stdin event and stream-JSON stdout            | `.agents/agents/fixture-enricher/agent.md`                                  | Source-linked documentation review; no local run                | Empty-list inheritance, global hooks/rules/MCP, and native-Windows sandbox behavior are unresolved. |
+| GitHub Copilot CLI | `copilot`; complete prompt on stdin, streaming raw text stdout       | `.github/agents/fixture-enricher.agent.md`, `.github/copilot/settings.json` | Source review and controlled-process checks; no live generation | Model tools are disabled, but global MCP/extensions may still start.                                |
+| Gemini CLI         | `gemini`; request on stdin plus fixed `--prompt`, stream-JSON stdout | `.gemini/system-settings.json`                                              | Source review and controlled-process checks; no live generation | Trusted scratch workspace; no custom deny policy; inherited configuration remains relevant.         |
 
 “Source-linked documentation review” means official documentation and released/source-code material were inspected. It is not a runtime pass, authentication check, installed-version assertion, or proof of no side effects.
 
@@ -59,17 +59,16 @@ No provider generation prompt, login RPC, or persistent model-selection request 
 CLI-owned authentication refresh, caches, and startup state still apply; these operations are not
 an OS sandbox or a guarantee of uncached remote entitlement validation.
 
-| Provider    | Discovery contract                                                                                     | Model ID field                            |
-| ----------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| Claude      | Print-mode stream-JSON `initialize` control request; safe mode, no tools, no session persistence       | `response.response.models[].value`        |
-| Codex       | App-server `initialize`, `initialized`, then paginated `model/list` with `includeHidden: false`        | `result.data[].model`                     |
-| Antigravity | `agy --output-format json models`, with stdin closed immediately                                       | `command.data.models[].id`                |
-| Copilot     | Headless stdio SDK v3 handshake, `models.list`, then runtime shutdown; Content-Length framing          | `result.models[].id`                      |
-| Gemini      | ACP v1 `initialize` then `session/new` in the scratch directory; no `authenticate` or `session/prompt` | `result.models.availableModels[].modelId` |
+| Provider    | Discovery contract                                                                                             | Model ID field                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Claude      | Print-mode stream-JSON `initialize` control request; safe mode, no tools, no session persistence               | `response.response.models[].value`                                                                   |
+| Codex       | App-server `initialize`, `initialized`, then paginated `model/list` with `includeHidden: false`                | `result.data[].model`                                                                                |
+| Antigravity | `agy --output-format json models`, with stdin closed immediately                                               | `command.data.models[].id`                                                                           |
+| Copilot     | ACP v1 `initialize` then `session/new` in the scratch directory; NDJSON; no `authenticate` or `session/prompt` | `result.configOptions[category=model]` option values, else `result.models.availableModels[].modelId` |
+| Gemini      | ACP v1 `initialize` then `session/new` in the scratch directory; no `authenticate` or `session/prompt`         | `result.models.availableModels[].modelId`                                                            |
 
-NDJSON discovery keeps stdin open until the correlated catalog reply, then closes it. Copilot's
-SDK server does not self-exit after runtime shutdown, so the owned process tree is explicitly
-terminated after its shutdown response. Protocol errors, missing results, and empty catalogs
+NDJSON discovery keeps stdin open until the correlated catalog reply, then closes it, and the
+agent exits on that closed stdin. Protocol errors, missing results, and empty catalogs
 fail; they do not fall back to old model names. Explicit `--model` values and noninteractive
 default generation skip discovery altogether.
 
@@ -97,7 +96,7 @@ A catalog response does not override that policy or guarantee that generation wi
 Sources: [Claude initialization/models](https://code.claude.com/docs/en/agent-sdk/typescript#sdkcontrolinitializeresponse),
 [Codex model/list](https://developers.openai.com/codex/app-server/#list-models-modellist),
 [Antigravity command and JSON framing evidence](https://github.com/google-antigravity/antigravity-cli/issues/777),
-[Copilot SDK implementation](https://github.com/github/copilot-sdk/blob/main/nodejs/src/client.ts),
+[Copilot CLI ACP server](https://docs.github.com/en/copilot/reference/copilot-cli-reference/acp-server),
 and [Gemini released ACP session manager](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/acp/acpSessionManager.ts).
 
 Discovery verification: the compiled CLI returned catalogs from installed Claude and Codex
@@ -233,15 +232,15 @@ Primary sources: [programmatic use](https://docs.github.com/en/copilot/how-tos/c
 
 ### Invocation and staged files
 
-| Item                  | Adapter contract                                                                                                                                                        |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Executable            | `copilot` — the standalone CLI, not `gh copilot`.                                                                                                                       |
-| Exact argument vector | `--agent=fixture-enricher --silent --stream=on --no-ask-user --disable-builtin-mcps --no-custom-instructions --deny-tool=shell,write,read,url,memory --no-auto-update` |
-| stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. No `-p` or `--prompt` is passed.                                                                  |
+| Item                  | Adapter contract                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Executable            | `copilot` — the standalone CLI, not `gh copilot`.                                                                                                                           |
+| Exact argument vector | `--agent=fixture-enricher --silent --stream=on --no-ask-user --disable-builtin-mcps --no-custom-instructions --deny-tool=shell,write,read,url,memory --no-auto-update`      |
+| stdin                 | Complete fixture-enrichment request as UTF-8 text; stdin then closes. No `-p` or `--prompt` is passed.                                                                      |
 | stdout                | Streaming raw text, whose concatenated response must be one JSON value. Do not substitute `--output-format=json`: its documented mode is JSONL, a different event protocol. |
-| Environment           | No overlay; normal environment/authentication and user configuration are inherited.                                                                                     |
-| Authentication        | Existing valid Copilot authentication is required. Documented precedence includes token environment variables before stored credentials; no login was attempted.        |
-| Model selection       | `--model=<slug>` is appended when a non-`default` model is selected; this CLI uses the joined `=` form. Model choices come from headless `models.list`.                 |
+| Environment           | No overlay; normal environment/authentication and user configuration are inherited.                                                                                         |
+| Authentication        | Existing valid Copilot authentication is required. Documented precedence includes token environment variables before stored credentials; no login was attempted.            |
+| Model selection       | `--model=<slug>` is appended when a non-`default` model is selected; this CLI uses the joined `=` form. Model choices come from the ACP `session/new` catalog.              |
 
 The staged custom agent, `.github/agents/fixture-enricher.agent.md`, is:
 
@@ -279,6 +278,7 @@ No live Copilot generation was run for this change. A controlled subprocess veri
 - `--deny-tool=memory` alone does not prevent use of existing memories. Programmatic-mode defaults and the empty tools set are relevant, but do not prove isolation of all retained state.
 - Official pages conflict on duplicate same-name custom-agent precedence (home versus project priority). Therefore the fixed name `fixture-enricher` is not documented as collision-proof.
 - Official programmatic-permission wording also conflicts: one option row suggests broad allowance in programmatic mode, while the programmatic guide demonstrates piped/bare input and recommends minimum permissions. There is no basis to add `--allow-all-tools`.
+- The ACP `session/new` catalog shape is unverified live: Copilot CLI issue [#2044](https://github.com/github/copilot-cli/issues/2044) (v1.0.5) shows both `models.currentModelId` and a `category: "model"` config option, while issue [#4880](https://github.com/github/copilot-cli/issues/4880) (v1.0.85) reports `session/new` returning only `mode` and `allow_all`; discovery fails explicitly in that case rather than guessing.
 
 For the full staged configuration, GitHub release notes identify **1.0.4** as the historical release adding `disableAllHooks`; it is a necessary lower bound for that setting, not a certification that every later version satisfies the entire adapter contract. The review’s current release snapshot was 1.0.83, but no installed provider version was recorded. Published Windows setup guidance varies by installation route; do not infer a tested local version from it.
 

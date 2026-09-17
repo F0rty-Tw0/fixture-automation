@@ -68,7 +68,7 @@ overrides:
 
 patchedDependencies:
   openapi-sampler@1.7.5:
-    hash: 5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0
+    hash: e9f4fea3512b70c29e3bc890148017de430d35cd8d8114fe826f266c2612a5d4
     path: patches/openapi-sampler@1.7.5.patch
 
 importers:
@@ -146,7 +146,7 @@ importers:
         version: link:../shared
       openapi-sampler:
         specifier: catalog:dependencies
-        version: 1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0)
+        version: 1.7.5(patch_hash=e9f4fea3512b70c29e3bc890148017de430d35cd8d8114fe826f266c2612a5d4)
 
   packages/openapi-fixture-merge:
     dependencies:
@@ -191,7 +191,7 @@ importers:
         version: 7.0.15
       openapi-sampler:
         specifier: catalog:dependencies
-        version: 1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0)
+        version: 1.7.5(patch_hash=e9f4fea3512b70c29e3bc890148017de430d35cd8d8114fe826f266c2612a5d4)
     devDependencies:
       ajv:
         specifier: catalog:devDependencies
@@ -6667,7 +6667,7 @@ snapshots:
       is-inside-container: 1.0.0
       is-wsl: 3.1.0
 
-  openapi-sampler@1.7.5(patch_hash=5fbe2c8df902939734392c7e43a98a6d8eb7cb7f2a00ed33f6c70de41ec74ed0):
+  openapi-sampler@1.7.5(patch_hash=e9f4fea3512b70c29e3bc890148017de430d35cd8d8114fe826f266c2612a5d4):
     dependencies:
       '@types/json-schema': 7.0.15
       fast-xml-parser: 5.11.1

@@ -1,0 +1,53 @@
+diff --git a/dist/openapi-sampler.js b/dist/openapi-sampler.js
+index 41f42a61741e138536651b118b6559780eb3e5f4..a6ed9e28e7cf2067682ab4a7ef6d91a37d30d92c 100644
+--- a/dist/openapi-sampler.js
++++ b/dist/openapi-sampler.js
+@@ -652,6 +652,11 @@ function sampleObject(schema) {
+         propertyName,
+         depth: depth + 1
+       });
++
++      // Patched: an optional property that loops back on a schema cycle is omitted instead of an invalid `{}`.
++      if (sample.circular && !requiredPropertiesMap.hasOwnProperty(propertyName)) {
++        return;
++      }
+       if (options.skipReadOnly && sample.readOnly) {
+         if (context !== null && context !== void 0 && context.isAllOfChild) {
+           res[propertyName] = _utils.SKIP_SYMBOL;
+@@ -1453,6 +1458,7 @@ function uuid(str) {
+ }
+ function getResultForCircular(type) {
+   return {
++    circular: true,
+     value: type === 'object' ? {} : type === 'array' ? [] : undefined
+   };
+ }
+diff --git a/src/samplers/object.js b/src/samplers/object.js
+index a870c0e1b57c1316cbcd1dc68bde474f459ed85c..00989582770d1d3ce38200ed5889c7c9e82dd373 100644
+--- a/src/samplers/object.js
++++ b/src/samplers/object.js
+@@ -23,6 +23,12 @@ export function sampleObject(schema, options = {}, spec, context) {
+       }
+ 
+       const sample = traverse(schema.properties[propertyName], options, spec, { propertyName, depth: depth + 1 });
++
++      // Patched: an optional property that loops back on a schema cycle is omitted instead of an invalid `{}`.
++      if (sample.circular && !requiredPropertiesMap.hasOwnProperty(propertyName)) {
++        return;
++      }
++
+       if (options.skipReadOnly && sample.readOnly) {
+         if (context?.isAllOfChild) {
+           res[propertyName] = SKIP_SYMBOL;
+diff --git a/src/utils.js b/src/utils.js
+index bb7efe9d94002891c75b4ed0ccd7b768f9027e13..2c2ce7832c6039350222d996e68f629992202f5f 100644
+--- a/src/utils.js
++++ b/src/utils.js
+@@ -63,6 +63,7 @@ export function uuid(str) {
+ 
+ export function getResultForCircular(type) {
+   return {
++    circular: true,
+     value: type === 'object' ?
+       {}
+       : type === 'array' ? [] : undefined

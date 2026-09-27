@@ -19,12 +19,23 @@ export type MissingFile = {
   readonly components: MissingComponents;
 };
 
+/** Whether a generated fill satisfies the missing projection; `details` is the `path: message; ...` line when it does not. */
+export type MissingVerdict = {
+  readonly valid: boolean;
+  readonly details: string;
+};
+
+/** Judges a generated fill against its missing projection, e.g. off the caller's event loop. */
+export type MissingValidator = (missing: MissingFile, value: unknown) => Promise<MissingVerdict>;
+
 export type AiMissingRequest = {
   /** The corrupt fixture, used as the coherence baseline; it is never mutated. */
   readonly fixture: unknown;
   readonly missing: MissingFile;
   /** Natural-language scenario; the missing schema remains authoritative. */
   readonly scenario: string;
+  /** Replaces the in-process AJV check, which blocks the calling thread for as long as a schema `pattern` backtracks. */
+  readonly validate?: MissingValidator;
 };
 
 export type AiMissingFactory = (name: string, request: AiMissingRequest) => Promise<Record<string, unknown>>;

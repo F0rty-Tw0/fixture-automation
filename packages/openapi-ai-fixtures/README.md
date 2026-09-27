@@ -218,6 +218,7 @@ const invoice = await enrich('invoice', {
 - `onProgress(event: AiFixtureProgress)` — optional synchronous callback receiving `{ stream: 'stdout' | 'stderr' | 'status', text: string }`. Library calls emit no progress unless supplied. Throwing from the callback fails the operation and terminates a still-running child; an existing process failure remains the primary error.
 - `createAiProgressReporter()` — returns a stateful progress callback that writes to stderr, strips terminal control sequences, and separates status messages from unfinished output lines. Create one per generation call.
 - `discoverModels(tool, options?: ModelDiscoveryOptions): Promise<ModelDiscovery>` — returns `{ models, source }` from the installed provider. Options are `{ executable?, timeoutMs?, signal? }`; `timeoutMs` defaults to `120000` (2 minutes). Errors reject, with no hardcoded fallback.
+- `detectAiTools(env?, platform?): Promise<AiToolInstall[]>` — `{ tool, installed }` per tool: whether its executable (`claude`, `codex`, `agy`, `copilot`, `gemini`) is a file in a `PATH` directory, trying each `PATHEXT` extension on Windows. Starts no process, so it proves nothing about login. Defaults to `process.env` and `process.platform`.
 
 ### Validation and failure behavior
 

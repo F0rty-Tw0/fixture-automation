@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { SUBPROCESS_TEST_TIMEOUT_MS } from './test/common/integration.const.ts';
 import type { IntegrationProject } from './test/common/integration.type.ts';
 import { missingArgs } from './test/utils/integration-cli.spec.util.ts';
 import { integrationProject } from './test/utils/integration-project.spec.util.ts';
@@ -10,7 +11,7 @@ import { integrationProject } from './test/utils/integration-project.spec.util.t
 const SCENARIO = 'missing-mode: fill the absent invoice status.';
 const INVALID_SCENARIO = 'missing-mode invalid: return a status outside the enum.';
 
-describe('FEATURE: AI fixture command in missing-field mode', (): void => {
+describe('FEATURE: AI fixture command in missing-field mode', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, (): void => {
   describe('GIVEN a corrupt invoice, a diff projection, and a controlled external tool', (): void => {
     let project: IntegrationProject;
 

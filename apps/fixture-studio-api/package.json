@@ -1,0 +1,43 @@
+{
+  "name": "@fixture-automation/fixture-studio-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Local HTTP API behind Fixture Studio: specs, endpoints, fixture generation.",
+  "main": "./dist/main.js",
+  "exports": {
+    "./contract": {
+      "@fixture-automation/source": "./src/contract/index.ts",
+      "types": "./dist/contract/index.d.ts",
+      "default": "./dist/contract/index.js"
+    }
+  },
+  "dependencies": {
+    "@fixture-automation/openapi-ai-fixtures": "workspace:*",
+    "@fixture-automation/openapi-fixture-diff": "workspace:*",
+    "@fixture-automation/openapi-fixture-merge": "workspace:*",
+    "@fixture-automation/openapi-fixture-wizard": "workspace:*",
+    "@fixture-automation/openapi-fixtures": "workspace:*",
+    "@fixture-automation/openapi-types": "workspace:*",
+    "@fixture-automation/shared": "workspace:*",
+    "fastify": "catalog:backend",
+    "fastify-type-provider-zod": "catalog:backend",
+    "pino-http-print": "catalog:backend",
+    "zod": "catalog:backend"
+  },
+  "devDependencies": {
+    "ajv": "catalog:devDependencies"
+  },
+  "nx": {
+    "targets": {
+      "serve": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "options": {
+          "command": "node --watch-path=src --watch-path=../../packages/openapi-ai-fixtures/src --watch-path=../../packages/openapi-fixture-diff/src --watch-path=../../packages/openapi-fixture-merge/src --watch-path=../../packages/openapi-fixture-wizard/src --watch-path=../../packages/openapi-fixtures/src --watch-path=../../packages/openapi-types/src --watch-path=../../packages/shared/src --conditions=@fixture-automation/source src/main.ts",
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  }
+}

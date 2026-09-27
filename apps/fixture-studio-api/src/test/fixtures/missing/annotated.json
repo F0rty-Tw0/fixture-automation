@@ -1,0 +1,109 @@
+{
+  "schemaName": "invoice",
+  "dialect": "openapi-30",
+  "paths": [
+    "customer",
+    "total",
+    "example",
+    "x-rate"
+  ],
+  "schema": {
+    "type": "object",
+    "required": [
+      "customer",
+      "total",
+      "example",
+      "x-rate"
+    ],
+    "x-internal": true,
+    "properties": {
+      "customer": {
+        "$ref": "#/components/schemas/customer"
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "exclusiveMinimum": true,
+        "maximum": 100,
+        "exclusiveMaximum": false,
+        "example": 5,
+        "readOnly": true
+      },
+      "example": {
+        "type": "string",
+        "nullable": true,
+        "examples": [
+          "a"
+        ],
+        "xml": {
+          "name": "ex"
+        }
+      },
+      "x-rate": {
+        "type": "number",
+        "writeOnly": true
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "customer": {
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind"
+        },
+        "externalDocs": {
+          "url": "https://x.dev"
+        },
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/address"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/a~1b"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true,
+              "example": "m"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/address"
+          }
+        ]
+      },
+      "address": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "city": {
+            "type": "string",
+            "example": "Oslo"
+          }
+        }
+      },
+      "a/b": {
+        "type": "integer",
+        "format": "int32",
+        "x-unit": "cents"
+      }
+    }
+  }
+}

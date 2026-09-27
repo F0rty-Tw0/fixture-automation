@@ -3,6 +3,9 @@
   "files": [],
   "references": [
     {
+      "path": "./apps/fixture-studio-api"
+    },
+    {
       "path": "./packages/openapi-ai-fixtures"
     },
     {

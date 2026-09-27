@@ -103,6 +103,20 @@ describe('FEATURE: fixture merge', (): void => {
     });
   });
 
+  describe('GIVEN the original fixture the corrupt one was cut from', (): void => {
+    it('WHEN merging THEN the written JSON follows the original key order', async (): Promise<void> => {
+      const base = mergeInput(project, project.populatedFile, undefined);
+      const original = { status: 'draft', id: 'in_1', amount_due: 0 };
+      const input: MergeInput = { ...base, original };
+      const expected = { status: 'open', id: 'in_1', amount_due: 100 };
+      const expectedJson = `${JSON.stringify(expected, null, 2)}\n`;
+
+      const result = await mergeFixture(input);
+
+      await expect(readFile(result.outFile, 'utf8')).resolves.toBe(expectedJson);
+    });
+  });
+
   describe('GIVEN an envelope whose payload is a root array', (): void => {
     it('WHEN merging with an object shape THEN it prefixes filled element paths without an extra dot', async (): Promise<void> => {
       const corruptFile = await project.write('array-corrupt.json', '{ "body": [{ "id": "in_1" }] }');

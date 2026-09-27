@@ -3,12 +3,13 @@ import { styleText } from 'node:util';
 
 import { prepareSchema } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError, loadSpec, readJsonFile, resolveSchemaName, writeTextFile } from '@fixture-automation/openapi-fixtures';
-import { isRecord, selectFixtureShape } from '@fixture-automation/shared';
+import { selectFixtureShape } from '@fixture-automation/shared';
 
 import { loadPopulated } from './load-populated.client.ts';
 import type { FillResult, MergeInput, MergeProvenance, MergeResult, MergeSpec } from '../common/fixture-merge.type.ts';
-import { deepFill } from '../utils/deep-fill.util.ts';
+import { orderLike } from '../utils/key-order.util.ts';
 import { endpointArtifactFileName, endpointIdentity, sha256Content } from '../utils/merge-artifact-hashing.util.ts';
+import { fillObjectShape } from '../utils/object-shape-fill.util.ts';
 
 const assertValid = async (spec: MergeSpec, value: unknown): Promise<void> => {
   const document = await loadSpec(spec.url);
@@ -30,36 +31,6 @@ const assertValid = async (spec: MergeSpec, value: unknown): Promise<void> => {
   throw new FixtureError(`merged fixture violates schema "${schemaName}": ${details}`, fix);
 };
 
-const prefixedFilledPaths = (filled: string[], objectShape: string): string[] => {
-  const prefixPath = (path: string): string => {
-    const isArrayPath = path.startsWith('[');
-
-    if (!path || isArrayPath) return `${objectShape}${path}`;
-
-    return `${objectShape}.${path}`;
-  };
-  const prefixed = filled.map(prefixPath);
-
-  return prefixed;
-};
-
-const mergeValue = (corrupt: unknown, populated: unknown, objectShape: string | undefined): FillResult => {
-  if (objectShape === undefined) return deepFill(corrupt, populated);
-
-  const corruptPayload = selectFixtureShape(corrupt, objectShape);
-  const populatedPayload = selectFixtureShape(populated, objectShape);
-  const mergedPayload = deepFill(corruptPayload, populatedPayload);
-  const isCorruptEnvelope = isRecord(corrupt);
-
-  if (!isCorruptEnvelope) throw new Error(`fixture has no own property "${objectShape}" for object-shape`);
-
-  const value = { ...corrupt, [objectShape]: mergedPayload.value };
-  const filled = prefixedFilledPaths(mergedPayload.filled, objectShape);
-  const merged: FillResult = { value, filled };
-
-  return merged;
-};
-
 const optionalValue = (value: string | undefined): string | undefined => {
   const trimmed = value?.trim();
 
@@ -72,7 +43,9 @@ export const mergeFixture = async (input: MergeInput): Promise<MergeResult> => {
   const subdirectory = optionalValue(input.subdirectory);
   const corrupt = await readJsonFile('corrupt fixture', input.corruptFile);
   const populated = await loadPopulated(input.populatedFile);
-  const merged = mergeValue(corrupt, populated, objectShape);
+  const filledFixture = fillObjectShape(corrupt, populated, objectShape);
+  const value = orderLike(filledFixture.value, input.original);
+  const merged: FillResult = { value, filled: filledFixture.filled };
   const validationValue = selectFixtureShape(merged.value, objectShape);
 
   console.error(styleText('green', `filled ${merged.filled.length} path(s)`, { stream: process.stderr }));

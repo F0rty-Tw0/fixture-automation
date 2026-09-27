@@ -27,6 +27,8 @@ export type MergeInput = {
   readonly subdirectory?: string | undefined;
   /** Absent means the merged fixture is written without schema validation. */
   readonly spec?: MergeSpec;
+  /** The fixture `corruptFile` was cut from; the written JSON keeps its key order. Absent keeps the corrupt order. */
+  readonly original?: unknown;
 };
 
 export type MergeProvenance = {

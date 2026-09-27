@@ -2,6 +2,10 @@ export { mergeFixture } from './data-access/fixture-merge.client.ts';
 
 export { deepFill } from './utils/deep-fill.util.ts';
 
+export { fillObjectShape } from './utils/object-shape-fill.util.ts';
+
+export { orderLike } from './utils/key-order.util.ts';
+
 export { HTTP_METHODS, endpointUrlInput, isHttpMethod } from './utils/endpoint-prompt.util.ts';
 
 export { loadPopulated } from './data-access/load-populated.client.ts';

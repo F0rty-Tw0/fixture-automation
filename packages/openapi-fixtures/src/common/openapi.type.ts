@@ -18,6 +18,12 @@ export type OpenApiSpec = {
   readonly components?: SpecComponents;
 };
 
+/** Limits on an http(s) spec download; defaults are 30 s and 20 MB. */
+export type SpecLoadOptions = {
+  readonly timeoutMs?: number;
+  readonly maxBytes?: number;
+};
+
 /** Which schema a CLI samples and where it writes, once the positionals are resolved against the spec. */
 export type SchemaTarget = {
   readonly schemaName: string;

@@ -9,7 +9,7 @@ export const DEFAULT_MISSING_DIR = join(DEFAULT_OUT_DIR, MISSING_DIR);
 export const CORRUPT_USAGE = 'usage: corrupt <fixture.json> [out.json] --drop <path,path,...>';
 
 export const DIFF_USAGE =
-  'usage: diff <spec-url> [schema-name] --fixture <corrupt.json> [--out-dir <dir>] [--required-only] [--object-shape <key>]';
+  'usage: diff <spec-url> [schema-name] --fixture <corrupt.json> [--out-dir <dir>] [--required-only] [--replace-placeholders] [--object-shape <key>]';
 
 export const FIXTURE_DIFF_USAGE =
   'usage: corrupt <fixture.json> [out.json] --drop <paths>, or diff <spec-url> [schema-name] --fixture <corrupt.json> [--out-dir <dir>]';
@@ -29,6 +29,11 @@ export const FIXTURE_DIFF_HELP = `usage: openapi-fixture-diff <command> [options
   --fixture <file>     corrupt JSON fixture, required by diff
   --out-dir <dir>      destination directory for the missing files; Enter = ${DEFAULT_MISSING_DIR}
   --required-only      report only the missing required fields
+  --replace-placeholders
+                       also list present values that break the schema or are
+                       openapi-sampler defaults ("string", 0, user@example.com),
+                       and write baseline.json without them: fill and merge
+                       onto baseline.json, not the original fixture
   --object-shape <key> top-level fixture property containing the schema payload
   -h, --help           print this help`;
 
@@ -78,6 +83,23 @@ const requiredOnly: InputSpec = {
   description: 'report only fields the schema lists as required',
   example: '--required-only'
 };
+const replacePlaceholders: InputSpec = {
+  label: '--replace-placeholders',
+  description: 'also replace schema-invalid values and openapi-sampler defaults; writes baseline.json to fill and merge onto',
+  example: '--replace-placeholders'
+};
 
 /** What each prompt says when a terminal run is missing the input. */
-export const DIFF_INPUTS = { command, fixtureFile, outFile, drop, specUrl, schemaName, fixture, outDir, objectShape, requiredOnly };
+export const DIFF_INPUTS = {
+  command,
+  fixtureFile,
+  outFile,
+  drop,
+  specUrl,
+  schemaName,
+  fixture,
+  outDir,
+  objectShape,
+  requiredOnly,
+  replacePlaceholders
+};

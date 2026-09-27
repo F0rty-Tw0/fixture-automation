@@ -17,8 +17,10 @@ const DIFF: FixtureDiff = {
   schemaName: 'order',
   dialect: 'openapi-30',
   paths: ['id', 'customer'],
+  replaced: [],
   schema: MISSING_SCHEMA,
-  components: COMPONENTS
+  components: COMPONENTS,
+  baseline: {}
 };
 const DOCUMENT_INFO = { title: 'missing', version: '0' };
 const DOCUMENT_SCHEMAS = { missing: MISSING_SCHEMA, customer: CUSTOMER_SCHEMA };

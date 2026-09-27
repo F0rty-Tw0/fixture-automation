@@ -1,0 +1,73 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Placeholder Fixture API", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "account": {
+        "type": "object",
+        "required": [
+          "id",
+          "object",
+          "email",
+          "created",
+          "has_more",
+          "balance",
+          "rate",
+          "active",
+          "website",
+          "nickname",
+          "status",
+          "kind",
+          "code",
+          "owner_id",
+          "note",
+          "tags",
+          "labels",
+          "source",
+          "lines"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "object": { "type": "string", "enum": ["account"] },
+          "email": { "type": "string", "format": "email" },
+          "created": { "type": "string", "format": "date-time" },
+          "has_more": { "type": "boolean" },
+          "balance": { "type": "integer" },
+          "rate": { "type": "number", "minimum": 1.5 },
+          "active": { "type": "boolean", "default": false },
+          "website": { "type": "string", "format": "uri" },
+          "nickname": { "type": "string", "examples": ["Ace"] },
+          "status": { "type": "string", "enum": ["open", "closed"] },
+          "kind": { "const": "acct" },
+          "code": { "type": "string", "minLength": 8 },
+          "owner_id": { "type": "string", "format": "uuid" },
+          "note": { "type": ["string", "null"] },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "labels": { "type": "array", "items": { "type": "string", "enum": ["vip", "new"] } },
+          "source": { "anyOf": [{ "type": "string", "enum": ["internal"] }, { "$ref": "#/components/schemas/supplier" }] },
+          "country": { "$ref": "#/components/schemas/country" },
+          "metadata": { "type": "object" },
+          "lines": { "type": "array", "items": { "$ref": "#/components/schemas/line" } }
+        }
+      },
+      "country": { "type": "string" },
+      "supplier": {
+        "type": "object",
+        "required": ["supplierId"],
+        "properties": {
+          "supplierId": { "type": "string" }
+        }
+      },
+      "line": {
+        "type": "object",
+        "required": ["sku", "quantity", "price_id"],
+        "properties": {
+          "sku": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "price_id": { "type": "string", "examples": ["price_1"] }
+        }
+      }
+    }
+  }
+}

@@ -13,7 +13,7 @@ import {
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
 import { diffFixture } from './fixture-diff.client.ts';
-import { writeMissingFiles } from './missing-files.client.ts';
+import { writeBaselineFile, writeMissingFiles } from './missing-files.client.ts';
 import { DIFF_INPUTS, FIXTURE_DIFF_HELP, FIXTURE_DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
 import { dropPaths } from '../utils/drop-path.util.ts';
 import { parseCorruptArgs, parseDiffArgs } from '../utils/fixture-diff-cli.util.ts';
@@ -42,14 +42,16 @@ const runDiff = async (args: string[], inputs: Inputs): Promise<void> => {
     return;
   }
 
-  const { specUrl, fixtureFile, outDir, requiredOnly, objectShape } = parsed;
+  const { specUrl, fixtureFile, outDir, requiredOnly, replacePlaceholders, objectShape } = parsed;
   const spec = await loadSpec(specUrl);
   const given = await askSchemaName(spec, parsed.schemaName, DIFF_INPUTS.schemaName, inputs);
   const schemaName = resolveSchemaName(spec, given);
   const fixture = await readJsonFile('--fixture', fixtureFile);
-  const diff = diffFixture({ spec, schemaName, fixture, requiredOnly, objectShape });
+  const diff = diffFixture({ spec, schemaName, fixture, requiredOnly, objectShape, replacePlaceholders });
 
   await writeMissingFiles(diff, outDir);
+
+  if (replacePlaceholders) await writeBaselineFile(diff, outDir);
 
   if (!diff.paths.length) console.error(styleText('green', 'no missing fields', { stream: process.stderr }));
 };

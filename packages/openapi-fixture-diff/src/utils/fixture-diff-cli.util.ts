@@ -15,6 +15,7 @@ const diffOptions = {
   fixture: stringOption,
   'object-shape': stringOption,
   'out-dir': stringOption,
+  'replace-placeholders': booleanOption,
   'required-only': booleanOption,
   help: helpOption
 };
@@ -88,7 +89,8 @@ export const parseDiffArgs = async (args: string[], inputs: Inputs = silentInput
   const objectShapeAnswer = await inputs.optional(values['object-shape'], DIFF_INPUTS.objectShape);
   const objectShape = optionalValue(objectShapeAnswer);
   const requiredOnly = await inputs.flag(values['required-only'], DIFF_INPUTS.requiredOnly);
-  const options: DiffOptions = { specUrl, schemaName, fixtureFile, outDir, requiredOnly, objectShape };
+  const replacePlaceholders = await inputs.flag(values['replace-placeholders'], DIFF_INPUTS.replacePlaceholders);
+  const options: DiffOptions = { specUrl, schemaName, fixtureFile, outDir, requiredOnly, replacePlaceholders, objectShape };
 
   return options;
 };

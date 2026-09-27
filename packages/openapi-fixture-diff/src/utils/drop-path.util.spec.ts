@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dropPaths } from './drop-path.util.ts';
+import { dropPaths, hasPath } from './drop-path.util.ts';
 import { nestedOrder } from '../test/utils/nested-spec.spec.util.ts';
 
 const CORRUPT_CUSTOMER = { name: 'Ada', country: 'NL', vat: 'NL01' };
@@ -70,6 +70,25 @@ describe('FEATURE: fixture corruption by dotted path', (): void => {
       const fixture = await nestedOrder();
 
       expect((): unknown => dropPaths(fixture, ['lines[a]'])).toThrow('invalid fixture path "lines[a]"');
+    });
+  });
+
+  describe('GIVEN a nested fixture queried for a path', (): void => {
+    it.each([
+      ['id', true],
+      ['customer.email', true],
+      ['lines[1].sku', true],
+      ['lines[0].source.region', true],
+      ['customer.phone', false],
+      ['lines[9].sku', false],
+      ['id.length', false],
+      ['customer[0]', false]
+    ])('WHEN asking for %s THEN the answer is %s', async (path: string, expected: boolean): Promise<void> => {
+      const fixture = await nestedOrder();
+
+      const found = hasPath(fixture, path);
+
+      expect(found).toBe(expected);
     });
   });
 });

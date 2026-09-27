@@ -81,6 +81,39 @@ const dropPath = (fixture: unknown, path: string): void => {
   remove(current, last, path);
 };
 
+const NOT_FOUND = Symbol('not found');
+
+const childAt = (current: unknown, token: PathToken): unknown => {
+  if (typeof token === 'number') {
+    const isElement = Array.isArray(current) && token < current.length;
+
+    if (!isElement) return NOT_FOUND;
+
+    return current[token];
+  }
+
+  if (!isRecord(current)) return NOT_FOUND;
+
+  const isKey = Object.hasOwn(current, token);
+
+  if (!isKey) return NOT_FOUND;
+
+  return current[token];
+};
+
+/** Whether `path` names a value that exists in `fixture`. */
+export const hasPath = (fixture: unknown, path: string): boolean => {
+  let current = fixture;
+
+  for (const token of parsePath(path)) {
+    current = childAt(current, token);
+
+    if (current === NOT_FOUND) return false;
+  }
+
+  return true;
+};
+
 /** Deep copy of `fixture` without the listed paths. Unknown paths throw and the input is never mutated. */
 export const dropPaths = (fixture: unknown, paths: string[]): unknown => {
   const corrupted: unknown = structuredClone(fixture);

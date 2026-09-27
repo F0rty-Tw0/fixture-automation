@@ -1,0 +1,23 @@
+{
+  "id": "acct_1",
+  "object": "account",
+  "email": "ada@acme.io",
+  "created": "2024-01-02T03:04:05Z",
+  "has_more": false,
+  "balance": 4200,
+  "rate": 2.5,
+  "active": true,
+  "website": "https://acme.io",
+  "nickname": "Ada",
+  "status": "closed",
+  "kind": "acct",
+  "code": "ACME-0001",
+  "owner_id": "3f1c2b9a-0d4e-4c5f-9a8b-7c6d5e4f3a2b",
+  "note": null,
+  "tags": ["vip"],
+  "labels": ["new"],
+  "source": { "supplierId": "sup_9" },
+  "country": "NL",
+  "metadata": { "tier": "gold" },
+  "lines": [{ "sku": "sku_1", "quantity": 3, "price_id": "price_9" }]
+}

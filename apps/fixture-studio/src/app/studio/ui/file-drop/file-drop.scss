@@ -1,0 +1,54 @@
+:host {
+  // Grid, not block: the label fills whatever height the parent row gives the host.
+  display: grid;
+}
+
+.drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  justify-content: center;
+  min-height: var(--fs-control-height);
+  padding: var(--fs-space-1) var(--fs-space-4);
+  line-height: 1.3;
+  cursor: pointer;
+  border: 1.5px dashed var(--fs-line-control);
+  border-radius: var(--fs-radius-md);
+  transition:
+    border-color 200ms var(--fs-ease-out),
+    background-color 200ms var(--fs-ease-out);
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--fs-accent);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--fs-accent);
+    outline-offset: 2px;
+  }
+}
+
+.drop--active {
+  background: var(--fs-accent-soft);
+  border-color: var(--fs-accent);
+  border-style: solid;
+}
+
+.drop__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.drop__title {
+  font-weight: 600;
+  color: var(--fs-ink);
+}
+
+.drop__hint {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+}

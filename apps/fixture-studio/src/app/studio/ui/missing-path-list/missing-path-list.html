@@ -1,0 +1,13 @@
+<h4 class="missing__heading">
+  {{ heading() }}
+  <span [class.missing__count--none]="paths().length === 0" class="missing__count">{{ paths().length }}</span>
+</h4>
+@if (paths().length > 0) {
+  <ul [attr.aria-label]="heading()" class="missing__paths">
+    @for (path of paths(); track path) {
+      <li class="missing__path">{{ path }}</li>
+    }
+  </ul>
+} @else {
+  <p class="missing__none">Nothing is missing: this fixture has every property the schema asks for.</p>
+}

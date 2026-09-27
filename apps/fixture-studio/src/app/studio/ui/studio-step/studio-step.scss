@@ -1,0 +1,95 @@
+// The rail: a hairline down the left edge, one node per step. Pending steps are
+// hollow, the active step glows signal orange, finished steps settle to ink.
+:host {
+  --node-size: 0.75rem;
+  --rail-x: calc(var(--node-size) / 2);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: var(--fs-space-3) var(--fs-space-6);
+  padding: 0 0 var(--fs-space-7) var(--fs-space-6);
+
+  &::before {
+    position: absolute;
+    top: 0.5rem;
+    bottom: -0.5rem;
+    left: var(--rail-x);
+    width: 1px;
+    content: '';
+    background: var(--fs-line-strong);
+  }
+}
+
+:host(:last-of-type)::before {
+  display: none;
+}
+
+.step__head {
+  position: relative;
+  align-self: start;
+}
+
+.step__node {
+  position: absolute;
+  top: 0.4rem;
+  left: calc(-1 * var(--fs-space-6));
+  width: var(--node-size);
+  height: var(--node-size);
+  background: var(--fs-canvas);
+  border: 1.5px solid var(--fs-line-strong);
+  transform: rotate(45deg);
+  transition:
+    background-color var(--fs-duration) var(--fs-ease-out),
+    border-color var(--fs-duration) var(--fs-ease-out),
+    box-shadow var(--fs-duration) var(--fs-ease-out);
+}
+
+:host([data-state='active']) .step__node {
+  background: var(--fs-accent);
+  border-color: var(--fs-accent);
+  box-shadow: 0 0 0 5px var(--fs-accent-soft);
+}
+
+:host([data-state='done']) .step__node {
+  background: var(--fs-ink);
+  border-color: var(--fs-ink);
+}
+
+.step__title {
+  margin: 0;
+  font-size: var(--fs-text-lg);
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--fs-ink);
+  letter-spacing: -0.01em;
+}
+
+:host([data-state='pending']) .step__title {
+  color: var(--fs-ink-faint);
+}
+
+.step__status {
+  margin: var(--fs-space-1) 0 0;
+  font-size: var(--fs-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-muted);
+}
+
+.step__body {
+  min-width: 0;
+  animation: step-in var(--fs-duration) var(--fs-ease-out) both;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (width < 56rem) {
+  :host {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

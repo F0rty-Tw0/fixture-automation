@@ -1,0 +1,179 @@
+@use '@angular/material' as mat;
+
+// Self-hosted fonts: no request leaves the app (the CSP only allows 'self').
+@use '@fontsource-variable/schibsted-grotesk/wght' as schibsted-grotesk;
+@use '@fontsource/fragment-mono/400' as fragment-mono;
+@use '@fontsource/fragment-mono/400-italic' as fragment-mono-italic;
+@use './styles/code-view';
+@use './styles/endpoint-list';
+@use './styles/workbench-tabs';
+
+// Design tokens. Every color is a light-dark() pair so the whole app, Material and
+// CodeMirror included, follows prefers-color-scheme without JavaScript.
+:root {
+  color-scheme: light dark;
+
+  // Neutrals are tinted toward slate (hue 240); nothing is pure black or white.
+  --fs-canvas: light-dark(oklch(95.2% 0.006 240deg), oklch(16.5% 0.012 245deg));
+  --fs-surface: light-dark(oklch(98.5% 0.004 240deg), oklch(20.5% 0.014 245deg));
+  --fs-surface-sunken: light-dark(oklch(93% 0.008 240deg), oklch(14.5% 0.012 245deg));
+  --fs-ink: light-dark(oklch(24% 0.02 250deg), oklch(93% 0.008 240deg));
+
+  // Text tokens all clear WCAG AA (4.5:1) on canvas, surface and sunken, in both schemes.
+  --fs-ink-muted: light-dark(oklch(45% 0.02 250deg), oklch(70% 0.014 240deg));
+  --fs-ink-faint: light-dark(oklch(51% 0.014 250deg), oklch(64% 0.014 245deg));
+  --fs-line: light-dark(oklch(87% 0.008 240deg), oklch(30% 0.014 245deg));
+  --fs-line-strong: light-dark(oklch(76% 0.012 240deg), oklch(40% 0.016 245deg));
+
+  // Boundaries of interactive controls need 3:1 against their background (WCAG 1.4.11).
+  --fs-line-control: light-dark(oklch(60% 0.015 245deg), oklch(52% 0.016 245deg));
+
+  // One sharp accent: signal orange, the pipeline's "live" color.
+  --fs-accent: light-dark(oklch(62% 0.19 42deg), oklch(72% 0.17 50deg));
+
+  // Filled controls carrying text: a deeper orange in light mode so white text keeps 5.4:1.
+  --fs-accent-strong: light-dark(oklch(53% 0.17 40deg), oklch(72% 0.17 50deg));
+  --fs-accent-ink: light-dark(oklch(98.5% 0.01 60deg), oklch(20% 0.04 45deg));
+  --fs-accent-soft: light-dark(oklch(62% 0.19 42deg / 12%), oklch(72% 0.17 50deg / 16%));
+  --fs-danger: light-dark(oklch(52% 0.19 25deg), oklch(72% 0.16 25deg));
+  --fs-danger-soft: light-dark(oklch(52% 0.19 25deg / 8%), oklch(72% 0.16 25deg / 12%));
+
+  // HTTP verbs keep their conventional hues so they read at a glance.
+  --fs-verb-get: light-dark(oklch(52% 0.13 155deg), oklch(76% 0.14 155deg));
+  --fs-verb-post: light-dark(oklch(50% 0.15 250deg), oklch(74% 0.12 250deg));
+  --fs-verb-put: light-dark(oklch(55% 0.13 75deg), oklch(80% 0.13 80deg));
+  --fs-verb-patch: light-dark(oklch(50% 0.17 300deg), oklch(75% 0.13 300deg));
+  --fs-verb-delete: light-dark(oklch(52% 0.19 25deg), oklch(72% 0.16 25deg));
+  --fs-verb-other: var(--fs-ink-muted);
+
+  // Syntax colors for CodeMirror's `tok-*` classes.
+  --fs-code-bg: var(--fs-surface);
+  --fs-code-gutter: var(--fs-surface-sunken);
+  --fs-code-keyword: light-dark(oklch(50% 0.17 300deg), oklch(76% 0.12 300deg));
+  --fs-code-string: light-dark(oklch(48% 0.12 155deg), oklch(80% 0.12 150deg));
+  --fs-code-number: light-dark(oklch(55% 0.16 45deg), oklch(80% 0.13 55deg));
+  --fs-code-property: light-dark(oklch(46% 0.13 250deg), oklch(78% 0.1 240deg));
+  --fs-code-type: light-dark(oklch(50% 0.1 200deg), oklch(80% 0.09 195deg));
+  --fs-code-comment: var(--fs-ink-faint);
+  --fs-font-sans: 'Schibsted Grotesk Variable', 'Segoe UI', sans-serif;
+  --fs-font-mono: 'Fragment Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  // 4px spacing grid.
+  --fs-space-1: 0.25rem;
+  --fs-space-2: 0.5rem;
+  --fs-space-3: 0.75rem;
+  --fs-space-4: 1rem;
+  --fs-space-5: 1.5rem;
+  --fs-space-6: 2rem;
+  --fs-space-7: 3rem;
+  --fs-text-xs: 0.75rem;
+  --fs-text-sm: 0.8125rem;
+  --fs-text-md: 0.9375rem;
+  --fs-text-lg: 1.125rem;
+  --fs-text-xl: 1.375rem;
+  --fs-editor-max: min(70vh, 52rem);
+
+  // Height of an outlined form field at density -2; buttons and drop zones beside a field match it.
+  --fs-control-height: 3rem;
+  --fs-radius-sm: 3px;
+  --fs-radius-md: 6px;
+  --fs-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fs-duration: 420ms;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$orange-palette,
+        tertiary: mat.$azure-palette,
+        theme-type: color-scheme
+      ),
+      typography: (
+        plain-family: var(--fs-font-sans),
+        brand-family: var(--fs-font-sans)
+      ),
+      density: -2
+    )
+  );
+
+  // One orange everywhere: Material's primary is the studio accent, not the palette's brown/peach tones.
+  @include mat.theme-overrides(
+    (
+      primary: var(--fs-accent-strong),
+      on-primary: var(--fs-accent-ink),
+      primary-container: var(--fs-accent-soft),
+      on-primary-container: var(--fs-ink),
+      surface: var(--fs-surface),
+      surface-container-highest: var(--fs-surface-sunken),
+      on-surface: var(--fs-ink),
+      on-surface-variant: var(--fs-ink-muted),
+      outline: var(--fs-line-control),
+      outline-variant: var(--fs-line)
+    )
+  );
+  @include mat.slide-toggle-overrides(
+    (
+      unselected-track-color: var(--fs-surface-sunken),
+      unselected-hover-track-color: var(--fs-surface-sunken),
+      unselected-focus-track-color: var(--fs-surface-sunken),
+      unselected-pressed-track-color: var(--fs-surface-sunken),
+      unselected-handle-color: var(--fs-ink-muted)
+    )
+  );
+
+  // Squared-off controls read as tooling; M3's pill buttons read as consumer app.
+  @include mat.button-overrides(
+    (
+      filled-container-shape: var(--fs-radius-sm),
+      outlined-container-shape: var(--fs-radius-sm),
+      protected-container-shape: var(--fs-radius-sm),
+      text-container-shape: var(--fs-radius-sm),
+      tonal-container-shape: var(--fs-radius-sm)
+    )
+  );
+  @include mat.form-field-overrides(
+    (
+      outlined-container-shape: var(--fs-radius-sm)
+    )
+  );
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--fs-font-sans);
+  font-size: var(--fs-text-md);
+  line-height: 1.5;
+  color: var(--fs-ink);
+  background: var(--fs-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+kbd {
+  font-family: var(--fs-font-mono);
+  font-size: 0.92em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fs-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}

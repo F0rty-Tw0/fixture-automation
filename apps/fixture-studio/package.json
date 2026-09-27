@@ -1,0 +1,166 @@
+{
+  "name": "@fixture-automation/fixture-studio",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Angular UI for browsing an OpenAPI spec and generating fixtures.",
+  "dependencies": {
+    "@angular/cdk": "catalog:frontend",
+    "@angular/common": "catalog:frontend",
+    "@angular/compiler": "catalog:frontend",
+    "@angular/core": "catalog:frontend",
+    "@angular/forms": "catalog:frontend",
+    "@angular/material": "catalog:frontend",
+    "@angular/platform-browser": "catalog:frontend",
+    "@codemirror/lang-javascript": "catalog:frontend",
+    "@codemirror/lang-json": "catalog:frontend",
+    "@codemirror/language": "catalog:frontend",
+    "@codemirror/merge": "catalog:frontend",
+    "@codemirror/state": "catalog:frontend",
+    "@codemirror/view": "catalog:frontend",
+    "@fontsource-variable/schibsted-grotesk": "catalog:frontend",
+    "@fontsource/fragment-mono": "catalog:frontend",
+    "@lezer/highlight": "catalog:frontend",
+    "codemirror": "catalog:frontend",
+    "rxjs": "catalog:frontend",
+    "typescript": "catalog:devDependencies"
+  },
+  "devDependencies": {
+    "@angular/build": "catalog:frontend-dev",
+    "@angular/cli": "catalog:frontend-dev",
+    "@angular/compiler-cli": "catalog:frontend-dev",
+    "@fixture-automation/fixture-studio-api": "workspace:*",
+    "@playwright/test": "catalog:devDependencies",
+    "jsdom": "catalog:frontend-dev"
+  },
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/fixture-studio/src",
+    "targets": {
+      "build": {
+        "executor": "@angular/build:application",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "dist/apps/fixture-studio",
+          "index": "apps/fixture-studio/src/index.html",
+          "browser": "apps/fixture-studio/src/main.ts",
+          "polyfills": [],
+          "tsConfig": "apps/fixture-studio/tsconfig.app.json",
+          "inlineStyleLanguage": "scss",
+          "styles": [
+            "apps/fixture-studio/src/styles.scss"
+          ],
+          "externalDependencies": [
+            "crypto",
+            "fs",
+            "inspector",
+            "os",
+            "path",
+            "perf_hooks",
+            "source-map-support"
+          ],
+          "allowedCommonJsDependencies": [
+            "typescript"
+          ]
+        },
+        "configurations": {
+          "production": {
+            "budgets": [
+              {
+                "type": "initial",
+                "maximumWarning": "800kb",
+                "maximumError": "1mb"
+              },
+              {
+                "type": "anyComponentStyle",
+                "maximumWarning": "4kb",
+                "maximumError": "8kb"
+              }
+            ],
+            "outputHashing": "all",
+            "optimization": {
+              "scripts": true,
+              "styles": {
+                "minify": true,
+                "inlineCritical": false
+              },
+              "fonts": true
+            }
+          },
+          "development": {
+            "optimization": false,
+            "extractLicenses": false,
+            "sourceMap": true
+          }
+        },
+        "defaultConfiguration": "production"
+      },
+      "serve": {
+        "executor": "@angular/build:dev-server",
+        "continuous": true,
+        "options": {
+          "port": 4200,
+          "proxyConfig": "apps/fixture-studio/proxy.conf.json",
+          "prebundle": false
+        },
+        "configurations": {
+          "production": {
+            "buildTarget": "@fixture-automation/fixture-studio:build:production"
+          },
+          "development": {
+            "buildTarget": "@fixture-automation/fixture-studio:build:development"
+          }
+        },
+        "defaultConfiguration": "development"
+      },
+      "test": {
+        "executor": "@angular/build:unit-test",
+        "options": {
+          "buildTarget": "@fixture-automation/fixture-studio:build:development",
+          "tsConfig": "apps/fixture-studio/tsconfig.spec.json",
+          "runner": "vitest",
+          "watch": false,
+          "runnerConfig": "apps/fixture-studio/vitest-runner.config.ts"
+        }
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{projectRoot}",
+          "commands": [
+            "ngc -p tsconfig.app.json --noEmit",
+            "ngc -p tsconfig.spec.json --noEmit",
+            "tsc -p e2e/tsconfig.json --noEmit"
+          ],
+          "parallel": false
+        }
+      },
+      "e2e": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm --dir apps/fixture-studio exec playwright test -c e2e/playwright.config.ts --project=mocked",
+          "cwd": "{workspaceRoot}"
+        }
+      },
+      "e2e-live": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm --dir apps/fixture-studio exec playwright test -c e2e/playwright.config.ts --project=live",
+          "cwd": "{workspaceRoot}",
+          "env": {
+            "STUDIO_E2E_LIVE": "1"
+          }
+        }
+      },
+      "e2e-screenshots": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm --dir apps/fixture-studio exec playwright test -c e2e/playwright.config.ts --project=screenshots",
+          "cwd": "{workspaceRoot}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-1) var(--fs-space-3);
+  align-items: center;
+  min-height: 2.5rem;
+}
+
+.bar__file {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink);
+  white-space: nowrap;
+}
+
+.bar__size {
+  flex: none;
+  font-size: var(--fs-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-faint);
+}
+
+.bar__actions {
+  display: flex;
+  flex: none;
+  gap: var(--fs-space-2);
+  margin-left: auto;
+}

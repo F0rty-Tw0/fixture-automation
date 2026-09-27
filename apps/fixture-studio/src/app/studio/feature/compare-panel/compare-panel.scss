@@ -1,0 +1,88 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-4);
+}
+
+.compare__intro {
+  max-width: 70ch;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.compare__result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-3) var(--fs-space-5);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.compare__source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--fs-space-4);
+  align-items: stretch;
+}
+
+.compare__paste {
+  display: grid;
+  gap: var(--fs-space-2);
+  justify-items: start;
+}
+
+.compare__paste-field {
+  width: 100%;
+}
+
+.compare__source-error {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-danger);
+}
+
+.compare__run {
+  display: grid;
+  gap: var(--fs-space-2);
+}
+
+// Top-aligned and one field tall, so the envelope hint hangs under its field without shifting its neighbours.
+.compare__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-2) var(--fs-space-4);
+  align-items: flex-start;
+}
+
+.compare__replace {
+  display: flex;
+  align-items: center;
+  min-height: var(--fs-control-height);
+}
+
+.compare__submit {
+  --mat-button-filled-container-height: var(--fs-control-height);
+  --mat-button-outlined-container-height: var(--fs-control-height);
+}
+
+.compare__loaded,
+.compare__reading {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.compare__name {
+  font-family: var(--fs-font-mono);
+  color: var(--fs-ink);
+}
+
+.compare__shape {
+  width: min(18rem, 100%);
+}
+
+@media (width < 56rem) {
+  .compare__source {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

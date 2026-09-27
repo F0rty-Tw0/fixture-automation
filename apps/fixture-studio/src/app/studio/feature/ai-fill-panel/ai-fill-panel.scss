@@ -1,0 +1,164 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-4);
+}
+
+.fill__provider {
+  display: grid;
+  gap: var(--fs-space-2);
+  padding: var(--fs-space-3) var(--fs-space-4);
+  background: var(--fs-surface-sunken);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-md);
+}
+
+.fill__provider-line {
+  display: flex;
+  gap: var(--fs-space-2);
+  align-items: center;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fill__chip {
+  padding: 0 var(--fs-space-2);
+  font-weight: 600;
+  line-height: 1.8;
+  color: var(--fs-ink);
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-line-control);
+  border-radius: var(--fs-radius-sm);
+}
+
+.fill__chip--mock {
+  color: var(--fs-accent-strong);
+  background: var(--fs-accent-soft);
+  border-color: currentcolor;
+}
+
+.fill__hint--problem {
+  color: var(--fs-danger);
+}
+
+.fill__retry {
+  margin-inline-start: var(--fs-space-1);
+}
+
+.fill__availability {
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  color: var(--fs-ink-muted);
+}
+
+.fill__explain {
+  max-width: 70ch;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink);
+}
+
+.fill__opt-in {
+  display: grid;
+  gap: 0;
+}
+
+// The checkbox's touch target pads its box; pulling it left lines the box up with the text above.
+.fill__opt-in-check {
+  margin-left: calc(-1 * var(--fs-space-2));
+}
+
+// Indented to the checkbox label, so the status and hint read as part of the option at any width.
+.fill__opt-in-detail {
+  display: grid;
+  max-width: 70ch;
+  margin-left: 1.75rem;
+}
+
+.fill__opt-in-hint {
+  margin: 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+}
+
+.fill__note {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-danger);
+}
+
+.fill__download {
+  display: grid;
+  gap: var(--fs-space-1);
+}
+
+.fill__download-label {
+  font-size: var(--fs-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-muted);
+}
+
+.fill__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  // Row gap clears the next outlined field's floating label.
+  gap: var(--fs-space-4) var(--fs-space-3);
+  align-items: start;
+}
+
+.fill__scenario {
+  grid-column: 1 / -1;
+}
+
+.fill__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: var(--fs-space-2);
+}
+
+.fill__result {
+  display: grid;
+  gap: var(--fs-space-3);
+}
+
+.fill__badge {
+  justify-self: start;
+  padding: var(--fs-space-1) var(--fs-space-3);
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  border-radius: var(--fs-radius-sm);
+}
+
+.fill__badge--valid {
+  color: var(--fs-verb-get);
+  background: color-mix(in oklch, var(--fs-verb-get) 12%, transparent);
+}
+
+.fill__badge--invalid {
+  color: var(--fs-danger);
+  background: var(--fs-danger-soft);
+}
+
+.fill__errors {
+  padding: 0;
+  margin: 0;
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-xs);
+  list-style: none;
+}
+
+.fill__error {
+  color: var(--fs-danger);
+}
+
+.fill__document {
+  padding-top: var(--fs-space-3);
+}
+
+@media (width < 48rem) {
+  .fill__form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

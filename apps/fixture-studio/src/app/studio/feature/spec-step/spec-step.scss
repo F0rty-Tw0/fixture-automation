@@ -1,0 +1,74 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-2);
+}
+
+// Every control in the row is one field tall and top-aligned, so a validation message under the field
+// can never stretch the drop zone or shift the button.
+.source {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr);
+  gap: var(--fs-space-4);
+  align-items: start;
+}
+
+.source__url {
+  position: relative;
+  display: flex;
+  gap: var(--fs-space-2);
+  align-items: flex-start;
+}
+
+// The field's subscript is fixed: it reserves the error line, so an error never pushes the steps below.
+.source__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.source__submit {
+  --mat-button-filled-container-height: var(--fs-control-height);
+
+  flex: none;
+}
+
+// Loading and an invalid URL never overlap, so the bar borrows the error line instead of adding a row.
+.source__progress {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--fs-control-height) + var(--fs-space-2));
+}
+
+.source__or {
+  font-size: var(--fs-text-sm);
+  line-height: var(--fs-control-height);
+  color: var(--fs-ink-faint);
+}
+
+.source__file-error {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-danger);
+}
+
+@media (width < 56rem) {
+  .source {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  // Stacked, the "or" becomes a divider between the two ways in.
+  .source__or {
+    display: flex;
+    gap: var(--fs-space-3);
+    align-items: center;
+    line-height: 2;
+
+    &::before,
+    &::after {
+      flex: 1;
+      height: 1px;
+      content: '';
+      background: var(--fs-line);
+    }
+  }
+}

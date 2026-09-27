@@ -1,0 +1,123 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-3);
+}
+
+.spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-1) var(--fs-space-3);
+  align-items: baseline;
+}
+
+.spec__title {
+  margin: 0;
+  font-size: var(--fs-text-xl);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.spec__version {
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.spec__count {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--fs-space-2);
+}
+
+.filters__query,
+.filters__select {
+  min-width: 0;
+}
+
+.selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-2) var(--fs-space-4);
+  align-items: center;
+}
+
+.selection__all {
+  margin-left: calc(-1 * var(--fs-space-2));
+}
+
+.selection__count {
+  margin-left: auto;
+  font-size: var(--fs-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-muted);
+}
+
+.list {
+  max-height: min(60vh, 34rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-md);
+}
+
+.list__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fs-space-2);
+  align-items: flex-start;
+  padding: var(--fs-space-5);
+}
+
+.list__empty-text {
+  margin: 0;
+  color: var(--fs-ink-muted);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-3) var(--fs-space-5);
+  align-items: center;
+  padding-top: var(--fs-space-2);
+}
+
+.options__formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--fs-space-1);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.options__legend {
+  float: left;
+  padding: 0;
+  margin-right: var(--fs-space-2);
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.options__generate {
+  margin-left: auto;
+}
+
+.options__error {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-danger);
+}
+
+@media (width < 48rem) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,25 @@
+@if (generation.error(); as error) {
+  <fs-api-error-notice [error]="error" class="workspace__error" />
+}
+
+@if (generation.views().length > 0) {
+  <mat-tab-group [preserveContent]="true" animationDuration="0ms" aria-label="Generated endpoints" class="workspace__tabs" mat-stretch-tabs="false">
+    @for (view of generation.views(); track view.endpointId) {
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <span [attr.title]="view.schemaName" class="workspace__tab-label">
+            <fs-method-badge [method]="view.method" />
+            {{ view.path }}
+          </span>
+        </ng-template>
+        <ng-template matTabContent>
+          <fs-fixture-workbench [view]="view" class="workspace__panel" />
+        </ng-template>
+      </mat-tab>
+    }
+  </mat-tab-group>
+} @else if (generation.isGenerating()) {
+  <p class="workspace__empty">Generating fixtures…</p>
+} @else {
+  <p class="workspace__empty">Select endpoints above and press Generate. Each endpoint opens here as a tab, with a sub-tab per format.</p>
+}

@@ -1,0 +1,13 @@
+// mat-checkbox renders its label wrapper itself; stretch it so the whole endpoint row is
+// the click target.
+fs-endpoint-list .endpoint-list__check .mdc-form-field {
+  display: flex;
+  width: 100%;
+}
+
+fs-endpoint-list .endpoint-list__check .mdc-label {
+  flex: 1;
+  min-width: 0;
+  padding-right: var(--fs-space-3);
+  cursor: pointer;
+}

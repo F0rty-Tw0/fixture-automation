@@ -22,6 +22,22 @@ Types are a side branch: generate them whenever you want a typed stub, independe
 | Find what a corrupt fixture is missing                  | `openapi-fixture-diff` (diff)    | [`./packages/openapi-fixture-diff/README.md`](./packages/openapi-fixture-diff/README.md)                                                                                                                   |
 | Fill missing/whole fixtures with an AI coding CLI       | `openapi-ai-fixtures`            | [`./packages/openapi-ai-fixtures/README.md`](./packages/openapi-ai-fixtures/README.md), providers + security: [`./packages/openapi-ai-fixtures/PROVIDERS.md`](./packages/openapi-ai-fixtures/PROVIDERS.md) |
 | Merge filled fields back and validate                   | `openapi-fixture-merge`          | [`./packages/openapi-fixture-merge/README.md`](./packages/openapi-fixture-merge/README.md)                                                                                                                 |
+| Generate, compare, AI-fill, merge in a browser UI       | Fixture Studio (app)             | [`./apps/fixture-studio/README.md`](./apps/fixture-studio/README.md), API: [`./apps/fixture-studio-api/README.md`](./apps/fixture-studio-api/README.md)                                                    |
+
+## Fixture Studio
+
+A local web app over the same pipeline: spec → endpoints → generate → compare → AI fill → merge → export.
+
+```bash
+pnpm studio                     # UI http://localhost:4200 + API http://127.0.0.1:3333
+STUDIO_AI_MOCK=1 pnpm studio    # AI fill answers with canned values, no paid CLI runs
+```
+
+- **Local only.** The API binds `127.0.0.1` and refuses other hosts and origins.
+- **Files stay in the browser.** Only parsed values reach the API; nothing is stored.
+- **AI fill** uses a local CLI, or on-device Chrome AI when you opt in.
+
+Details: [`apps/fixture-studio/README.md`](./apps/fixture-studio/README.md).
 
 ## Setup
 

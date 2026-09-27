@@ -4,5 +4,5 @@
     "noEmit": true,
     "tsBuildInfoFile": ".nx/cache/tsconfig.tools.tsbuildinfo"
   },
-  "include": ["*.config.ts"]
+  "include": ["*.config.ts", "apps/fixture-studio/*.config.ts"]
 }

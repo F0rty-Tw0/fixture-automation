@@ -1,0 +1,79 @@
+<p class="compare__intro">
+  Drop or paste a fixture you already have. It is read in this browser, never uploaded, and compared with the schema right away.
+</p>
+
+<section aria-label="Existing fixture" class="compare__source">
+  <fs-file-drop
+    accept=".json,.ts,.js,.mts,.cts,application/json"
+    heading="Drop an existing fixture"
+    hint=".json or .ts, read in this browser; a .ts file is parsed for literals, never run"
+    (picked)="readFile($event)" />
+
+  <div class="compare__paste">
+    <mat-form-field appearance="outline" class="compare__paste-field" subscriptSizing="dynamic">
+      <mat-label>Or paste the fixture</mat-label>
+      <textarea [formField]="compareForm.pasted" matInput rows="4"></textarea>
+    </mat-form-field>
+    <button [disabled]="!hasPasted()" mat-stroked-button type="button" (click)="readPasted()">Use pasted text</button>
+  </div>
+</section>
+
+@if (comparison.readingName(); as name) {
+  <p class="compare__reading" role="status">
+    Reading <code>{{ name }}</code>…
+  </p>
+  <mat-progress-bar aria-label="Reading fixture" mode="indeterminate" />
+}
+
+@if (comparison.sourceError(); as message) {
+  <p class="compare__source-error" role="alert">{{ message }}</p>
+}
+
+@if (comparison.existing(); as existing) {
+  <div class="compare__run">
+    <p class="compare__loaded">
+      Comparing <span class="compare__name">{{ existing.name }}</span>
+    </p>
+    <div class="compare__options">
+      <mat-form-field appearance="outline" class="compare__shape" subscriptSizing="dynamic">
+        <mat-label>Envelope property</mat-label>
+        <input [formField]="compareForm.objectShape" matInput placeholder="data" />
+        <mat-hint>Optional: the key that holds the payload</mat-hint>
+      </mat-form-field>
+      <mat-checkbox [formField]="compareForm.replacePlaceholders" class="compare__replace">Replace placeholder and invalid values</mat-checkbox>
+      <button
+        [disabled]="comparison.isComparing()"
+        [matButton]="isCurrent() ? 'outlined' : 'filled'"
+        class="compare__submit"
+        type="button"
+        (click)="compare()">
+        Compare with schema
+      </button>
+    </div>
+  </div>
+}
+
+@if (comparison.isComparing()) {
+  <mat-progress-bar aria-label="Comparing" mode="indeterminate" />
+}
+
+@if (comparison.error(); as error) {
+  <fs-api-error-notice [error]="error" />
+}
+
+@if (comparison.result(); as result) {
+  <div class="compare__result">
+    <fs-missing-path-list [paths]="absentPaths()" />
+    @if (result.replacedPaths.length > 0) {
+      <fs-missing-path-list [paths]="result.replacedPaths" heading="Replaced values" />
+    }
+    @if (result.missingPaths.length > 0) {
+      <button matButton="filled" type="button" (click)="fillRequested.emit()">
+        Fill {{ result.missingPaths.length }} {{ result.missingPaths.length === 1 ? 'value' : 'values' }} with AI
+      </button>
+    }
+  </div>
+  @if (completeDocument(); as document) {
+    <fs-document-view [document]="document" [original]="comparison.existing()?.pretty" />
+  }
+}

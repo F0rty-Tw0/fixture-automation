@@ -1,0 +1,26 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-2);
+}
+
+.document__placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-faint);
+  background: var(--fs-code-bg);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-md);
+}
+
+// Headings over the side-by-side diff; the merge view splits its width evenly, so two equal columns line up.
+.document__sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  color: var(--fs-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

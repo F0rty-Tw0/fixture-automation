@@ -1,0 +1,17 @@
+<fs-copy-export-bar [content]="document().content" [fileName]="document().fileName" />
+@if (original() !== undefined) {
+  <div class="document__sides">
+    <span>Existing fixture</span>
+    <span>{{ document().label }}</span>
+  </div>
+}
+@defer (on immediate) {
+  <fs-code-view
+    [doc]="document().content"
+    [label]="document().fileName"
+    [language]="document().language"
+    [original]="original()"
+    />
+} @placeholder {
+  <div class="document__placeholder">Opening editor…</div>
+}

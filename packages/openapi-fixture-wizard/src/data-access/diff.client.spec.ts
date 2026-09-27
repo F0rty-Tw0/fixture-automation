@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +15,9 @@ const REQUIRED_ONLY = { id: 'in_1', amount_due: 4200, status: 'open' };
 const CORRUPT = { id: 'in_1' };
 const CORRUPT_DIFF = { schemaName: 'invoice', paths: ['amount_due', 'status', 'memo'] };
 const WRAPPED_DIFF = { paths: ['body.amount_due', 'body.status'] };
+const PLACEHOLDER = { id: 'in_1', amount_due: 0, status: 'open', memo: 'string' };
+const PLACEHOLDER_DIFF = { paths: ['amount_due', 'memo'], replaced: ['amount_due', 'memo'] };
+const PLACEHOLDER_BASELINE = { id: 'in_1', status: 'open' };
 
 describe('FEATURE: existing fixture diff', (): void => {
   let directory: string;
@@ -65,7 +68,7 @@ describe('FEATURE: existing fixture diff', (): void => {
       expect(result).toMatchObject({ fixture: CORRUPT, diff: CORRUPT_DIFF });
     });
 
-    it('WHEN diffed THEN writes the three missing files into the out directory', async (): Promise<void> => {
+    it('WHEN diffed THEN writes the three missing files and the baseline into the out directory', async (): Promise<void> => {
       const fixtureFile = await writeFixture('corrupt-files.json', CORRUPT);
       const outDir = join(directory, 'corrupt-files');
 
@@ -74,9 +77,10 @@ describe('FEATURE: existing fixture diff', (): void => {
       expect(result).toMatchObject({
         jsonFile: join(outDir, 'missing.json'),
         typesFile: join(outDir, 'missing.d.ts'),
-        stubFile: join(outDir, 'missing.stub.ts')
+        stubFile: join(outDir, 'missing.stub.ts'),
+        baselineFile: join(outDir, 'baseline.json')
       });
-      await expect(readdir(outDir)).resolves.toStrictEqual(['missing.d.ts', 'missing.json', 'missing.stub.ts']);
+      await expect(readdir(outDir)).resolves.toStrictEqual(['baseline.json', 'missing.d.ts', 'missing.json', 'missing.stub.ts']);
     });
   });
 
@@ -99,6 +103,28 @@ describe('FEATURE: existing fixture diff', (): void => {
       const result = await diffExisting(request(fixtureFile, outDir, true, 'body'));
 
       expect(result).toMatchObject({ diff: WRAPPED_DIFF });
+    });
+  });
+
+  describe('GIVEN a fixture holding sampler placeholders', (): void => {
+    it('WHEN diffed THEN the placeholders are replaced and listed as missing', async (): Promise<void> => {
+      const fixtureFile = await writeFixture('placeholder.json', PLACEHOLDER);
+      const outDir = join(directory, 'placeholder');
+
+      const result = await diffExisting(request(fixtureFile, outDir, false));
+
+      expect(result).toMatchObject({ fixture: PLACEHOLDER, diff: PLACEHOLDER_DIFF });
+    });
+
+    it('WHEN diffed THEN baseline.json holds the fixture without them', async (): Promise<void> => {
+      const fixtureFile = await writeFixture('placeholder-baseline.json', PLACEHOLDER);
+      const outDir = join(directory, 'placeholder-baseline');
+
+      await diffExisting(request(fixtureFile, outDir, false));
+
+      const baseline: unknown = JSON.parse(await readFile(join(outDir, 'baseline.json'), 'utf8'));
+
+      expect(baseline).toStrictEqual(PLACEHOLDER_BASELINE);
     });
   });
 });

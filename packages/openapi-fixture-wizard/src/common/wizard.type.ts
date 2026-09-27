@@ -32,10 +32,13 @@ export type DiffRequest = {
 export type DiffResult = {
   /** The existing fixture as parsed from `fixtureFile`. */
   readonly fixture: unknown;
+  /** Always diffed with `replacePlaceholders`: `diff.baseline` is what the fill sees. */
   readonly diff: FixtureDiff;
   readonly jsonFile: string;
   readonly typesFile: string;
   readonly stubFile: string;
+  /** `baseline.json` beside `missing.json`: the fixture without its replaced values, which the merge fills. */
+  readonly baselineFile: string;
 };
 
 /** Everything the steps after generation share; `fixtureFile` is the existing fixture being checked. */

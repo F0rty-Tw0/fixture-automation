@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runAgent } from './agent-process.client.ts';
 import { geminiFixture } from './gemini.client.ts';
-import type { AgentRequest } from '../common/agent.type.ts';
-import type { AiFixtureProgress } from '../common/ai-fixtures.type.ts';
+import type { AgentCommand, AgentFile, AgentRequest } from '../common/agent.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../common/ai-fixtures.type.ts';
 import { agentArgs, modelRequest } from '../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 
@@ -12,6 +12,23 @@ vi.mock('./agent-process.client.ts');
 const options = { tool: 'gemini' } as const;
 const request: AgentRequest = { prompt: 'Return a fixture.', options };
 const geminiEnvelope = agentResponse('gemini', '{}');
+
+const onlyCommand = (calls: (readonly [AgentCommand, AiFixtureOptions])[]): AgentCommand => {
+  const [call] = calls;
+
+  if (call === undefined) throw new Error('runAgent was not called');
+
+  return call[0];
+};
+
+const writtenSettings = (calls: (readonly [AgentCommand, AiFixtureOptions])[]): unknown => {
+  const files = onlyCommand(calls).files ?? [];
+  const settingsFile = files.find((file: AgentFile): boolean => file.path === '.gemini/system-settings.json');
+
+  if (settingsFile === undefined) throw new Error('no Gemini system settings file was written');
+
+  return JSON.parse(settingsFile.content);
+};
 
 describe('FEATURE: Gemini fixture response handling', (): void => {
   beforeEach((): void => {
@@ -204,6 +221,18 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
       const fixture = await geminiFixture(request);
 
       expect(fixture).toBe(fixtureText);
+    });
+  });
+
+  describe('GIVEN any fixture request', (): void => {
+    it('WHEN the command is built THEN its system settings allow no built-in or discovered tools', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(request);
+
+      const tools = { core: [], discoveryCommand: '' };
+
+      expect(writtenSettings(vi.mocked(runAgent).mock.calls)).toMatchObject({ tools });
     });
   });
 

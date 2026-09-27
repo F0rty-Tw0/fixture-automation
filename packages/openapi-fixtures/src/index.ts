@@ -26,6 +26,8 @@ export { typescriptImport } from './utils/typescript-import.util.ts';
 
 export { typescriptStub } from './utils/typescript-stub.util.ts';
 
+export { refuseSwagger } from './utils/swagger-document.util.ts';
+
 export { FixtureError } from './common/fixture.error.ts';
 
 export { DEFAULT_OUT_DIR, MISSING_DIR } from './common/output-paths.const.ts';

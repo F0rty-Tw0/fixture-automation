@@ -20,6 +20,16 @@ describe('FEATURE: OpenAPI JSON parsing', (): void => {
     });
   });
 
+  describe('GIVEN a Swagger 2.0 document', (): void => {
+    it('WHEN parsed THEN names the Swagger version instead of the absent components', (): void => {
+      const text = '{"swagger":"2.0","definitions":{}}';
+
+      expect((): unknown => parseSpec(text, 'file:///swagger.json')).toThrow(
+        'spec at file:///swagger.json is Swagger 2.0; only OpenAPI 3 is supported'
+      );
+    });
+  });
+
   describe('GIVEN malformed JSON', (): void => {
     it('WHEN parsed THEN names the spec alongside the parser message', (): void => {
       expect((): unknown => parseSpec('{', 'file:///spec.json')).toThrow('spec at file:///spec.json is not JSON:');

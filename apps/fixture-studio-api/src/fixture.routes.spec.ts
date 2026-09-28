@@ -1,7 +1,16 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ApiErrorBody, BrokenValue, DiffBody, DiffResult, MergeBody, MergeResult } from './contract/common/studio-api.type.ts';
+import type {
+  ApiErrorBody,
+  BrokenValue,
+  DiffBody,
+  DiffResult,
+  EnvelopeBody,
+  EnvelopeResult,
+  MergeBody,
+  MergeResult
+} from './contract/common/studio-api.type.ts';
 import { MOCK_AI } from './data-access/ai-mock.client.ts';
 import { backtrackingDocument, fanOutDocument } from './test/utils/hostile-spec.spec.util.ts';
 import { loadDocumentSpec, loadStudioSpec, studioServer } from './test/utils/studio-spec.spec.util.ts';
@@ -16,6 +25,8 @@ const REAL_ANSWER = { amount_due: 4200, memo: 'Net 30', customer: REAL_CUSTOMER 
 const DIFF_BODY: DiffBody = { endpointId: ENDPOINT_ID, fixture: PARTIAL_INVOICE, requiredOnly: false };
 const TOO_EXPENSIVE = 'spec too expensive to sample/validate';
 const BACKTRACKING_NAME = `${'a'.repeat(34)}!`;
+const PAGE = { page: 1 };
+const ENVELOPED_INVOICE = { meta: PAGE, data: PARTIAL_INVOICE };
 const LARGE_INVOICE = { ...PARTIAL_INVOICE, memo: 'm'.repeat(5 * 1024 * 1024) };
 const AMOUNT_PLACEHOLDER: BrokenValue = { path: 'amount_due', value: 0, reason: 'openapi-sampler placeholder' };
 const MEMO_PLACEHOLDER: BrokenValue = { path: 'memo', value: 'string', reason: 'openapi-sampler placeholder' };
@@ -156,6 +167,39 @@ describe('FEATURE: fixture routes', (): void => {
         const body = { endpointId: ENDPOINT_ID, fixture: PARTIAL_INVOICE };
 
         const response = await post('diff', body);
+
+        expect(response.statusCode).toBe(400);
+      });
+    });
+  });
+
+  describe('SCENARIO: POST /api/specs/:specId/envelope', (): void => {
+    describe('GIVEN a fixture whose payload sits under an envelope key', (): void => {
+      it('WHEN detected THEN answers that key as candidate and detected', async (): Promise<void> => {
+        const body: EnvelopeBody = { endpointId: ENDPOINT_ID, fixture: ENVELOPED_INVOICE };
+
+        const response = await post('envelope', body);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json<EnvelopeResult>()).toStrictEqual({ candidates: ['data', 'meta'], detected: 'data' });
+      });
+    });
+
+    describe('GIVEN a fixture whose payload is the root', (): void => {
+      it('WHEN detected THEN answers no detected key', async (): Promise<void> => {
+        const body: EnvelopeBody = { endpointId: ENDPOINT_ID, fixture: REAL_ANSWER };
+
+        const response = await post('envelope', body);
+
+        expect(response.json<EnvelopeResult>()).toStrictEqual({ candidates: ['customer'] });
+      });
+    });
+
+    describe('GIVEN an unknown endpoint', (): void => {
+      it('WHEN detected THEN answers 400', async (): Promise<void> => {
+        const body: EnvelopeBody = { endpointId: 'GET /nope', fixture: ENVELOPED_INVOICE };
+
+        const response = await post('envelope', body);
 
         expect(response.statusCode).toBe(400);
       });

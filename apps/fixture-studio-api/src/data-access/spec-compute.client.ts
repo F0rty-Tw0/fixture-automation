@@ -7,6 +7,7 @@ import { isRecord } from '@fixture-automation/shared';
 
 import type {
   DiffTask,
+  EnvelopeTask,
   GenerateTask,
   MergeTask,
   SpecComputeOptions,
@@ -14,7 +15,7 @@ import type {
   SpecTaskOutcome,
   ValidateMissingTask
 } from '../common/studio-server.type.ts';
-import type { DiffResult, GenerateResult, MergeResult } from '../contract/common/studio-api.type.ts';
+import type { DiffResult, EnvelopeResult, GenerateResult, MergeResult } from '../contract/common/studio-api.type.ts';
 import { statusError } from '../utils/status-error.util.ts';
 
 type Settle = (error: unknown, value?: unknown) => void;
@@ -123,6 +124,8 @@ const runOnWorker = async (worker: Worker, task: SpecTask, options: SpecComputeO
 export function computeInWorker(task: GenerateTask, options: SpecComputeOptions): Promise<GenerateResult>;
 
 export function computeInWorker(task: DiffTask, options: SpecComputeOptions): Promise<DiffResult>;
+
+export function computeInWorker(task: EnvelopeTask, options: SpecComputeOptions): Promise<EnvelopeResult>;
 
 export function computeInWorker(task: MergeTask, options: SpecComputeOptions): Promise<MergeResult>;
 

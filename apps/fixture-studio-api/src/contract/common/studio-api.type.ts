@@ -10,6 +10,7 @@ import type {
   aiPromptBodySchema,
   aiToolsResultSchema,
   diffBodySchema,
+  envelopeBodySchema,
   generateBodySchema,
   loadSpecBodySchema,
   mergeBodySchema
@@ -105,6 +106,14 @@ export type DiffResult = {
   readonly baseline: unknown;
   /** The baseline with every missing value filled from the sampler; existing keys keep their order, new keys follow them. */
   readonly completeJson: string;
+};
+
+export type EnvelopeBody = z.infer<typeof envelopeBodySchema>;
+
+/** Top-level keys holding an object or array, best match first; `detected` is set only when one fits the schema better than the root. */
+export type EnvelopeResult = {
+  readonly candidates: string[];
+  readonly detected: string | undefined;
 };
 
 export type MergeBody = z.infer<typeof mergeBodySchema>;

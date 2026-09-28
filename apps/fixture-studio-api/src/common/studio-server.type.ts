@@ -12,7 +12,7 @@ import type {
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import type { FastifyServerOptions } from 'fastify';
 
-import type { AiTool, ApiErrorBody, DiffBody, GenerateBody, MergeBody } from '../contract/common/studio-api.type.ts';
+import type { AiTool, ApiErrorBody, DiffBody, EnvelopeBody, GenerateBody, MergeBody } from '../contract/common/studio-api.type.ts';
 
 type StudioLogger = NonNullable<FastifyServerOptions['logger']>;
 
@@ -91,6 +91,13 @@ export type DiffTask = {
   readonly body: DiffBody;
 };
 
+export type EnvelopeTask = {
+  readonly name: 'envelope';
+  readonly spec: OpenApiSpec;
+  readonly schemaName: string;
+  readonly body: EnvelopeBody;
+};
+
 export type MergeTask = {
   readonly name: 'merge';
   readonly spec: OpenApiSpec;
@@ -106,7 +113,7 @@ export type ValidateMissingTask = {
 };
 
 /** Spec-driven CPU work that runs in a worker thread, so a hostile spec cannot stall the server. */
-export type SpecTask = DiffTask | GenerateTask | MergeTask | ValidateMissingTask;
+export type SpecTask = DiffTask | EnvelopeTask | GenerateTask | MergeTask | ValidateMissingTask;
 
 type SpecTaskSuccess = {
   readonly ok: true;

@@ -8,6 +8,8 @@ export { missingProjection } from './utils/missing-projection.util.ts';
 
 export { isSchema } from './utils/schema-record.util.ts';
 
+export { resolveSchema } from './utils/schema-resolve.util.ts';
+
 export type {
   BrokenEntry,
   FixtureDiff,

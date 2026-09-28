@@ -1,0 +1,37 @@
+// The steps belong to the page's rail, not to a box of their own.
+:host {
+  display: contents;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+.endpoint-steps__for {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-2) var(--fs-space-3);
+  align-items: center;
+  margin-bottom: var(--fs-space-4);
+}
+
+.endpoint-steps__for-label {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.endpoint-steps__path {
+  min-width: 0;
+  font-size: var(--fs-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.endpoint-steps__switch {
+  width: min(22rem, 100%);
+  margin-left: auto;
+}
+
+.endpoint-steps__waiting {
+  margin: 0;
+  color: var(--fs-ink-faint);
+}

@@ -8,6 +8,7 @@ export const studioEngineMock = (): StudioEngine => {
     loadSpec: vi.fn(),
     generate: vi.fn(),
     diff: vi.fn(),
+    envelope: vi.fn(),
     merge: vi.fn(),
     aiPrompt: vi.fn(),
     cliModels: vi.fn(),

@@ -2,9 +2,10 @@ import { InjectionToken, inject } from '@angular/core';
 
 import type { AiPromptBody, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
 
+import { downloadModel } from './chrome-ai-download.client.ts';
 import { CLI_FALLBACK, answerInClone, baseSession, failure, fitsContext, status } from './chrome-ai-session.client.ts';
 import { STUDIO_ENGINE } from './studio-engine.token.ts';
-import type { AiAvailability, AiFillContext, AiRunOptions, ChromeAiProvider } from '../common/ai-fill.type.ts';
+import type { AiAvailability, AiDownloadOptions, AiFillContext, AiRunOptions, ChromeAiProvider } from '../common/ai-fill.type.ts';
 import type { EngineCall, StudioEngine } from '../common/engine.type.ts';
 import type { StudioEngineFailure } from '../common/studio.type.ts';
 import { mergeAnswers } from '../utils/answer-merge.util.ts';
@@ -24,6 +25,8 @@ type OnDeviceFill = {
   readonly session: LanguageModelSession;
 };
 
+const NO_API = 'This browser has no on-device Chrome AI.';
+
 const tooLarge = (cause?: unknown): StudioEngineFailure => failure('This fixture is too large for the on-device model.', CLI_FALLBACK, cause);
 
 const isQuotaError = (error: unknown): boolean => {
@@ -32,6 +35,28 @@ const isQuotaError = (error: unknown): boolean => {
 
 /** Read on every call: the Prompt API global can appear after an origin trial or flag change. */
 const languageModel = (): LanguageModelFactory | undefined => globalThis.LanguageModel;
+
+/** The Prompt API, or a failure pointing at the local CLI when this browser has none. */
+const requiredLanguageModel = (): LanguageModelFactory => {
+  const factory = languageModel();
+
+  if (factory === undefined) throw failure(NO_API, CLI_FALLBACK);
+
+  return factory;
+};
+
+const download = async (options: AiDownloadOptions): Promise<void> => {
+  const factory = requiredLanguageModel();
+
+  await downloadModel(factory, options);
+};
+
+/** A fill never starts the model download: that needs its own click on "Download model". */
+const assertDownloaded = async (factory: LanguageModelFactory): Promise<void> => {
+  const state = await factory.availability();
+
+  if (state === 'downloadable') throw failure('The on-device model is not downloaded yet.', 'Press "Download model" first.');
+};
 
 const availability = async (): Promise<AiAvailability> => {
   const factory = languageModel();
@@ -94,11 +119,10 @@ const fillPaths = async (fill: OnDeviceFill, paths: string[] | undefined, prompt
 
 /** Fills with Chrome's built-in Prompt API (Gemini Nano); nothing leaves the browser. */
 const chromeBuiltInAiProvider = (engine: StudioEngine): ChromeAiProvider => {
-  /** Start from a user click: creating a session may start the model download, which needs user activation. */
   const fill = async (context: AiFillContext, options: AiRunOptions): Promise<unknown> => {
-    const factory = languageModel();
+    const factory = requiredLanguageModel();
 
-    if (factory === undefined) throw failure('This browser has no on-device Chrome AI.', CLI_FALLBACK);
+    await assertDownloaded(factory);
 
     const source: PromptSource = { engine, context, options };
     const wholePrompt = await promptFor(source, undefined);
@@ -120,7 +144,7 @@ const chromeBuiltInAiProvider = (engine: StudioEngine): ChromeAiProvider => {
     }
   };
 
-  const provider: ChromeAiProvider = { availability, fill };
+  const provider: ChromeAiProvider = { availability, download, fill };
 
   return provider;
 };

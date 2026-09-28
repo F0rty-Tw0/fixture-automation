@@ -3,22 +3,23 @@ import { expect, test } from '@playwright/test';
 
 import { downloadText } from '../utils/download.spec.util.ts';
 
-const workspaceRegion = (page: Page): Locator => page.getByRole('region', { name: 'Workspace' });
+const workspaceRegion = (page: Page): Locator => page.getByRole('region', { name: 'Generate' });
 
 /** Endpoint tabs are named by their endpoint id, `METHOD /path`; format sub-tabs by their label. */
 const endpointTabs = (page: Page): Locator => workspaceRegion(page).getByRole('tab', { name: /^[A-Z]+ \//u });
 
-/** Only the selected endpoint's panel is rendered; its tabs are the format sub-tabs, then Compare and AI fill. */
-const formatTabs = (page: Page): Locator => workspaceRegion(page).getByRole('tabpanel').getByRole('tab');
+/** Visited endpoint tabs keep their panel rendered off screen; only the selected one is visible. */
+const activePanel = (page: Page): Locator => workspaceRegion(page).getByRole('tabpanel').filter({ visible: true });
 
-const activePanel = (page: Page): Locator => workspaceRegion(page).getByRole('tabpanel').getByRole('tabpanel');
+/** A document's folding section: `<summary>` has no ARIA role of its own, so this one locator reads the element. */
+const documentSummary = (page: Page, label: string): Locator => activePanel(page).locator('summary').filter({ hasText: label });
 
 export const openEndpointTab = async (page: Page, endpointId: string): Promise<void> => {
   await workspaceRegion(page).getByRole('tab', { name: endpointId, exact: true }).click();
 };
 
-export const openFormatTab = async (page: Page, label: string): Promise<void> => {
-  await workspaceRegion(page).getByRole('tabpanel').getByRole('tab', { name: label, exact: true }).click();
+export const openDocument = async (page: Page, label: string): Promise<void> => {
+  await documentSummary(page, label).click();
 };
 
 export const copyDocument = async (page: Page): Promise<void> => {
@@ -49,10 +50,10 @@ export const expectEndpointTabs = async (page: Page, endpointIds: string[]): Pro
   });
 };
 
-export const expectFormatTabs = async (page: Page, labels: string[]): Promise<void> => {
-  const tabs = formatTabs(page);
+export const expectDocuments = async (page: Page, labels: string[]): Promise<void> => {
+  const summaries = activePanel(page).locator('summary');
 
-  await test.step(`THEN the endpoint has a sub-tab per format`, async (): Promise<void> => expect(tabs).toContainText(labels), {
+  await test.step(`THEN the endpoint has a folding section per format`, async (): Promise<void> => expect(summaries).toContainText(labels), {
     box: true
   });
 };

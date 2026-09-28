@@ -1,5 +1,6 @@
 import type { AiFillProgressEvent, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
 
+import { downloadMonitor } from './chrome-ai-download.client.ts';
 import type { AiRunOptions } from '../common/ai-fill.type.ts';
 import type { StudioEngineFailure } from '../common/studio.type.ts';
 
@@ -23,16 +24,21 @@ export const status = (text: string): AiFillProgressEvent => {
   return event;
 };
 
-const isDownloadEvent = (event: Event): event is LanguageModelDownloadEvent => {
-  return 'loaded' in event && typeof event.loaded === 'number';
+const output = (text: string): AiFillProgressEvent => {
+  const event: AiFillProgressEvent = { type: 'progress', stream: 'stdout', text };
+
+  return event;
 };
 
-const readAll = async (reader: ReadableStreamDefaultReader<string>, text: string): Promise<string> => {
+/** Reads the streamed answer to its end, reporting each chunk as model output so the log shows the answer as it grows. */
+const readAll = async (reader: ReadableStreamDefaultReader<string>, text: string, options: AiRunOptions): Promise<string> => {
   const chunk = await reader.read();
 
   if (chunk.done) return text;
 
-  return readAll(reader, text + chunk.value);
+  options.onProgress(output(chunk.value));
+
+  return readAll(reader, text + chunk.value, options);
 };
 
 const parseAnswer = (text: string): unknown => {
@@ -58,7 +64,7 @@ const answerOf = async (session: LanguageModelSession, prompt: AiPromptResult, o
   const constrained = { responseConstraint: prompt.responseSchema, omitResponseConstraintInput: true, signal: options.signal };
 
   try {
-    return await readAll(session.promptStreaming(prompt.prompt, constrained).getReader(), '');
+    return await readAll(session.promptStreaming(prompt.prompt, constrained).getReader(), '', options);
   } catch (error) {
     const isRejected = isConstraintRejected(error);
 
@@ -68,7 +74,7 @@ const answerOf = async (session: LanguageModelSession, prompt: AiPromptResult, o
 
     const unconstrained = { signal: options.signal };
 
-    return readAll(session.promptStreaming(prompt.prompt, unconstrained).getReader(), '');
+    return readAll(session.promptStreaming(prompt.prompt, unconstrained).getReader(), '', options);
   }
 };
 
@@ -83,12 +89,7 @@ const answerSession = async (base: LanguageModelSession, signal: AbortSignal): P
 export const baseSession = async (factory: LanguageModelFactory, system: string, options: AiRunOptions): Promise<LanguageModelSession> => {
   const systemPrompt: LanguageModelPrompt = { role: 'system', content: system };
   const initialPrompts = [systemPrompt];
-  const reportDownload = (event: Event): void => {
-    if (isDownloadEvent(event)) options.onDownload(event.loaded);
-  };
-  const monitor = (target: LanguageModelMonitor): void => {
-    target.addEventListener('downloadprogress', reportDownload);
-  };
+  const monitor = downloadMonitor(options.onDownload);
 
   options.onProgress(status('Starting the on-device model…'));
 

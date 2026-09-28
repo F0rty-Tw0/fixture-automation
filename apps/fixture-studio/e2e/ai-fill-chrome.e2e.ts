@@ -6,9 +6,14 @@ import type { LanguageModelStubConfig } from './test/common/playwright.type.ts';
 import { aiPromptMock, mergeMock } from './test/mocks/workbench.mock.ts';
 import {
   chromeOptIn,
+  downloadModel,
   expectAvailability,
   expectDownloadProgress,
+  expectFillDisabled,
   expectFillError,
+  expectLogLine,
+  expectModelReady,
+  expectNoModelYet,
   expectProvider,
   expectValidMerge,
   fillMissingValues,
@@ -35,7 +40,7 @@ type AvailabilityCase = {
 
 const AVAILABILITY_CASES: AvailabilityCase[] = [
   { config: AVAILABLE_MODEL_STUB, label: 'Ready', provider: 'On-device Chrome AI' },
-  { config: DOWNLOADABLE_MODEL_STUB, label: 'Downloads the model on first run', provider: 'On-device Chrome AI' },
+  { config: DOWNLOADABLE_MODEL_STUB, label: 'Model not downloaded yet', provider: 'On-device Chrome AI' },
   { config: DOWNLOADING_MODEL_STUB, label: 'Downloading the model', provider: 'On-device Chrome AI' },
   { config: UNAVAILABLE_MODEL_STUB, label: 'Not available in this browser', provider: 'Local CLI' }
 ];
@@ -53,6 +58,9 @@ const TOO_LARGE_ERROR: ApiErrorBody = {
 
 const FILLED_COUNT = MISSING_FILE_STUB.paths.length;
 
+/** The stubbed model streams this answer in two chunks; the log shows it as one block. */
+const STREAMED_ANSWER = JSON.stringify(POPULATED_STUB);
+
 test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
   for (const availabilityCase of AVAILABILITY_CASES) {
     test.describe(`GIVEN Chrome reports the model ${availabilityCase.config.availability}`, () => {
@@ -60,7 +68,7 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
         await test.step('GIVEN the Prompt API is stubbed', async (): Promise<void> =>
           stubLanguageModel(page, availabilityCase.config));
 
-        await test.step('AND the AI fill tab of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
+        await test.step('AND the AI fill step of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
       });
 
       test(`SCENARIO: opting in reads "${availabilityCase.label}"`, async ({ page }): Promise<void> => {
@@ -78,7 +86,7 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
     test.beforeEach(async ({ page }): Promise<void> => {
       await test.step('GIVEN the Prompt API is stubbed', async (): Promise<void> => stubLanguageModel(page, AVAILABLE_MODEL_STUB));
 
-      await test.step('AND the AI fill tab of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
+      await test.step('AND the AI fill step of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
     });
 
     test('SCENARIO: an opted-in fill runs on the device, not through the CLI', async ({ page }): Promise<void> => {
@@ -102,6 +110,9 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
         expect.poll(promptCalls).toEqual([CONSTRAINED_PROMPT]));
 
       await test.step('AND the streamed chunks were merged as one answer', (): void => expect(merge.bodies).toEqual([SENT_MERGE]));
+
+      await test.step('AND the log shows the streamed answer as one block', async (): Promise<void> =>
+        expectLogLine(page, STREAMED_ANSWER));
     });
 
     test('SCENARIO: the opt-in survives a reload', async ({ page }): Promise<void> => {
@@ -121,10 +132,10 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
       await test.step('GIVEN the Prompt API holds its download', async (): Promise<void> =>
         stubLanguageModel(page, DOWNLOADABLE_MODEL_STUB));
 
-      await test.step('AND the AI fill tab of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
+      await test.step('AND the AI fill step of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
     });
 
-    test('SCENARIO: the download progress shows before the fill completes', async ({ page }): Promise<void> => {
+    test('SCENARIO: the model is downloaded on its own, then the missing values are filled', async ({ page }): Promise<void> => {
       await test.step('GIVEN the API builds the prompt', async (): Promise<void> =>
         routeApi(page, AI_PROMPT_ROUTE, aiPromptMock().handler));
 
@@ -132,11 +143,19 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
 
       await test.step('WHEN on-device Chrome AI is opted in', async (): Promise<void> => toggleChromeOptIn(page));
 
-      await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+      await test.step('THEN it says there is no model yet', async (): Promise<void> => expectNoModelYet(page));
+
+      await test.step('AND the fill waits for the model', async (): Promise<void> => expectFillDisabled(page));
+
+      await test.step('WHEN the model is downloaded', async (): Promise<void> => downloadModel(page));
 
       await test.step('THEN half the model is shown downloaded', async (): Promise<void> => expectDownloadProgress(page, 50));
 
       await test.step('AND the download finishes', async (): Promise<void> => releaseModelDownload(page));
+
+      await test.step('THEN the model is ready', async (): Promise<void> => expectModelReady(page));
+
+      await test.step('WHEN the missing values are filled', async (): Promise<void> => fillMissingValues(page));
 
       await test.step('THEN the merge is valid', async (): Promise<void> => expectValidMerge(page, FILLED_COUNT));
     });
@@ -147,7 +166,7 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
       await test.step('GIVEN the Prompt API runs out of quota', async (): Promise<void> =>
         stubLanguageModel(page, TOO_SMALL_MODEL_STUB));
 
-      await test.step('AND the AI fill tab of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
+      await test.step('AND the AI fill step of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
     });
 
     test('SCENARIO: the quota error points to the local CLI', async ({ page }): Promise<void> => {

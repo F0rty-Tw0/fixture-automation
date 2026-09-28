@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 
-import type { LanguageModelStubConfig } from '../common/playwright.type.ts';
+import type { LanguageModelCreateCall, LanguageModelStubConfig } from '../common/playwright.type.ts';
 
 const CALLS_GLOBAL = '__languageModelCalls';
+
+const CREATES_GLOBAL = '__languageModelCreates';
 
 const RELEASE_EVENT = 'e2e-release-model-download';
 
@@ -12,9 +14,12 @@ const RELEASE_EVENT = 'e2e-release-model-download';
  */
 const installLanguageModelStub = (config: LanguageModelStubConfig): void => {
   const calls: unknown[] = [];
+  const creates: LanguageModelCreateCall[] = [];
   const release = Promise.withResolvers<undefined>();
+  let current: LanguageModelAvailability = config.availability;
 
   Reflect.set(globalThis, '__languageModelCalls', calls);
+  Reflect.set(globalThis, '__languageModelCreates', creates);
   globalThis.addEventListener('e2e-release-model-download', (): void => release.resolve(undefined), { once: true });
 
   const answer = (): ReadableStream<string> => {
@@ -41,6 +46,12 @@ const installLanguageModelStub = (config: LanguageModelStubConfig): void => {
 
   const create = async (options?: LanguageModelCreateOptions): Promise<LanguageModelSession> => {
     const monitor = new EventTarget();
+    const created: LanguageModelCreateCall = {
+      hasMonitor: options?.monitor !== undefined,
+      hasSystemPrompt: options?.initialPrompts !== undefined
+    };
+
+    creates.push(created);
     const progress = (loaded: number): boolean => monitor.dispatchEvent(Object.assign(new Event('downloadprogress'), { loaded }));
 
     options?.monitor?.(monitor);
@@ -51,10 +62,12 @@ const installLanguageModelStub = (config: LanguageModelStubConfig): void => {
       progress(1);
     }
 
+    current = 'available';
+
     return session;
   };
 
-  const availability = async (): Promise<LanguageModelAvailability> => Promise.resolve(config.availability);
+  const availability = async (): Promise<LanguageModelAvailability> => Promise.resolve(current);
 
   globalThis.LanguageModel = { availability, create };
 };
@@ -66,6 +79,11 @@ export const stubLanguageModel = async (page: Page, config: LanguageModelStubCon
 /** Every `promptStreaming` call the app made: its prompt text and whether it sent a response schema. */
 export const languageModelCalls = async (page: Page): Promise<unknown> => {
   return page.evaluate((name: string): unknown => Reflect.get(globalThis, name), CALLS_GLOBAL);
+};
+
+/** Every `create` call the app made, in order: a download creates without a system prompt, a fill's session with one. */
+export const languageModelCreates = async (page: Page): Promise<unknown> => {
+  return page.evaluate((name: string): unknown => Reflect.get(globalThis, name), CREATES_GLOBAL);
 };
 
 /** Lets a held `create` finish its download. */

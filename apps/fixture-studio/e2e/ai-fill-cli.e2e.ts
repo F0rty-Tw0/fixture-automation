@@ -20,10 +20,10 @@ import {
   expectValidMerge,
   exportMerged,
   fillMissingValues,
-  openAiFillTab,
   openCliList
 } from './test/pages/ai-fill-panel.page.ts';
-import { openCompareTab, pasteFixture } from './test/pages/compare-panel.page.ts';
+import { pasteFixture } from './test/pages/compare-panel.page.ts';
+import { continueToAiFill } from './test/pages/missing-values-step.page.ts';
 import { openInvoiceAiFill } from './test/pages/workbench.page.ts';
 import { expectDownload } from './test/pages/workspace-step.page.ts';
 import { INVOICE_ENDPOINT_STUB } from './test/stubs/studio-api.stub.ts';
@@ -58,7 +58,7 @@ const SPLIT_AT = PROGRESS_LINE.indexOf('reading');
 test.describe('FEATURE: AI fill with the local CLI', () => {
   test.describe('GIVEN the partial invoice was compared and AI fill is open', () => {
     test.beforeEach(async ({ page }): Promise<void> => {
-      await test.step('GIVEN the AI fill tab of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
+      await test.step('GIVEN the AI fill step of the compared invoice is open', async (): Promise<void> => openInvoiceAiFill(page));
     });
 
     test('SCENARIO: with the opt-in off by default the CLI fills the missing paths', async ({ page }): Promise<void> => {
@@ -187,11 +187,9 @@ test.describe('FEATURE: AI fill with the local CLI', () => {
 
       await test.step('THEN the merge is valid', async (): Promise<void> => expectValidMerge(page, FILLED_COUNT));
 
-      await test.step('AND the Compare tab is reopened', async (): Promise<void> => openCompareTab(page));
-
       await test.step('AND another invoice is pasted', async (): Promise<void> => pasteFixture(page, otherInvoice));
 
-      await test.step('AND the AI fill tab is reopened', async (): Promise<void> => openAiFillTab(page));
+      await test.step('AND the user continues to AI fill again', async (): Promise<void> => continueToAiFill(page));
 
       await test.step('THEN the previous merge result is gone', async (): Promise<void> => expectNoMergeResult(page));
 
@@ -216,7 +214,7 @@ test.describe('FEATURE: AI fill with the local CLI', () => {
 
   test.describe('GIVEN the partial invoice was compared and the install check answers', () => {
     test('SCENARIO: a CLI missing from PATH is offered disabled and an installed one is chosen', async ({ page }): Promise<void> => {
-      await test.step('GIVEN only codex is installed and the AI fill tab is open', async (): Promise<void> =>
+      await test.step('GIVEN only codex is installed and the AI fill step is open', async (): Promise<void> =>
         openInvoiceAiFill(page, DIFF_RESULT_STUB, CLAUDE_MISSING_TOOLS_STUB));
 
       await test.step('THEN codex is chosen', async (): Promise<void> => expectChosenCli(page, 'codex'));
@@ -227,7 +225,7 @@ test.describe('FEATURE: AI fill with the local CLI', () => {
     });
 
     test('SCENARIO: the mock AI is badged next to the CLI', async ({ page }): Promise<void> => {
-      await test.step('GIVEN the API runs the mock AI and the AI fill tab is open', async (): Promise<void> =>
+      await test.step('GIVEN the API runs the mock AI and the AI fill step is open', async (): Promise<void> =>
         openInvoiceAiFill(page, DIFF_RESULT_STUB, MOCK_AI_TOOLS_STUB));
 
       await test.step('THEN the mock badge is shown', async (): Promise<void> => expectMockAiBadge(page));

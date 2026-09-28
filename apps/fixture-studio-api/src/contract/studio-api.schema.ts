@@ -47,6 +47,12 @@ export const diffBodySchema = z.object({
   replacePlaceholders: z.boolean().optional()
 });
 
+/** `fixture` is the parsed JSON the browser read locally; the API names the property most likely to hold the payload. */
+export const envelopeBodySchema = z.object({
+  endpointId: z.string().min(1),
+  fixture: z.unknown()
+});
+
 /** `fixture` is the diff's baseline; `original`, the fixture it was cut from, sets the key order of `mergedJson`. */
 export const mergeBodySchema = z.object({
   endpointId: z.string().min(1),

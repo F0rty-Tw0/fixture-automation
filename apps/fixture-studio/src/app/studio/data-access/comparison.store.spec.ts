@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { DiffBody, DiffResult } from '@fixture-automation/fixture-studio-api/contract';
+import type { DiffBody, DiffResult, EnvelopeBody, EnvelopeResult } from '@fixture-automation/fixture-studio-api/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComparisonStore } from './comparison.store.ts';
@@ -16,6 +16,8 @@ const FIXTURE = { id: 'in_1' };
 const EXISTING: ExistingFixture = { name: 'invoice.json', value: FIXTURE, pretty: '{\n  "id": "in_1"\n}' };
 const BODY: DiffBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, requiredOnly: false, objectShape: undefined };
 const REQUEST: DiffRequest = { specId: 'spec-1', body: BODY };
+const ENVELOPE_BODY: EnvelopeBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE };
+const DETECTED: EnvelopeResult = { candidates: ['data'], detected: 'data' };
 
 describe('FEATURE: comparison store', (): void => {
   let engine: StudioEngine;
@@ -85,5 +87,40 @@ describe('FEATURE: comparison store', (): void => {
     store.rejectSource('invoice.ts has no `export const` or `export default` with a value.');
 
     expect(store.sourceError()).toBe('invoice.ts has no `export const` or `export default` with a value.');
+  });
+
+  describe('GIVEN an envelope detection', (): void => {
+    it('WHEN the engine answers THEN resolves its candidates', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockResolvedValue(DETECTED);
+
+      await expect(store.detectEnvelope('spec-1', ENVELOPE_BODY)).resolves.toStrictEqual(DETECTED);
+      expect(engine.envelope).toHaveBeenCalledWith('spec-1', ENVELOPE_BODY, expect.anything());
+    });
+
+    it('WHEN the engine fails THEN resolves no candidates, so the fixture is compared as the payload', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockRejectedValue(new Error('down'));
+
+      await expect(store.detectEnvelope('spec-1', ENVELOPE_BODY)).resolves.toStrictEqual({ candidates: [], detected: undefined });
+    });
+
+    it('WHEN another detection starts THEN the first one is cancelled', (): void => {
+      const pending = new Promise<EnvelopeResult>((): undefined => undefined);
+
+      vi.mocked(engine.envelope).mockReturnValue(pending);
+      void store.detectEnvelope('spec-1', ENVELOPE_BODY);
+      void store.detectEnvelope('spec-1', ENVELOPE_BODY);
+
+      const firstCall = vi.mocked(engine.envelope).mock.calls[0];
+
+      expect(firstCall?.[2].signal.aborted).toBe(true);
+    });
+
+    it('WHEN a new fixture is read THEN the previous candidates are dropped', (): void => {
+      store.envelopes.set(['data']);
+
+      store.setExisting(EXISTING);
+
+      expect(store.envelopes()).toStrictEqual([]);
+    });
   });
 });

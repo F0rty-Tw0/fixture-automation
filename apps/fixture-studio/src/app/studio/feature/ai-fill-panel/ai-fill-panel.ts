@@ -7,18 +7,21 @@ import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatSelect } from '@angular/material/select';
-import { MatTab, MatTabContent, MatTabGroup } from '@angular/material/tabs';
 
 import { AI_AVAILABILITY_LABELS } from '../../common/ai-fill.const.ts';
 import type { FixtureDocument, FixtureView } from '../../common/studio.type.ts';
 import { FixtureAiFill } from '../../domain-logic/fixture-ai-fill.service.ts';
 import { FixtureComparison } from '../../domain-logic/fixture-comparison.service.ts';
+import { OnDeviceAi } from '../../domain-logic/on-device-ai.service.ts';
 import { ApiErrorNotice } from '../../ui/api-error-notice/api-error-notice.ts';
 import { DocumentView } from '../../ui/document-view/document-view.ts';
 import { ProgressLog } from '../../ui/progress-log/progress-log.ts';
 import { jsonDocument } from '../../utils/fixture-document.util.ts';
 
-/** Fills the missing paths found by compare with AI, then shows the merged, validated fixture. */
+/**
+ * Fills the missing paths found by compare with AI, then shows the merged, validated fixture. The on-device model is
+ * downloaded by its own button first; filling never starts a download.
+ */
 @Component({
   selector: 'fs-ai-fill-panel',
   imports: [
@@ -34,9 +37,6 @@ import { jsonDocument } from '../../utils/fixture-document.util.ts';
     MatOption,
     MatProgressBar,
     MatSelect,
-    MatTab,
-    MatTabContent,
-    MatTabGroup,
     ProgressLog
   ],
   templateUrl: './ai-fill-panel.html',
@@ -46,23 +46,22 @@ export class AiFillPanel {
   public readonly view = input.required<FixtureView>();
 
   protected readonly fill = inject(FixtureAiFill);
+  protected readonly onDevice = inject(OnDeviceAi);
   protected readonly aiForm = form(this.fill.form);
 
   private readonly comparison = inject(FixtureComparison);
 
   protected readonly availabilityLabel = computed(() => {
-    const availability = this.fill.chromeAvailability.value() ?? 'unavailable';
+    const availability = this.onDevice.chromeAvailability.value() ?? 'unavailable';
 
     return AI_AVAILABILITY_LABELS[availability];
   });
 
-  /** Download progress as a percentage, only while a download is under way. */
+  /** Download progress as a percentage while a ratio is known; `undefined` shows an indeterminate bar instead. */
   protected readonly downloadPercent = computed(() => {
-    const ratio = this.fill.downloadRatio();
+    const ratio = this.onDevice.downloadRatio();
 
     if (ratio === undefined) return undefined;
-
-    if (ratio >= 1) return undefined;
 
     return Math.round(ratio * 100);
   });
@@ -96,7 +95,15 @@ export class AiFillPanel {
   protected readonly existingPretty = computed(() => this.comparison.existing()?.pretty);
 
   protected onOptInChange(isChecked: boolean): void {
-    this.fill.setChromeOptIn(isChecked);
+    this.onDevice.setChromeOptIn(isChecked);
+  }
+
+  protected downloadModel(): void {
+    this.onDevice.downloadModel();
+  }
+
+  protected recheckModel(): void {
+    this.onDevice.recheckAvailability();
   }
 
   protected run(): void {

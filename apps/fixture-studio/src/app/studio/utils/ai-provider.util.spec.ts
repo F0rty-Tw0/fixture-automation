@@ -1,8 +1,8 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 import { describe, expect, it } from 'vitest';
 
-import { chooseAiProvider, cliFillBody } from './ai-provider.util.ts';
-import type { AiAvailability, AiFillContext, AiProviderId } from '../common/ai-fill.type.ts';
+import { chooseAiProvider, cliFillBody, onDeviceState } from './ai-provider.util.ts';
+import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
 import { MISSING_FILE_STUB } from '../test/stubs/studio.stub.ts';
 
 const FIXTURE = { id: 'in_1' };
@@ -40,5 +40,21 @@ describe('FEATURE: AI provider choice', (): void => {
     };
 
     expect(cliFillBody(CONTEXT)).toStrictEqual(expected);
+  });
+});
+
+describe('FEATURE: on-device model state', (): void => {
+  it.each<[AiAvailability | undefined, OnDeviceState]>([
+    [undefined, 'checking'],
+    ['available', 'ready'],
+    ['downloadable', 'needs-download'],
+    ['downloading', 'downloading'],
+    ['unavailable', 'unavailable']
+  ])('GIVEN Chrome reports %s and no download WHEN read THEN is %s', (availability, expected): void => {
+    expect(onDeviceState(availability, false)).toBe(expected);
+  });
+
+  it('GIVEN a download the user started WHEN Chrome still reports downloadable THEN is downloading', (): void => {
+    expect(onDeviceState('downloadable', true)).toBe('downloading');
   });
 });

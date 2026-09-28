@@ -29,6 +29,17 @@ const UNCOMPILABLE_NAME = { type: 'string', pattern: '(' };
 const UNCOMPILABLE_PROPERTIES = { name: UNCOMPILABLE_NAME };
 const UNCOMPILABLE_SCHEMA = { type: 'object', properties: UNCOMPILABLE_PROPERTIES };
 
+const LARGE_INVOICE = { id: 'in_9', amount_due: 5, memo: 'm'.repeat(300 * 1024) };
+const LARGE_DIFF_BODY: DiffBody = { ...DIFF_BODY, fixture: LARGE_INVOICE };
+const HUGE_INVOICE = { ...NESTED_INVOICE, memo: 'm'.repeat(1100 * 1024) };
+const FIRST_CHUNK = { type: 'progress', stream: 'status', text: 'Chunk 1 of 2: 1 field…\n' };
+const SECOND_CHUNK = { type: 'progress', stream: 'status', text: 'Chunk 2 of 2: 1 field…\n' };
+const CHUNK_EVENTS = [FIRST_CHUNK, SECOND_CHUNK];
+const OVERSIZE_FIX = 'fill that field by hand, or trim the fixture around it: its prompt alone exceeds the 1 MiB CLI input limit';
+
+const isChunkStatus = (event: unknown): boolean =>
+  isRecord(event) && typeof event['text'] === 'string' && event['text'].startsWith('Chunk');
+
 const neverSettles = async (): Promise<Record<string, unknown>> => new Promise((): void => undefined);
 
 describe('FEATURE: AI fill route', (): void => {
@@ -74,6 +85,46 @@ describe('FEATURE: AI fill route', (): void => {
         expect(events.slice(0, -1)).toHaveLength(3);
         expect(result).toMatchObject({ type: 'result' });
         expect(merged.json<MergeResult>()).toMatchObject({ valid: true, filled: ['customer.address'] });
+      });
+    });
+
+    describe('GIVEN the mock AI and a fixture too large for one prompt', (): void => {
+      it('WHEN filled THEN streams a status line per chunk, then one merged result that merges valid', async (): Promise<void> => {
+        await start();
+        const largeMissing = await diffedMissing(fastify, specId, LARGE_DIFF_BODY);
+        const base = fillBody();
+        const body: AiFillBody = { ...base, fixture: LARGE_INVOICE, missing: largeMissing };
+
+        const response = await post('ai-fill', body);
+
+        const events = ndjsonLines(response.body);
+        const statuses = events.filter(isChunkStatus);
+        const result = events.at(-1);
+        const populated = isRecord(result) ? result['populated'] : undefined;
+        const merged = await post('merge', { endpointId: ENDPOINT_ID, fixture: LARGE_INVOICE, populated });
+
+        expect(statuses).toStrictEqual(CHUNK_EVENTS);
+        expect(merged.json<MergeResult>()).toMatchObject({ valid: true, filled: ['status', 'customer'] });
+      });
+    });
+
+    describe('GIVEN one missing field whose prompt alone exceeds 1 MiB', (): void => {
+      it('WHEN filled THEN the stream ends with the error and its fix, and no CLI starts', async (): Promise<void> => {
+        const ai = studioAiMock();
+        const enrich = vi.fn<AiMissingFactory>();
+
+        vi.mocked(ai.fill).mockReturnValue(enrich);
+        await start(ai);
+        const base = fillBody();
+        const body: AiFillBody = { ...base, fixture: HUGE_INVOICE };
+
+        const response = await post('ai-fill', body);
+
+        const events = ndjsonLines(response.body);
+
+        expect(events).toMatchObject([{ type: 'error', fix: OVERSIZE_FIX }]);
+        expect(response.body).toContain('missing path \\"customer.address\\" alone');
+        expect(enrich).not.toHaveBeenCalled();
       });
     });
 

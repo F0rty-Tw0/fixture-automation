@@ -19,7 +19,26 @@
     }
   </fs-studio-step>
 
-  <fs-studio-step [state]="steps().workspace" [status]="workspaceStatus()" heading="Workspace" headingId="step-workspace">
+  <fs-studio-step [state]="steps().generate" [status]="generateStatus()" heading="Generate" headingId="step-generate">
     <fs-workspace-step />
   </fs-studio-step>
+
+  @for (view of generation.views(); track view.endpointId) {
+    <fs-endpoint-steps [index]="$index" [view]="view" />
+  } @empty {
+    <fs-studio-step [state]="steps().compare" heading="Compare" headingId="step-compare" status="Waiting for fixtures">
+      <p class="rail__waiting">Generate an endpoint above, then compare a fixture you already have with its schema.</p>
+    </fs-studio-step>
+    <fs-studio-step [state]="steps().missing" heading="Missing & broken values" headingId="step-missing" status="Waiting for a compare">
+      <p class="rail__waiting">A compare lists the values your fixture misses and the ones that are broken.</p>
+    </fs-studio-step>
+    <fs-studio-step
+      [isLast]="true"
+      [state]="steps().fill"
+      heading="Fill with AI"
+      headingId="step-fill"
+      status="Waiting for missing values">
+      <p class="rail__waiting">AI fill writes the missing values, then merges and validates the result.</p>
+    </fs-studio-step>
+  }
 </main>

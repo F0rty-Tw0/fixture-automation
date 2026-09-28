@@ -3,6 +3,7 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
+import { BODY_LIMIT_BYTES } from './common/studio-server.const.ts';
 import type { GenerateTask, SpecCompute, SpecStore } from './common/studio-server.type.ts';
 import type { GenerateBody, GenerateResult, LoadSpecBody, LoadedSpec } from './contract/common/studio-api.type.ts';
 import { API_ROUTES } from './contract/studio-api.const.ts';
@@ -25,9 +26,8 @@ type GenerateRoute = {
   readonly Params: SpecParams;
 };
 
-const SPEC_BODY_LIMIT = 20 * 1024 * 1024;
 const loadSpecSchema = { body: loadSpecBodySchema };
-const loadSpecOptions = { schema: loadSpecSchema, bodyLimit: SPEC_BODY_LIMIT };
+const loadSpecOptions = { schema: loadSpecSchema, bodyLimit: BODY_LIMIT_BYTES };
 const generateSchema = { body: generateBodySchema, params: specParamsSchema };
 const generateOptions = { schema: generateSchema };
 

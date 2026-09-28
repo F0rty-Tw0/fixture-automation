@@ -23,11 +23,13 @@ const STATUS_SCHEMA: SpecSchema = { type: 'string' };
 const MISSING_PROPERTIES = { status: STATUS_SCHEMA };
 const MISSING_SCHEMA: SpecSchema = { type: 'object', properties: MISSING_PROPERTIES };
 const NO_COMPONENTS = { schemas: {} };
+const MEMO_BROKEN = { path: 'memo', value: 'string', reason: 'openapi-sampler placeholder' };
 const DIFF: FixtureDiff = {
   schemaName: 'invoice',
   dialect: 'openapi-30',
   paths: ['status', 'memo'],
   replaced: ['memo'],
+  broken: [MEMO_BROKEN],
   schema: MISSING_SCHEMA,
   components: NO_COMPONENTS,
   baseline: BASELINE

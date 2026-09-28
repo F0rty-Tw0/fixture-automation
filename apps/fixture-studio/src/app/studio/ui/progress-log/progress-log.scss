@@ -1,6 +1,6 @@
 :host {
   display: block;
-  max-height: 16rem;
+  max-height: min(50vh, 20rem);
   padding: var(--fs-space-2) var(--fs-space-3);
   overflow: auto;
   font-family: var(--fs-font-mono);
@@ -15,6 +15,14 @@
   color: var(--fs-ink);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+
+  // The model's answer, streamed in fragments into one block, reads as a reply in a chat.
+  &[data-stream='stdout'] {
+    padding: var(--fs-space-1) var(--fs-space-2);
+    margin-block: var(--fs-space-1);
+    background: var(--fs-surface-sunken);
+    border-radius: var(--fs-radius-sm);
+  }
 
   &[data-stream='stderr'] {
     color: var(--fs-verb-put);

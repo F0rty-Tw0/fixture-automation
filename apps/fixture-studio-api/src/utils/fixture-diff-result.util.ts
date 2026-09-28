@@ -28,7 +28,7 @@ export const fixtureDiffResult = (spec: OpenApiSpec, schemaName: string, body: D
   assertEnvelope(fixture, objectShape);
 
   const request: FixtureDiffRequest = { spec, schemaName, fixture, requiredOnly, objectShape, replacePlaceholders };
-  const { schemaName: diffedName, dialect, paths, replaced, schema, components, baseline } = diffFixture(request);
+  const { schemaName: diffedName, dialect, paths, replaced, broken, schema, components, baseline } = diffFixture(request);
   const missing: MissingFile = { schemaName: diffedName, dialect, paths, schema, components };
   const sampleOptions = { skipNonRequired: requiredOnly };
   const sample = fixtures(spec, sampleOptions)(schemaName);
@@ -36,7 +36,7 @@ export const fixtureDiffResult = (spec: OpenApiSpec, schemaName: string, body: D
   const completed = mergeFixtureValue(baseline, populated, objectShape);
   const ordered = orderLike(completed.value, fixture);
   const completeJson = fixtureJson(ordered);
-  const result: DiffResult = { missing, missingPaths: paths, replacedPaths: replaced, baseline, completeJson };
+  const result: DiffResult = { missing, missingPaths: paths, replacedPaths: replaced, broken, baseline, completeJson };
 
   return result;
 };

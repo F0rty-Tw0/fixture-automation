@@ -1,5 +1,6 @@
 :host {
   display: block;
+  min-width: 0;
 
   // Clears the sticky masthead when a finished generate scrolls the workspace into view.
   scroll-margin-top: 5rem;
@@ -10,21 +11,52 @@
 }
 
 .workspace__tabs {
+  min-width: 0;
   background: var(--fs-surface);
   border: 1px solid var(--fs-line);
   border-radius: var(--fs-radius-md);
 }
 
+// A long path is cut with an ellipsis instead of widening the tab strip; the badge stays on the same line.
 .workspace__tab-label {
-  display: inline-flex;
-  gap: var(--fs-space-2);
-  align-items: center;
+  display: inline-block;
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--fs-font-mono);
   font-size: var(--fs-text-sm);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
-.workspace__panel {
-  padding: 0 var(--fs-space-4) var(--fs-space-4);
+.workspace__documents {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--fs-space-3);
+  padding: var(--fs-space-3) var(--fs-space-4) var(--fs-space-4);
+}
+
+.workspace__document {
+  min-width: 0;
+}
+
+.workspace__document-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--fs-space-2);
+  align-items: baseline;
+  margin-bottom: var(--fs-space-2);
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.workspace__file {
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-xs);
+  font-weight: 400;
+  color: var(--fs-ink-muted);
+  overflow-wrap: anywhere;
 }
 
 .workspace__empty {

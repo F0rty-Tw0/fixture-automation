@@ -5,6 +5,7 @@ import { FixtureError } from '@fixture-automation/openapi-fixtures';
 import { generateFixtures } from './fixture-generation.client.ts';
 import type { SpecTask, SpecTaskOutcome, ValidateMissingTask } from '../common/studio-server.type.ts';
 import { fixtureDiffResult } from '../utils/fixture-diff-result.util.ts';
+import { fixtureEnvelope } from '../utils/fixture-envelope.util.ts';
 import { fixtureMergeResult } from '../utils/fixture-merge-result.util.ts';
 
 const missingVerdict = (task: ValidateMissingTask): MissingVerdict => {
@@ -19,6 +20,8 @@ const taskValue = async (task: SpecTask): Promise<unknown> => {
       return generateFixtures(task.spec, task.body);
     case 'diff':
       return fixtureDiffResult(task.spec, task.schemaName, task.body);
+    case 'envelope':
+      return fixtureEnvelope(task.spec, task.schemaName, task.body.fixture);
     case 'merge':
       return fixtureMergeResult(task.spec, task.schemaName, task.body);
     case 'validate-missing':

@@ -2,7 +2,7 @@ import { Component, ElementRef, afterRenderEffect, inject, input } from '@angula
 
 import type { AiFillProgressEvent } from '@fixture-automation/fixture-studio-api/contract';
 
-/** Live output of an AI run, kept scrolled to the newest line. */
+/** Live output of an AI run, kept scrolled to the newest line: status lines, and the model's answer as one growing block. */
 @Component({
   selector: 'fs-progress-log',
   templateUrl: './progress-log.html',

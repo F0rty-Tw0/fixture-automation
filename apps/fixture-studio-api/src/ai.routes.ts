@@ -4,7 +4,8 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
-import type { AiFillJob, SpecCompute, SpecStore, StudioAi, ValidateMissingTask } from './common/studio-server.type.ts';
+import { BODY_LIMIT_BYTES } from './common/studio-server.const.ts';
+import type { AiFillJob, ChunkedFillRun, SpecCompute, SpecStore, StudioAi, ValidateMissingTask } from './common/studio-server.type.ts';
 import type {
   AiFillBody,
   AiModelsQuery,
@@ -22,6 +23,7 @@ import {
   aiToolsResultSchema,
   specParamsSchema
 } from './contract/studio-api.schema.ts';
+import { chunkedFill } from './data-access/ai-chunked-fill.client.ts';
 import { aiFillStream } from './data-access/ai-fill-stream.client.ts';
 import { CliRunSlots } from './data-access/cli-run-slots.store.ts';
 import { abortOnDisconnect } from './data-access/disconnect-abort.client.ts';
@@ -48,14 +50,12 @@ type AiModelsRoute = {
   readonly Querystring: AiModelsQuery;
 };
 
-/** Room for a 1 MiB fixture plus its missing projection. */
-const AI_BODY_LIMIT = 4 * 1024 * 1024;
 const MODELS_TIMEOUT_MS = 120_000;
 const DISCOVERY_FIX = 'check that the CLI is installed and logged in, or type the model name';
 const promptSchema = { body: aiPromptBodySchema, params: specParamsSchema };
-const promptOptions = { schema: promptSchema, bodyLimit: AI_BODY_LIMIT };
+const promptOptions = { schema: promptSchema, bodyLimit: BODY_LIMIT_BYTES };
 const fillSchema = { body: aiFillBodySchema, params: specParamsSchema };
-const fillOptions = { schema: fillSchema, bodyLimit: AI_BODY_LIMIT };
+const fillOptions = { schema: fillSchema, bodyLimit: BODY_LIMIT_BYTES };
 const modelsSchema = { querystring: aiModelsQuerySchema };
 const modelsOptions = { schema: modelsSchema };
 const toolsResponse = { 200: aiToolsResultSchema };
@@ -93,7 +93,7 @@ type FillRun = {
   readonly compute: SpecCompute;
 };
 
-/** The fill run; it releases its CLI slot however it ends. */
+/** The fill run, chunked when its prompt is too big for one answer; it releases its CLI slot however it ends. */
 const fillJob = (run: FillRun, schemaName: string, body: AiFillBody): AiFillJob => {
   const { ai, compute, slots } = run;
   const scenario = missingScenario(body.scenario);
@@ -109,7 +109,10 @@ const fillJob = (run: FillRun, schemaName: string, body: AiFillBody): AiFillJob 
       // Compiles the projection before the paid CLI run; the verdict on `undefined` is irrelevant, only a compile error matters.
       await validate(body.missing, undefined);
 
-      return await ai.fill(options)(schemaName, request);
+      const enrich = ai.fill(options);
+      const fill: ChunkedFillRun = { enrich, schemaName, request, signal, onProgress };
+
+      return await chunkedFill(fill);
     } finally {
       slots.release();
     }
@@ -120,7 +123,8 @@ const fillJob = (run: FillRun, schemaName: string, body: AiFillBody): AiFillJob 
 
 /**
  * Prompt building for an on-device model, the CLI install check, CLI model discovery, and the streamed CLI fill
- * (`application/x-ndjson`); at most 2 CLI runs at once, and the install check runs none.
+ * (`application/x-ndjson`), split into sequential chunks when its prompt is large; at most 2 CLI runs at once, and
+ * the install check runs none.
  */
 export const aiRoutes = (fastify: FastifyInstance, cache: SpecStore, ai: StudioAi, compute: SpecCompute): void => {
   const router = fastify.withTypeProvider<ZodTypeProvider>();

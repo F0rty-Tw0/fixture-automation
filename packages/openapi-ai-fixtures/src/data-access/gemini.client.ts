@@ -1,36 +1,21 @@
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentFile, AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureProgress } from '../common/ai-fixtures.type.ts';
+import { GEMINI_EXCLUDED_TOOLS } from '../common/gemini.const.ts';
 import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
 import { parseGeminiStream } from '../utils/gemini-stream.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const GEMINI_PROMPT = 'Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value.';
-const GEMINI_SETTINGS_CONTENT = `{
-  "general": {
-    "enableAutoUpdate": false
-  },
-  "ide": {
-    "enabled": false,
-    "hasSeenNudge": true
-  },
-  "skills": {
-    "enabled": false
-  },
-  "hooksConfig": {
-    "enabled": false
-  },
-  "tools": {
-    "core": [],
-    "discoveryCommand": ""
-  },
-  "admin": {
-    "mcp": {
-      "enabled": false
-    }
-  }
-}
-`;
+const general = { enableAutoUpdate: false };
+const ide = { enabled: false, hasSeenNudge: true };
+const skills = { enabled: false };
+const hooksConfig = { enabled: false };
+const tools = { exclude: GEMINI_EXCLUDED_TOOLS, discoveryCommand: '' };
+const mcp = { enabled: false };
+const admin = { mcp };
+const settings = { general, ide, tools, skills, hooksConfig, admin };
+const GEMINI_SETTINGS_CONTENT = `${JSON.stringify(settings, null, 2)}\n`;
 const GEMINI_ARGS = [
   '--prompt',
   GEMINI_PROMPT,

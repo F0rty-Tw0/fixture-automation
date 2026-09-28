@@ -35,3 +35,11 @@ export const scrollIntoViewMock = (): Mock<Element['scrollIntoView']> => {
 
   return scrollIntoView;
 };
+
+/** jsdom lays nothing out and gives `Range` no rects; CodeMirror measures text through them when it scrolls to a change. */
+export const rangeRectsMock = (): void => {
+  const box = document.createElement('div');
+
+  Range.prototype.getClientRects = (): DOMRectList => box.getClientRects();
+  Range.prototype.getBoundingClientRect = (): DOMRect => box.getBoundingClientRect();
+};

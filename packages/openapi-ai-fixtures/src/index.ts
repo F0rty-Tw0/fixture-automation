@@ -8,7 +8,7 @@ export { parseMissingFile } from './utils/missing-file.util.ts';
 
 export { missingDocument } from './utils/missing-document.util.ts';
 
-export { missingPrompt } from './utils/fixture-prompt.util.ts';
+export { missingPrompt, missingPromptBytes } from './utils/fixture-prompt.util.ts';
 
 export { missingCheck } from './utils/missing-check.util.ts';
 
@@ -19,6 +19,8 @@ export { detectAiTools } from './data-access/ai-tool-install.client.ts';
 export { selectModel } from './data-access/model-select.client.ts';
 
 export { MISSING_SCENARIO } from './common/ai-fixtures-cli.const.ts';
+
+export { MISSING_PROMPT_LIMIT_BYTES } from './common/missing.const.ts';
 
 export { prepareSchema } from './utils/schema-context.util.ts';
 

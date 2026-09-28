@@ -1,20 +1,27 @@
-import type { StudioSteps } from '../common/studio.type.ts';
+import type { StepState, StudioProgress, StudioSteps } from '../common/studio.type.ts';
 
 /** The first unfinished step is active; everything before it is done, everything after it waits. */
-export const studioSteps = (hasSpec: boolean, hasFixtures: boolean): StudioSteps => {
-  if (hasFixtures) {
-    const reviewing: StudioSteps = { spec: 'done', endpoints: 'done', workspace: 'active' };
+export const studioSteps = (progress: StudioProgress): StudioSteps => {
+  const { hasSpec, hasFixtures, hasDiff, isFilling, hasMerge } = progress;
+  const finished = [hasSpec, hasFixtures, hasFixtures, hasDiff, isFilling, hasMerge];
+  const activeIndex = finished.indexOf(false);
 
-    return reviewing;
-  }
+  const stateAt = (index: number): StepState => {
+    const isDone = activeIndex === -1 || index < activeIndex;
 
-  if (hasSpec) {
-    const picking: StudioSteps = { spec: 'done', endpoints: 'active', workspace: 'pending' };
+    if (isDone) return 'done';
 
-    return picking;
-  }
+    return index === activeIndex ? 'active' : 'pending';
+  };
 
-  const loading: StudioSteps = { spec: 'active', endpoints: 'pending', workspace: 'pending' };
+  const steps: StudioSteps = {
+    spec: stateAt(0),
+    endpoints: stateAt(1),
+    generate: stateAt(2),
+    compare: stateAt(3),
+    missing: stateAt(4),
+    fill: stateAt(5)
+  };
 
-  return loading;
+  return steps;
 };

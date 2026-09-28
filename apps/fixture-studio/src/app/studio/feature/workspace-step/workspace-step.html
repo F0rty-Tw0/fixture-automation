@@ -3,7 +3,14 @@
 }
 
 @if (generation.views().length > 0) {
-  <mat-tab-group [preserveContent]="true" animationDuration="0ms" aria-label="Generated endpoints" class="workspace__tabs" mat-stretch-tabs="false">
+  <mat-tab-group
+    [preserveContent]="true"
+    [selectedIndex]="activeIndex()"
+    animationDuration="0ms"
+    aria-label="Generated endpoints"
+    class="workspace__tabs"
+    mat-stretch-tabs="false"
+    (selectedIndexChange)="selectTab($event)">
     @for (view of generation.views(); track view.endpointId) {
       <mat-tab>
         <ng-template mat-tab-label>
@@ -13,7 +20,17 @@
           </span>
         </ng-template>
         <ng-template matTabContent>
-          <fs-fixture-workbench [view]="view" class="workspace__panel" />
+          <div class="workspace__documents">
+            @for (document of view.documents; track document.format; let isFirst = $first) {
+              <details [open]="isFirst" class="workspace__document">
+                <summary class="workspace__document-title">
+                  {{ document.label }}
+                  <span class="workspace__file">{{ document.fileName }}</span>
+                </summary>
+                <fs-document-view [document]="document" />
+              </details>
+            }
+          </div>
         </ng-template>
       </mat-tab>
     }
@@ -21,5 +38,7 @@
 } @else if (generation.isGenerating()) {
   <p class="workspace__empty">Generating fixtures…</p>
 } @else {
-  <p class="workspace__empty">Select endpoints above and press Generate. Each endpoint opens here as a tab, with a sub-tab per format.</p>
+  <p class="workspace__empty">
+    Select endpoints above and press Generate. Each endpoint opens here as a tab, with a folding section per format.
+  </p>
 }

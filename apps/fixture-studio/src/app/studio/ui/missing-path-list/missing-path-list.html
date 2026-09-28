@@ -1,13 +1,25 @@
-<h4 class="missing__heading">
-  {{ heading() }}
-  <span [class.missing__count--none]="paths().length === 0" class="missing__count">{{ paths().length }}</span>
-</h4>
-@if (paths().length > 0) {
-  <ul [attr.aria-label]="heading()" class="missing__paths">
-    @for (path of paths(); track path) {
-      <li class="missing__path">{{ path }}</li>
-    }
-  </ul>
-} @else {
-  <p class="missing__none">Nothing is missing: this fixture has every property the schema asks for.</p>
-}
+<details class="missing" open>
+  <summary class="missing__heading">
+    {{ heading() }}
+    <span [class.missing__count--none]="paths().length === 0" class="missing__count">{{ paths().length }}</span>
+  </summary>
+  @if (paths().length > 0) {
+    <section [attr.aria-label]="heading()" class="missing__groups">
+      @for (group of groups(); track group.root) {
+        <details [open]="isOpen()" class="missing__group">
+          <summary class="missing__summary">
+            <span class="missing__root">{{ group.root }}</span>
+            <span class="missing__group-count">{{ group.paths.length }}</span>
+          </summary>
+          <ul [attr.aria-label]="`${heading()} under ${group.root}`" class="missing__paths">
+            @for (path of group.paths; track path) {
+              <li class="missing__path">{{ path }}</li>
+            }
+          </ul>
+        </details>
+      }
+    </section>
+  } @else {
+    <p class="missing__none">Nothing is missing: this fixture has every property the schema asks for.</p>
+  }
+</details>

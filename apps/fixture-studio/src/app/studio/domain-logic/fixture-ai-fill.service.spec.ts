@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FixtureAiFill } from './fixture-ai-fill.service.ts';
 import { FixtureComparison } from './fixture-comparison.service.ts';
 import { provideFixtureWorkbench } from './fixture-workbench.provider.ts';
+import { OnDeviceAi } from './on-device-ai.service.ts';
 import { SpecBrowser } from './spec-browser.service.ts';
 import type { AiAvailability } from '../common/ai-fill.type.ts';
 import type { StudioEngine } from '../common/engine.type.ts';
@@ -325,7 +326,7 @@ describe('FEATURE: fixture AI fill', (): void => {
       await settle();
 
       expect(chrome.availability).toHaveBeenCalledTimes(2);
-      expect(fill.chromeAvailability.value()).toBe('available');
+      expect(TestBed.inject(OnDeviceAi).chromeAvailability.value()).toBe('available');
     });
   });
 });

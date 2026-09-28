@@ -5,6 +5,9 @@ export type AiAvailability = 'available' | 'downloadable' | 'downloading' | 'una
 
 export type AiProviderId = 'chrome' | 'cli';
 
+/** Where the on-device model stands, as the AI step walks the user through it: checking, missing, downloading, ready. */
+export type OnDeviceState = 'checking' | 'downloading' | 'needs-download' | 'ready' | 'unavailable';
+
 /** Everything a provider needs to fill the missing properties of one fixture. */
 export type AiFillContext = {
   readonly specId: string;
@@ -16,12 +19,17 @@ export type AiFillContext = {
   readonly model: string | undefined;
 };
 
-export type AiRunOptions = {
+export type AiDownloadOptions = {
   readonly signal: AbortSignal;
-  readonly onProgress: (event: AiFillProgressEvent) => void;
   /** Model download progress, 0 to 1; only the on-device provider downloads. */
   readonly onDownload: (ratio: number) => void;
 };
+
+type AiProgressListener = {
+  readonly onProgress: (event: AiFillProgressEvent) => void;
+};
+
+export type AiRunOptions = AiDownloadOptions & AiProgressListener;
 
 /** The signature both providers share: resolves to the populated missing properties, ready for `merge`. */
 type AiFill = (context: AiFillContext, options: AiRunOptions) => Promise<unknown>;
@@ -29,6 +37,8 @@ type AiFill = (context: AiFillContext, options: AiRunOptions) => Promise<unknown
 /** Chrome's built-in Prompt API: the only provider with an availability to probe up front. */
 export type ChromeAiProvider = {
   availability(): Promise<AiAvailability>;
+  /** Downloads the model without prompting it; call from a click, which gives the user activation Chrome requires. */
+  download(options: AiDownloadOptions): Promise<void>;
   readonly fill: AiFill;
 };
 

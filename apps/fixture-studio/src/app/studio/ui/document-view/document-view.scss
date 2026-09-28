@@ -14,10 +14,12 @@
   border-radius: var(--fs-radius-md);
 }
 
-// Headings over the side-by-side diff; the merge view splits its width evenly, so two equal columns line up.
+// Headings over the side-by-side diff; the merge view splits its width evenly beside the change map, so two
+// equal columns short of the map's width line up.
 .document__sides {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  padding-inline-end: var(--fs-change-map-width);
   font-size: var(--fs-text-xs);
   font-weight: 600;
   color: var(--fs-ink-muted);

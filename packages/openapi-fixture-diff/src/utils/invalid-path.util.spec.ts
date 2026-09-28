@@ -9,8 +9,8 @@ const ESCAPED = { 'c~d': 1 };
 const ORDER = { id: 'or_1', lines: [LINE], codes: CODES, 'a/b': ESCAPED };
 const ROWS = [{ id: 1 }];
 
-const violation = (keyword: string, instancePath: string): SchemaViolation => {
-  const found: SchemaViolation = { keyword, instancePath };
+const violation = (keyword: string, instancePath: string, message?: string): SchemaViolation => {
+  const found: SchemaViolation = { keyword, instancePath, message };
 
   return found;
 };
@@ -25,7 +25,7 @@ describe('FEATURE: invalid value paths from AJV errors', (): void => {
     ])('WHEN its pointer is %s THEN the diff path is %s', (pointer: string, expected: string): void => {
       const paths = invalidPaths([violation('type', pointer)], ORDER);
 
-      expect([...paths]).toStrictEqual([expected]);
+      expect(Array.from(paths.keys())).toStrictEqual([expected]);
     });
   });
 
@@ -33,7 +33,7 @@ describe('FEATURE: invalid value paths from AJV errors', (): void => {
     it('WHEN collected THEN the root index starts the path', (): void => {
       const paths = invalidPaths([violation('type', '/0/id')], ROWS);
 
-      expect([...paths]).toStrictEqual(['[0].id']);
+      expect(Array.from(paths.keys())).toStrictEqual(['[0].id']);
     });
   });
 
@@ -54,7 +54,7 @@ describe('FEATURE: invalid value paths from AJV errors', (): void => {
 
       const paths = invalidPaths(errors, ORDER);
 
-      expect([...paths]).toStrictEqual(['id', 'lines[0].sku']);
+      expect(Array.from(paths.keys())).toStrictEqual(['id', 'lines[0].sku']);
     });
   });
 
@@ -64,7 +64,7 @@ describe('FEATURE: invalid value paths from AJV errors', (): void => {
 
       const paths = invalidPaths(errors, ORDER);
 
-      expect([...paths]).toStrictEqual(['lines[0].tags']);
+      expect(Array.from(paths.keys())).toStrictEqual(['lines[0].tags']);
     });
   });
 
@@ -74,7 +74,23 @@ describe('FEATURE: invalid value paths from AJV errors', (): void => {
 
       const paths = invalidPaths(errors, ROWS);
 
-      expect([...paths]).toStrictEqual([]);
+      expect(Array.from(paths.keys())).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN leaf errors carrying AJV messages', (): void => {
+    it('WHEN two flag the same path THEN the path keeps the first message', (): void => {
+      const errors = [violation('type', '/lines/0/tags/1', 'must be string'), violation('minLength', '/lines/0/tags/1', 'too short')];
+
+      const paths = invalidPaths(errors, ORDER);
+
+      expect([...paths]).toStrictEqual([['lines[0].tags', 'must be string']]);
+    });
+
+    it('WHEN an error has no message THEN its keyword is the reason', (): void => {
+      const paths = invalidPaths([violation('format', '/id')], ORDER);
+
+      expect(paths.get('id')).toBe('format');
     });
   });
 });

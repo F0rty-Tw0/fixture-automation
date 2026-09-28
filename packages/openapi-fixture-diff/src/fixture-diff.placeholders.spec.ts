@@ -1,7 +1,7 @@
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { FixtureDiffRequest } from './common/missing.type.ts';
+import type { BrokenEntry, FixtureDiffRequest } from './common/missing.type.ts';
 import { diffFixture } from './data-access/fixture-diff.client.ts';
 import { generatedAccount, placeholderSpec, realAccount } from './test/utils/placeholder-spec.spec.util.ts';
 import { dropPaths } from './utils/drop-path.util.ts';
@@ -35,6 +35,11 @@ const AUTHOR_VALUES = {
   lines: [KEPT_LINE]
 };
 const INVALID_PATHS = ['object', 'has_more', 'nickname', 'labels', 'metadata', 'lines[0].price_id'];
+const HAS_MORE_BROKEN: BrokenEntry = { path: 'has_more', value: null, reason: 'must be boolean' };
+const NICKNAME_BROKEN: BrokenEntry = { path: 'nickname', value: 5, reason: 'must be string' };
+const PLACEHOLDER_REASON = 'openapi-sampler placeholder';
+
+const brokenPaths = (broken: BrokenEntry[]): string[] => broken.map((entry: BrokenEntry): string => entry.path);
 
 describe('FEATURE: placeholder and invalid value replacement', (): void => {
   let spec: OpenApiSpec;
@@ -73,6 +78,28 @@ describe('FEATURE: placeholder and invalid value replacement', (): void => {
       });
     });
 
+    it('WHEN diffed with replacePlaceholders THEN every replaced value is reported broken as a sampler placeholder', (): void => {
+      const diff = diffFixture(request(generatedAccount(spec), true));
+
+      expect(brokenPaths(diff.broken)).toStrictEqual(SAMPLER_DEFAULTS);
+      expect(diff.broken).toContainEqual({ path: 'balance', value: 0, reason: PLACEHOLDER_REASON });
+    });
+
+    it('WHEN diffed without replacePlaceholders THEN the placeholders are still reported broken', (): void => {
+      const diff = diffFixture(request(generatedAccount(spec), false));
+
+      expect(brokenPaths(diff.broken)).toStrictEqual(SAMPLER_DEFAULTS);
+    });
+
+    it('WHEN diffed inside a body envelope without replacePlaceholders THEN broken paths carry the envelope', (): void => {
+      const fixture = { statusCode: 200, body: generatedAccount(spec) };
+      const wrapped = SAMPLER_DEFAULTS.map((path: string): string => `body.${path}`);
+
+      const diff = diffFixture(request(fixture, false, 'body'));
+
+      expect(brokenPaths(diff.broken)).toStrictEqual(wrapped);
+    });
+
     it('WHEN diffed without replacePlaceholders THEN nothing is replaced and the baseline is the fixture', (): void => {
       const fixture = generatedAccount(spec);
 
@@ -107,6 +134,14 @@ describe('FEATURE: placeholder and invalid value replacement', (): void => {
       expect(diff.baseline).toStrictEqual(fixture);
     });
 
+    it('WHEN diffed THEN nothing is reported broken', async (): Promise<void> => {
+      const fixture = await realAccount();
+
+      const diff = diffFixture(request(fixture, false));
+
+      expect(diff.broken).toStrictEqual([]);
+    });
+
     it('WHEN a required key is dropped THEN it is only missing, never a replaced parent', async (): Promise<void> => {
       const fixture = dropPaths(await realAccount(), ['lines[0].sku']);
 
@@ -128,6 +163,24 @@ describe('FEATURE: placeholder and invalid value replacement', (): void => {
       expect(diff.replaced).toStrictEqual(INVALID_PATHS);
       expect(diff.baseline).not.toHaveProperty('metadata');
       expect(diff.baseline).toHaveProperty('lines.0.sku', 'sku_1');
+    });
+
+    it('WHEN diffed with replacePlaceholders THEN each invalid value is reported broken with its AJV message', async (): Promise<void> => {
+      const account = await realAccount();
+      const invalid = { ...account, has_more: null, nickname: 5 };
+
+      const diff = diffFixture(request(invalid, true));
+
+      expect(diff.broken).toStrictEqual([HAS_MORE_BROKEN, NICKNAME_BROKEN]);
+    });
+
+    it('WHEN diffed without replacePlaceholders THEN the invalid values are still reported broken', async (): Promise<void> => {
+      const account = await realAccount();
+      const invalid = { ...account, has_more: null, nickname: 5 };
+
+      const diff = diffFixture(request(invalid, false));
+
+      expect(diff.broken).toStrictEqual([HAS_MORE_BROKEN, NICKNAME_BROKEN]);
     });
 
     it('WHEN diffed without replacePlaceholders THEN the invalid values stay put', async (): Promise<void> => {

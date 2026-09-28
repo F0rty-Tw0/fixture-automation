@@ -2,19 +2,12 @@ import type { ApiErrorBody } from '@fixture-automation/fixture-studio-api/contra
 import type { Download, Locator, Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-const workspaceRegion = (page: Page): Locator => page.getByRole('region', { name: 'Workspace' });
-
-const aiFillTab = (page: Page): Locator => workspaceRegion(page).getByRole('tab', { name: 'AI fill', exact: true });
-
-const aiFillPanel = (page: Page): Locator => workspaceRegion(page).getByRole('tabpanel', { name: 'AI fill' });
+/** The Fill with AI step of the endpoint chosen in Generate. */
+export const aiFillPanel = (page: Page): Locator => page.getByRole('region', { name: 'Fill with AI' });
 
 const mergeResult = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'Merge result' });
 
 export const chromeOptIn = (page: Page): Locator => aiFillPanel(page).getByRole('checkbox', { name: 'Use on-device Chrome AI' });
-
-export const openAiFillTab = async (page: Page): Promise<void> => {
-  await aiFillTab(page).click();
-};
 
 export const toggleChromeOptIn = async (page: Page): Promise<void> => {
   await chromeOptIn(page).click();
@@ -47,6 +40,10 @@ export const expectMockAiBadge = async (page: Page): Promise<void> => {
   await test.step('THEN the mock AI is badged', async (): Promise<void> => expect(badge).toBeVisible(), { box: true });
 };
 
+export const downloadModel = async (page: Page): Promise<void> => {
+  await aiFillPanel(page).getByRole('button', { name: 'Download model' }).click();
+};
+
 export const fillMissingValues = async (page: Page): Promise<void> => {
   await aiFillPanel(page).getByRole('button', { name: 'Fill missing values' }).click();
 };
@@ -63,25 +60,42 @@ export const exportMerged = async (page: Page): Promise<Download> => {
   return downloadEvent;
 };
 
-export const expectAiFillDisabled = async (page: Page): Promise<void> => {
-  const tab = aiFillTab(page);
+/** Before the user continues from the missing values, the AI step only says what it waits for. */
+export const expectAiFillWaiting = async (page: Page): Promise<void> => {
+  const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
 
-  await test.step('THEN the AI fill tab stays disabled', async (): Promise<void> => expect(tab).toBeDisabled(), { box: true });
+  await test.step('THEN AI fill waits for the missing values step', async (): Promise<void> => expect(fill).toHaveCount(0), {
+    box: true
+  });
+};
+
+export const expectAiFillOpen = async (page: Page): Promise<void> => {
+  const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
+
+  await test.step('THEN the AI fill step is open', async (): Promise<void> => expect(fill).toBeVisible(), { box: true });
+};
+
+export const expectFillDisabled = async (page: Page): Promise<void> => {
+  const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
+
+  await test.step('THEN Fill missing values is disabled', async (): Promise<void> => expect(fill).toBeDisabled(), { box: true });
+};
+
+export const expectNoModelYet = async (page: Page): Promise<void> => {
+  const notice = aiFillPanel(page).getByText('No on-device model on this machine yet', { exact: false });
+
+  await test.step('THEN it says there is no on-device model yet', async (): Promise<void> => expect(notice).toBeVisible(), {
+    box: true
+  });
+};
+
+export const expectModelReady = async (page: Page): Promise<void> => {
+  const notice = aiFillPanel(page).getByText('The on-device model is ready.');
+
+  await test.step('THEN the on-device model is ready', async (): Promise<void> => expect(notice).toBeVisible(), { box: true });
 };
 
 /** The provider chip is the one element whose whole text is the provider's label; the copy around it may change. */
-export const expectAiFillOpen = async (page: Page): Promise<void> => {
-  const tab = aiFillTab(page);
-
-  await test.step(
-    'THEN the AI fill tab is selected',
-    async (): Promise<void> => expect(tab).toHaveAttribute('aria-selected', 'true'),
-    {
-      box: true
-    }
-  );
-};
-
 export const expectProvider = async (page: Page, label: string): Promise<void> => {
   const provider = aiFillPanel(page).getByRole('region', { name: 'AI provider' });
   const chip = provider.getByText(label, { exact: true });

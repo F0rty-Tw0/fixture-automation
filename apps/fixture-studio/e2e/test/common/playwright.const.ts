@@ -15,6 +15,8 @@ export const GENERATE_ROUTE = '**/api/specs/*/generate';
 
 export const DIFF_ROUTE = '**/api/specs/*/diff';
 
+export const ENVELOPE_ROUTE = '**/api/specs/*/envelope';
+
 export const MERGE_ROUTE = '**/api/specs/*/merge';
 
 export const AI_PROMPT_ROUTE = '**/api/specs/*/ai-prompt';

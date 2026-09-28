@@ -1,0 +1,50 @@
+@let position = index();
+
+<fs-studio-step
+  [headingId]="`step-compare-${position}`"
+  [state]="steps().compare"
+  [status]="`${view().method} ${view().path}`"
+  heading="Compare">
+  <div class="endpoint-steps__for">
+    <span class="endpoint-steps__for-label">For</span>
+    <fs-method-badge [method]="view().method" />
+    <code class="endpoint-steps__path">{{ view().path }}</code>
+    @if (generation.views().length > 1) {
+      <mat-form-field appearance="outline" class="endpoint-steps__switch" subscriptSizing="dynamic">
+        <mat-label>Endpoint</mat-label>
+        <mat-select [value]="view().endpointId" (selectionChange)="selectEndpoint($event.value)">
+          @for (other of generation.views(); track other.endpointId) {
+            <mat-option [value]="other.endpointId">{{ other.method }} {{ other.path }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+  </div>
+  <fs-compare-panel [view]="view()" />
+</fs-studio-step>
+
+<fs-studio-step
+  [headingId]="`step-missing-${position}`"
+  [state]="steps().missing"
+  [status]="missingStatus()"
+  heading="Missing & broken values">
+  @if (comparison.result(); as result) {
+    <fs-missing-values-panel [result]="result" [view]="view()" (continued)="continueToFill()" />
+  } @else {
+    <p class="endpoint-steps__waiting">Compare a fixture above to list what it misses and which values are broken.</p>
+  }
+</fs-studio-step>
+
+<fs-studio-step
+  #fillStep
+  [headingId]="`step-fill-${position}`"
+  [isLast]="true"
+  [state]="steps().fill"
+  [status]="fillStatus()"
+  heading="Fill with AI">
+  @if (steps().fill === 'pending') {
+    <p class="endpoint-steps__waiting">Review the missing values above, then continue here to fill them with AI.</p>
+  } @else {
+    <fs-ai-fill-panel [view]="view()" />
+  }
+</fs-studio-step>

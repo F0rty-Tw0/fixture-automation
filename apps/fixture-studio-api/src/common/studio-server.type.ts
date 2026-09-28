@@ -4,6 +4,7 @@ import type {
   AiFixtureOptions,
   AiFixtureProgress,
   AiMissingFactory,
+  AiMissingRequest,
   AiToolInstall,
   MissingFile,
   ModelDiscovery,
@@ -12,7 +13,7 @@ import type {
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import type { FastifyServerOptions } from 'fastify';
 
-import type { AiTool, ApiErrorBody, DiffBody, GenerateBody, MergeBody } from '../contract/common/studio-api.type.ts';
+import type { AiTool, ApiErrorBody, DiffBody, EnvelopeBody, GenerateBody, MergeBody } from '../contract/common/studio-api.type.ts';
 
 type StudioLogger = NonNullable<FastifyServerOptions['logger']>;
 
@@ -78,6 +79,17 @@ export type ErrorReply = {
 /** One AI fill, started by the NDJSON stream with its abort signal and progress sink. */
 export type AiFillJob = (signal: AbortSignal, onProgress: (progress: AiFixtureProgress) => void) => Promise<Record<string, unknown>>;
 
+/** One CLI fill; the chunked runner splits it into sequential `enrich` calls when its prompt is too big for one answer. */
+export type ChunkedFillRun = {
+  readonly enrich: AiMissingFactory;
+  readonly schemaName: string;
+  /** The whole fill: every missing path and the full fixture. */
+  readonly request: AiMissingRequest;
+  /** Checked between chunks, so a cancel starts no further CLI run. */
+  readonly signal: AbortSignal;
+  readonly onProgress: (progress: AiFixtureProgress) => void;
+};
+
 export type GenerateTask = {
   readonly name: 'generate';
   readonly spec: OpenApiSpec;
@@ -89,6 +101,13 @@ export type DiffTask = {
   readonly spec: OpenApiSpec;
   readonly schemaName: string;
   readonly body: DiffBody;
+};
+
+export type EnvelopeTask = {
+  readonly name: 'envelope';
+  readonly spec: OpenApiSpec;
+  readonly schemaName: string;
+  readonly body: EnvelopeBody;
 };
 
 export type MergeTask = {
@@ -106,7 +125,7 @@ export type ValidateMissingTask = {
 };
 
 /** Spec-driven CPU work that runs in a worker thread, so a hostile spec cannot stall the server. */
-export type SpecTask = DiffTask | GenerateTask | MergeTask | ValidateMissingTask;
+export type SpecTask = DiffTask | EnvelopeTask | GenerateTask | MergeTask | ValidateMissingTask;
 
 type SpecTaskSuccess = {
   readonly ok: true;

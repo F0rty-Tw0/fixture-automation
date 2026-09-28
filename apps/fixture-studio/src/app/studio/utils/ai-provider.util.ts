@@ -1,6 +1,6 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 
-import type { AiAvailability, AiFillContext, AiProviderId } from '../common/ai-fill.type.ts';
+import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
 
 /** On-device AI is usable unless Chrome says it can't run here; a download starts on first use. */
 const isUsableAvailability = (availability: AiAvailability | undefined): boolean => {
@@ -12,6 +12,24 @@ export const chooseAiProvider = (isOptedIn: boolean, availability: AiAvailabilit
   const isUsable = isUsableAvailability(availability);
 
   return isOptedIn && isUsable ? 'chrome' : 'cli';
+};
+
+/** The on-device model's state: a download the user started wins over what Chrome last reported. */
+export const onDeviceState = (availability: AiAvailability | undefined, isDownloading: boolean): OnDeviceState => {
+  if (isDownloading) return 'downloading';
+
+  switch (availability) {
+    case undefined:
+      return 'checking';
+    case 'available':
+      return 'ready';
+    case 'downloadable':
+      return 'needs-download';
+    case 'downloading':
+      return 'downloading';
+    case 'unavailable':
+      return 'unavailable';
+  }
 };
 
 /** The local CLI provider's request: the fill context as the API's `ai-fill` body. */

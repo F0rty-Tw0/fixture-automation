@@ -4,6 +4,7 @@ import type { Readable, Writable } from 'node:stream';
 
 import { AgentProcessExecution } from './agent-process-execution.client.ts';
 import { pipeAgentProcess } from './agent-process-input.client.ts';
+import { terminateAgentTree } from './agent-process-tree.client.ts';
 import type { AgentProcess } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 
@@ -75,6 +76,25 @@ const startAgentProgress = (
   return setInterval(reportQuietHeartbeat, HEARTBEAT_INTERVAL_MS);
 };
 
+/**
+ * On POSIX the agent leads its own process group, so whatever it left running there is stopped as soon as it exits;
+ * a leftover holding the agent's stdout would otherwise also hold `close` back until the time limit.
+ * ponytail: Windows has no group to sweep and `taskkill /t` cannot find an exited parent's tree; leftovers stay there.
+ */
+const sweepAgentGroup = (pid: number | undefined, execution: AgentProcessExecution): void => {
+  const isWindows = globalThis.process.platform === 'win32';
+
+  if (isWindows) return;
+
+  const reportFailure = (error: unknown): void => {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+
+    execution.reportStatus(`Could not stop the processes the agent left running: ${reason}\n`);
+  };
+
+  void terminateAgentTree(pid).catch(reportFailure);
+};
+
 const observeAgentExit = (
   child: SpawnedAgentProcess,
   executable: string,
@@ -85,6 +105,7 @@ const observeAgentExit = (
     execution.stop(new Error(`Failed to start agent "${executable}": ${error.message}`));
     finish(null, null);
   });
+  child.once('exit', (): void => sweepAgentGroup(child.pid, execution));
   child.once('close', finish);
 };
 

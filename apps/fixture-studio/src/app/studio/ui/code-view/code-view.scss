@@ -1,7 +1,65 @@
 :host {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--fs-space-1);
+  min-width: 0;
+}
+
+.code-view__changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-1) var(--fs-space-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.code-view__change-label {
+  margin-inline-end: auto;
+  font-size: var(--fs-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-muted);
+}
+
+.code-view__frame {
+  display: flex;
+  min-width: 0;
   overflow: hidden;
   background: var(--fs-code-bg);
   border: 1px solid var(--fs-line);
   border-radius: var(--fs-radius-md);
+}
+
+.code-view__editor {
+  flex: 1;
+  min-width: 0;
+}
+
+// The change map: the whole diff squeezed into the editor's height, one green mark per change.
+.code-view__map {
+  flex: none;
+  width: var(--fs-change-map-width);
+  padding: 0 2px;
+  cursor: pointer;
+  background: var(--fs-surface-sunken);
+  border: 0;
+  border-left: 1px solid var(--fs-line);
+}
+
+.code-view__marks {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// The stroke keeps a one-line change in a long document visible: it does not shrink with the drawing.
+.code-view__mark {
+  color: var(--fs-verb-get);
+  fill: currentcolor;
+  stroke: currentcolor;
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
+}
+
+.code-view__mark--current {
+  color: var(--fs-accent);
 }

@@ -56,7 +56,38 @@ assert.deepEqual(settings, {
     enabled: false
   },
   tools: {
-    core: [],
+    exclude: [
+      'activate_skill',
+      'ask_user',
+      'complete_task',
+      'enter_plan_mode',
+      'exit_plan_mode',
+      'get_internal_docs',
+      'glob',
+      'google_web_search',
+      'grep_search',
+      'invoke_agent',
+      'list_background_processes',
+      'list_directory',
+      'list_mcp_resources',
+      'read_background_output',
+      'read_file',
+      'read_many_files',
+      'read_mcp_resource',
+      'replace',
+      'run_shell_command',
+      'take_snapshot',
+      'tracker_add_dependency',
+      'tracker_create_task',
+      'tracker_get_task',
+      'tracker_list_tasks',
+      'tracker_update_task',
+      'tracker_visualize',
+      'update_topic',
+      'web_fetch',
+      'write_file',
+      'write_todos'
+    ],
     discoveryCommand: ''
   }
 });

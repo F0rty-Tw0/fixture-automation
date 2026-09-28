@@ -80,9 +80,41 @@ export type SpecDocumentParse = SpecDocumentParsed | SpecDocumentRejected;
 /** Where a step sits on the pipeline rail. */
 export type StepState = 'pending' | 'active' | 'done';
 
-/** Rail state of the three studio steps. */
+/** Rail state of the six studio steps; the last three belong to the endpoint chosen in Generate. */
 export type StudioSteps = {
   readonly spec: StepState;
   readonly endpoints: StepState;
-  readonly workspace: StepState;
+  readonly generate: StepState;
+  readonly compare: StepState;
+  readonly missing: StepState;
+  readonly fill: StepState;
+};
+
+/** How far the studio got, as the rail reads it. */
+export type StudioProgress = {
+  readonly hasSpec: boolean;
+  readonly hasFixtures: boolean;
+  readonly hasDiff: boolean;
+  /** The diff left values to fill and the user moved on from the missing values to AI fill. */
+  readonly isFilling: boolean;
+  readonly hasMerge: boolean;
+};
+
+/** A changed range of a document, by 1-based line numbers, both ends included. */
+export type ChangedLines = {
+  readonly from: number;
+  readonly to: number;
+};
+
+/** One change on the overview ruler beside a diff: its offset and size as percentages of the document, and its first line. */
+export type ChangeMark = {
+  readonly top: number;
+  readonly height: number;
+  readonly line: number;
+};
+
+/** Fixture paths that share their first segment, e.g. every missing path under `customer`. */
+export type PathGroup = {
+  readonly root: string;
+  readonly paths: string[];
 };

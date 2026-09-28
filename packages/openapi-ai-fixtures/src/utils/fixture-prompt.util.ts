@@ -1,3 +1,4 @@
+import { minifiedSchemaProse, minifiedStrings } from './prompt-minify.util.ts';
 import { MISSING_PROMPT_LIMIT_BYTES } from '../common/missing.const.ts';
 import type { MissingPromptInput } from '../common/missing.type.ts';
 
@@ -37,8 +38,10 @@ type MissingPromptPayload = {
   readonly scenario: string;
 };
 
+/** The model answers the whole fixture, so baseline strings stay exact; only the schema's prose is minified. */
 export const fixturePrompt = (context: string, fixtureJson: string, scenario: string): string => {
-  const schema: unknown = JSON.parse(context);
+  const parsedSchema: unknown = JSON.parse(context);
+  const schema = minifiedSchemaProse(parsedSchema);
   const baseline: unknown = JSON.parse(fixtureJson);
   const instructions: FixturePromptInstructions = {
     authority: AUTHORITY,
@@ -51,16 +54,31 @@ export const fixturePrompt = (context: string, fixtureJson: string, scenario: st
   return JSON.stringify(prompt);
 };
 
+/** The answer holds only missing keys and merges onto the caller's untouched baseline, so baseline strings are minified too. */
+const missingPromptText = (input: MissingPromptInput): string => {
+  const parsedBaseline: unknown = JSON.parse(input.fixtureJson);
+  const baseline = minifiedStrings(parsedBaseline);
+  const instructions: MissingPromptInstructions = { authority: AUTHORITY, response: MISSING_RESPONSE, restrictions: RESTRICTIONS };
+  const missing = minifiedSchemaProse(input.missing);
+  const prompt: MissingPromptPayload = { baseline, instructions, missing, scenario: input.scenario };
+
+  return JSON.stringify(prompt);
+};
+
+/** UTF-8 size of the prompt `missingPrompt` builds, without its limit check, so a caller can split a fill first. */
+export const missingPromptBytes = (input: MissingPromptInput): number => {
+  const text = missingPromptText(input);
+
+  return Buffer.byteLength(text, 'utf8');
+};
+
 /**
  * Prompt for filling only the properties a diff reported as absent from the baseline. It carries the
  * pruned missing document rather than the prepared spec, which would blow the agent's input limit.
+ * Whitespace runs inside baseline strings and schema `description`/`title` are collapsed; nothing else changes.
  */
 export const missingPrompt = (input: MissingPromptInput): string => {
-  const baseline: unknown = JSON.parse(input.fixtureJson);
-  const instructions: MissingPromptInstructions = { authority: AUTHORITY, response: MISSING_RESPONSE, restrictions: RESTRICTIONS };
-  const missing = input.missing;
-  const prompt: MissingPromptPayload = { baseline, instructions, missing, scenario: input.scenario };
-  const text = JSON.stringify(prompt);
+  const text = missingPromptText(input);
   const bytes = Buffer.byteLength(text, 'utf8');
 
   if (bytes > MISSING_PROMPT_LIMIT_BYTES) throw new Error(MISSING_OVERSIZE);

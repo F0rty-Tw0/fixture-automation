@@ -16,12 +16,12 @@ import {
   copyDocument,
   expectClipboard,
   expectCode,
+  expectDocuments,
   expectDownload,
   expectEndpointTabs,
-  expectFormatTabs,
   exportDocument,
-  openEndpointTab,
-  openFormatTab
+  openDocument,
+  openEndpointTab
 } from './test/pages/workspace-step.page.ts';
 import { CUSTOMER_ENDPOINT_STUB, INVOICE_ENDPOINT_STUB, INVOICE_FIXTURE_STUB } from './test/stubs/studio-api.stub.ts';
 import { routeApi } from './test/utils/route.spec.util.ts';
@@ -95,17 +95,17 @@ test.describe('FEATURE: fixture generation', () => {
       await test.step('AND generate is pressed', async (): Promise<void> => generate(page));
     });
 
-    test('SCENARIO: each endpoint opens as a tab with a sub-tab per format', async ({ page }): Promise<void> => {
+    test('SCENARIO: each endpoint opens as a tab with a folding section per format', async ({ page }): Promise<void> => {
       await test.step('WHEN the workspace shows the result', async (): Promise<void> => expectEndpointTabs(page, GENERATED_IDS));
 
-      await test.step('THEN the first endpoint has JSON and TS stub sub-tabs', async (): Promise<void> =>
-        expectFormatTabs(page, ['JSON fixture', 'TS stub']));
+      await test.step('THEN the first endpoint has JSON and TS stub sections', async (): Promise<void> =>
+        expectDocuments(page, ['JSON fixture', 'TS stub']));
     });
 
     test('SCENARIO: the editor shows the chosen document', async ({ page }): Promise<void> => {
       await test.step('WHEN the customer tab is opened', async (): Promise<void> => openEndpointTab(page, CUSTOMER_ENDPOINT_STUB.id));
 
-      await test.step('AND its TS stub sub-tab is opened', async (): Promise<void> => openFormatTab(page, 'TS stub'));
+      await test.step('AND its TS stub section is opened', async (): Promise<void> => openDocument(page, 'TS stub'));
 
       await test.step('THEN the editor shows the customer stub', async (): Promise<void> =>
         expectCode(page, 'customer.stub.ts', 'export const CUSTOMER_STUB'));

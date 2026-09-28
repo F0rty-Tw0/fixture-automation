@@ -53,6 +53,7 @@ export const DIFF_RESULT_STUB: DiffResult = {
   missing: MISSING_FILE_STUB,
   missingPaths: ['status'],
   replacedPaths: [],
+  broken: [],
   baseline: DIFF_BASELINE,
   completeJson: '{\n  "id": "in_1",\n  "status": "draft"\n}'
 };

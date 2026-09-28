@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -58,6 +59,20 @@ if (mode === 'echo') {
     windowsHide: true
   });
   setInterval(() => undefined, 1_000);
+} else if (mode === 'orphan') {
+  const grandchild = fileURLToPath(new URL('process-grandchild.mjs', import.meta.url));
+  const orphan = spawn(process.execPath, [grandchild, args[0], '', args[1]], {
+    detached: false,
+    stdio: 'ignore',
+    windowsHide: true
+  });
+
+  orphan.unref();
+
+  while (!existsSync(args[1])) await new Promise((resolve) => setTimeout(resolve, 10));
+
+  process.stdout.write('complete');
+  process.exitCode = Number(args[2] ?? 0);
 } else if (mode === 'split-utf8') {
   process.stdout.write('{"name":"');
   process.stdout.write(Buffer.from([0xc3]));

@@ -10,6 +10,7 @@ import type {
   aiPromptBodySchema,
   aiToolsResultSchema,
   diffBodySchema,
+  envelopeBodySchema,
   generateBodySchema,
   loadSpecBodySchema,
   mergeBodySchema
@@ -83,16 +84,36 @@ export type MissingFile = {
 
 export type DiffBody = z.infer<typeof diffBodySchema>;
 
+/** A present value the schema rejects or that is an openapi-sampler placeholder. */
+export type BrokenValue = {
+  /** Same path form as `missingPaths`, prefixed by `objectShape` when one was given. */
+  readonly path: string;
+  /** The value found in the fixture. */
+  readonly value: unknown;
+  /** Why it is broken, e.g. `must be integer` or `openapi-sampler placeholder`. */
+  readonly reason: string;
+};
+
 export type DiffResult = {
   readonly missing: MissingFile;
   /** Same list as `missing.paths`, surfaced for highlighting: every path a fill targets, absent or replaced. */
   readonly missingPaths: string[];
   /** The subset of `missingPaths` that held a placeholder or schema-invalid value. */
   readonly replacedPaths: string[];
+  /** Every broken value, reported whether or not `replacePlaceholders` asked to refill them. */
+  readonly broken: BrokenValue[];
   /** The fixture without `replacedPaths`: AI fill and merge start from this, not the original fixture. */
   readonly baseline: unknown;
   /** The baseline with every missing value filled from the sampler; existing keys keep their order, new keys follow them. */
   readonly completeJson: string;
+};
+
+export type EnvelopeBody = z.infer<typeof envelopeBodySchema>;
+
+/** Top-level keys holding an object or array, best match first; `detected` is set only when one fits the schema better than the root. */
+export type EnvelopeResult = {
+  readonly candidates: string[];
+  readonly detected: string | undefined;
 };
 
 export type MergeBody = z.infer<typeof mergeBodySchema>;

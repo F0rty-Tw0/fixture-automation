@@ -1,8 +1,12 @@
 <header class="step__head">
   <span aria-hidden="true" class="step__node"></span>
-  <h2 [id]="headingId()" class="step__title">{{ heading() }}</h2>
+  <h2 [id]="headingId()" class="step__title">
+    <button [attr.aria-controls]="bodyId()" [attr.aria-expanded]="isExpanded()" class="step__toggle" type="button" (click)="toggle()">
+      <span aria-hidden="true" class="step__chevron"></span>{{ heading() }}
+    </button>
+  </h2>
   <p class="step__status">{{ status() }}</p>
 </header>
-<div class="step__body">
+<div [attr.hidden]="isExpanded() ? null : 'until-found'" [id]="bodyId()" class="step__body" (beforematch)="expand()">
   <ng-content />
 </div>

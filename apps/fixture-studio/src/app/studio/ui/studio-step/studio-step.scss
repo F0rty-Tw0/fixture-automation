@@ -21,8 +21,13 @@
   }
 }
 
-:host(:last-of-type)::before {
+:host(.step--last)::before {
   display: none;
+}
+
+// A folded step keeps its heading and status on the rail, closer to the next one.
+:host([data-expanded='false']) {
+  padding-bottom: var(--fs-space-5);
 }
 
 .step__head {
@@ -69,11 +74,43 @@
   color: var(--fs-ink-faint);
 }
 
+// The heading is the fold toggle: it reads as a heading, with a chevron that points down while open.
+.step__toggle {
+  display: inline-flex;
+  gap: var(--fs-space-2);
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  letter-spacing: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: var(--fs-radius-sm);
+}
+
+.step__chevron {
+  flex: none;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  opacity: 0.6;
+  rotate: -45deg;
+  transition: rotate var(--fs-duration) var(--fs-ease-out);
+}
+
+:host([data-expanded='true']) .step__chevron {
+  rotate: 45deg;
+}
+
 .step__status {
   margin: var(--fs-space-1) 0 0;
   font-size: var(--fs-text-sm);
   font-variant-numeric: tabular-nums;
   color: var(--fs-ink-muted);
+  overflow-wrap: anywhere;
 }
 
 .step__body {

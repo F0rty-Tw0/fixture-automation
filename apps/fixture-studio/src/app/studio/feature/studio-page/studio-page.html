@@ -19,7 +19,7 @@
     }
   </fs-studio-step>
 
-  <fs-studio-step [state]="steps().workspace" [status]="workspaceStatus()" heading="Workspace" headingId="step-workspace">
+  <fs-studio-step [isLast]="true" [state]="steps().workspace" [status]="workspaceStatus()" heading="Workspace" headingId="step-workspace">
     <fs-workspace-step />
   </fs-studio-step>
 </main>

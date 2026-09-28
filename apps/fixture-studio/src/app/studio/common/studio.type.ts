@@ -87,6 +87,19 @@ export type StudioSteps = {
   readonly workspace: StepState;
 };
 
+/** A changed range of a document, by 1-based line numbers, both ends included. */
+export type ChangedLines = {
+  readonly from: number;
+  readonly to: number;
+};
+
+/** One change on the overview ruler beside a diff: its offset and size as percentages of the document, and its first line. */
+export type ChangeMark = {
+  readonly top: number;
+  readonly height: number;
+  readonly line: number;
+};
+
 /** Fixture paths that share their first segment, e.g. every missing path under `customer`. */
 export type PathGroup = {
   readonly root: string;

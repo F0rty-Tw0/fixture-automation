@@ -4,7 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CodeView } from './code-view.ts';
-import { hostOf } from '../../test/utils/fixture-dom.spec.util.ts';
+import { rangeRectsMock } from '../../test/mocks/browser.mock.ts';
+import { hostOf, requiredElement, textAt } from '../../test/utils/fixture-dom.spec.util.ts';
 
 const JSON_DOC = '{\n  "id": "in_1",\n  "total": 1200\n}';
 
@@ -24,6 +25,7 @@ describe('FEATURE: CodeView', (): void => {
   let fixture: ComponentFixture<CodeView>;
 
   beforeEach(async (): Promise<void> => {
+    rangeRectsMock();
     fixture = TestBed.createComponent(CodeView);
     fixture.componentRef.setInput('doc', JSON_DOC);
     fixture.componentRef.setInput('language', 'json');
@@ -75,6 +77,16 @@ describe('FEATURE: CodeView', (): void => {
   describe('GIVEN an original', (): void => {
     const ORIGINAL = '{\n  "id": "in_1"\n}';
 
+    const buttonNamed = (name: string): HTMLButtonElement => {
+      const matches = hostOf(fixture).querySelectorAll('button');
+      const buttons = [...matches];
+      const match = buttons.find((button) => button.textContent.trim() === name);
+
+      if (match === undefined) throw new Error(`No button named ${name}.`);
+
+      return match;
+    };
+
     const editorLabels = (): (string | null)[] => {
       const host = hostOf(fixture);
       const contents = host.querySelectorAll('.cm-mergeView .cm-content');
@@ -102,11 +114,40 @@ describe('FEATURE: CodeView', (): void => {
       expect(hostOf(fixture).querySelector('.cm-merge-b .cm-content')?.textContent).toContain('"in_2"');
     });
 
+    it('WHEN rendered THEN the change map marks the one change and counts it', (): void => {
+      expect(hostOf(fixture).querySelectorAll('.code-view__mark')).toHaveLength(1);
+      expect(textAt(fixture, '.code-view__change-label')).toBe('1 change');
+    });
+
+    it('WHEN the next change is asked for THEN names it and the line it starts on', async (): Promise<void> => {
+      buttonNamed('Next change').click();
+      await fixture.whenStable();
+
+      expect(textAt(fixture, '.code-view__change-label')).toBe('Change 1 of 1, line 2');
+      expect(requiredElement(fixture, '.code-view__mark').classList).toContain('code-view__mark--current');
+      expect(requiredElement(fixture, '.code-view__mark').getAttribute('y')).toBe('25');
+    });
+
+    it('WHEN the previous change is asked for from the top THEN wraps to the last change', async (): Promise<void> => {
+      buttonNamed('Previous change').click();
+      await fixture.whenStable();
+
+      expect(textAt(fixture, '.code-view__change-label')).toBe('Change 1 of 1, line 2');
+    });
+
+    it('WHEN the change map is clicked THEN jumps to the change nearest the click', async (): Promise<void> => {
+      requiredElement(fixture, '.code-view__map').click();
+      await fixture.whenStable();
+
+      expect(textAt(fixture, '.code-view__change-label')).toBe('Change 1 of 1, line 2');
+    });
+
     it('WHEN the original is cleared THEN falls back to a single editor', async (): Promise<void> => {
       fixture.componentRef.setInput('original', undefined);
       await fixture.whenStable();
 
       expect(hostOf(fixture).querySelector('.cm-mergeView')).toBeNull();
+      expect(hostOf(fixture).querySelector('.code-view__map')).toBeNull();
       expect(contentText(fixture)).toContain('"total": 1200');
     });
   });

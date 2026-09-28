@@ -2,6 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { access, rm } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -10,11 +11,14 @@ import { AgentTerminationError } from './agent-process-termination.error.ts';
 import { terminateAgentTree } from './agent-process-tree.client.ts';
 import { runAgent } from './agent-process.client.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
+import { AI_FIXTURE_OPTIONS_STUB } from '../test/stubs/ai-fixture-options.stub.ts';
 import { childCommand } from '../test/utils/process-child.spec.util.ts';
 import { processFixture } from '../test/utils/process-fixture.spec.util.ts';
 import { processWorkspace } from '../test/utils/process-workspace.spec.util.ts';
 
 const executeFile = promisify(execFile);
+/** How long `process-grandchild.mjs` sleeps before it writes its survival marker, plus a margin. */
+const GRANDCHILD_LIFETIME_MS = 3_500;
 
 /** A detached Node child, as the lifecycle spawns it on POSIX, so its pid doubles as its process group. */
 const detachedChild = (script: string): ChildProcess => {
@@ -84,6 +88,31 @@ describe('FEATURE: agent process tree termination', (): void => {
           await workspace.dispose();
         }
       }
+    );
+  });
+
+  describe('GIVEN an agent that exits while its own child keeps running', (): void => {
+    it.runIf(process.platform !== 'win32').each([
+      ['succeeds', '0'],
+      ['fails', '23']
+    ])(
+      'WHEN the agent %s THEN the leftover child is terminated',
+      async (_outcome: string, exitCode: string): Promise<void> => {
+        const workspace = await processWorkspace();
+        const survivedMarker = workspace.file('grandchild.txt');
+        const readyMarker = workspace.file('grandchild-ready.txt');
+        const command = childCommand('orphan', [survivedMarker, readyMarker, exitCode]);
+
+        try {
+          await runAgent(command, AI_FIXTURE_OPTIONS_STUB).catch((error: unknown): unknown => error);
+          await delay(GRANDCHILD_LIFETIME_MS);
+
+          await expect(access(survivedMarker)).rejects.toThrow();
+        } finally {
+          await workspace.dispose();
+        }
+      },
+      15_000
     );
   });
 

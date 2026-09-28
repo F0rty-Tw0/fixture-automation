@@ -16,6 +16,7 @@ const REAL_ANSWER = { amount_due: 4200, memo: 'Net 30', customer: REAL_CUSTOMER 
 const DIFF_BODY: DiffBody = { endpointId: ENDPOINT_ID, fixture: PARTIAL_INVOICE, requiredOnly: false };
 const TOO_EXPENSIVE = 'spec too expensive to sample/validate';
 const BACKTRACKING_NAME = `${'a'.repeat(34)}!`;
+const LARGE_INVOICE = { ...PARTIAL_INVOICE, memo: 'm'.repeat(5 * 1024 * 1024) };
 
 describe('FEATURE: fixture routes', (): void => {
   let fastify: FastifyInstance;
@@ -91,6 +92,17 @@ describe('FEATURE: fixture routes', (): void => {
         const response = await post('diff', body);
 
         expect(response.json<DiffResult>()).toMatchObject({ replacedPaths: [], baseline: PLACEHOLDER_INVOICE });
+      });
+    });
+
+    describe('GIVEN a fixture over 4 MiB', (): void => {
+      it('WHEN diffed THEN the body is accepted and answered', async (): Promise<void> => {
+        const body: DiffBody = { ...DIFF_BODY, fixture: LARGE_INVOICE };
+
+        const response = await post('diff', body);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json<DiffResult>().missingPaths).toStrictEqual(['status', 'customer']);
       });
     });
 

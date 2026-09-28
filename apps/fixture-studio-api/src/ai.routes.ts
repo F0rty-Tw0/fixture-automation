@@ -4,6 +4,7 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
+import { BODY_LIMIT_BYTES } from './common/studio-server.const.ts';
 import type { AiFillJob, SpecCompute, SpecStore, StudioAi, ValidateMissingTask } from './common/studio-server.type.ts';
 import type {
   AiFillBody,
@@ -48,14 +49,12 @@ type AiModelsRoute = {
   readonly Querystring: AiModelsQuery;
 };
 
-/** Room for a 1 MiB fixture plus its missing projection. */
-const AI_BODY_LIMIT = 4 * 1024 * 1024;
 const MODELS_TIMEOUT_MS = 120_000;
 const DISCOVERY_FIX = 'check that the CLI is installed and logged in, or type the model name';
 const promptSchema = { body: aiPromptBodySchema, params: specParamsSchema };
-const promptOptions = { schema: promptSchema, bodyLimit: AI_BODY_LIMIT };
+const promptOptions = { schema: promptSchema, bodyLimit: BODY_LIMIT_BYTES };
 const fillSchema = { body: aiFillBodySchema, params: specParamsSchema };
-const fillOptions = { schema: fillSchema, bodyLimit: AI_BODY_LIMIT };
+const fillOptions = { schema: fillSchema, bodyLimit: BODY_LIMIT_BYTES };
 const modelsSchema = { querystring: aiModelsQuerySchema };
 const modelsOptions = { schema: modelsSchema };
 const toolsResponse = { 200: aiToolsResultSchema };

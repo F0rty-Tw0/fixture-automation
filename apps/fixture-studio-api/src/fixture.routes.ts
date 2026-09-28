@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
+import { BODY_LIMIT_BYTES } from './common/studio-server.const.ts';
 import type { DiffTask, MergeTask, SpecCompute, SpecStore } from './common/studio-server.type.ts';
 import type { DiffBody, DiffResult, MergeBody, MergeResult } from './contract/common/studio-api.type.ts';
 import { API_ROUTES } from './contract/studio-api.const.ts';
@@ -23,12 +24,10 @@ type MergeRoute = {
   readonly Params: SpecParams;
 };
 
-/** Room for a 1 MiB fixture plus its populated counterpart. */
-const FIXTURE_BODY_LIMIT = 4 * 1024 * 1024;
 const diffSchema = { body: diffBodySchema, params: specParamsSchema };
-const diffOptions = { schema: diffSchema, bodyLimit: FIXTURE_BODY_LIMIT };
+const diffOptions = { schema: diffSchema, bodyLimit: BODY_LIMIT_BYTES };
 const mergeSchema = { body: mergeBodySchema, params: specParamsSchema };
-const mergeOptions = { schema: mergeSchema, bodyLimit: FIXTURE_BODY_LIMIT };
+const mergeOptions = { schema: mergeSchema, bodyLimit: BODY_LIMIT_BYTES };
 
 /** `POST /specs/:specId/diff` reports what a fixture lacks; `POST /specs/:specId/merge` fills and validates it. */
 export const fixtureRoutes = (fastify: FastifyInstance, cache: SpecStore, compute: SpecCompute): void => {

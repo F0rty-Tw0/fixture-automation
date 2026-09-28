@@ -43,11 +43,12 @@ const pointerPath = (pointer: string, value: unknown): string => {
 };
 
 /**
- * The property paths holding a schema-invalid value. An invalid primitive array element flags its enclosing
- * property, since dropping one element would shift the indices a merge zips by; the payload root is never flagged.
+ * The property paths holding a schema-invalid value, each with the first AJV message about it (its keyword when AJV
+ * gave none). An invalid primitive array element flags its enclosing property, since dropping one element would
+ * shift the indices a merge zips by; the payload root is never flagged.
  */
-export const invalidPaths = (violations: SchemaViolation[], value: unknown): Set<string> => {
-  const paths = new Set<string>();
+export const invalidPaths = (violations: SchemaViolation[], value: unknown): Map<string, string> => {
+  const paths = new Map<string, string>();
 
   for (const violation of violations) {
     const isWrapper = WRAPPER_KEYWORDS.includes(violation.keyword);
@@ -56,8 +57,9 @@ export const invalidPaths = (violations: SchemaViolation[], value: unknown): Set
 
     const pointed = pointerPath(violation.instancePath, value);
     const path = pointed.replace(TRAILING_INDEXES, '');
+    const isFlagged = paths.has(path);
 
-    if (path) paths.add(path);
+    if (path && !isFlagged) paths.set(path, violation.message ?? violation.keyword);
   }
 
   return paths;

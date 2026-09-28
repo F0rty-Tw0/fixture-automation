@@ -9,6 +9,7 @@ export { missingProjection } from './utils/missing-projection.util.ts';
 export { isSchema } from './utils/schema-record.util.ts';
 
 export type {
+  BrokenEntry,
   FixtureDiff,
   FixtureDiffRequest,
   MissingEntry,

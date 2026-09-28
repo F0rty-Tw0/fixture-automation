@@ -22,6 +22,15 @@ export type ReplaceablePredicate = (candidate: ReplaceCandidate) => boolean;
 export type SchemaViolation = {
   readonly keyword: string;
   readonly instancePath: string;
+  readonly message?: string | undefined;
+};
+
+/** A present value the schema rejects or that is an openapi-sampler placeholder. */
+export type BrokenEntry = {
+  readonly path: string;
+  readonly value: unknown;
+  /** The AJV message, e.g. `must be integer`, or `openapi-sampler placeholder`. */
+  readonly reason: string;
 };
 
 export type WalkInput = {
@@ -53,6 +62,8 @@ export type FixtureDiff = {
   readonly paths: string[];
   /** The subset of `paths` that held a placeholder or schema-invalid value; empty unless `replacePlaceholders`. */
   readonly replaced: string[];
+  /** Every present placeholder or schema-invalid value in walk order, reported whether or not `replacePlaceholders` refills it. */
+  readonly broken: BrokenEntry[];
   readonly schema: SpecSchema;
   readonly components: SchemaComponents;
   /** The fixture without the `replaced` paths: fill and merge onto this, not the original. Never written to `missing.json`. */

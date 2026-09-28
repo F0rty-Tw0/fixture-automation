@@ -18,6 +18,7 @@ const DIFF: FixtureDiff = {
   dialect: 'openapi-30',
   paths: ['id', 'customer'],
   replaced: [],
+  broken: [],
   schema: MISSING_SCHEMA,
   components: COMPONENTS,
   baseline: {}

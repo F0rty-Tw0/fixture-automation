@@ -7,7 +7,7 @@ import { OnDeviceAi } from './on-device-ai.service.ts';
 import { AiFillStore } from '../data-access/ai-fill.store.ts';
 import { ComparisonStore } from '../data-access/comparison.store.ts';
 
-/** Per endpoint tab: each workbench gets its own compare and AI fill state. */
+/** Per generated endpoint: its compare, missing-values and AI fill steps get their own state. */
 export const provideFixtureWorkbench = (): Provider[] => {
   return [ComparisonStore, AiFillStore, FixtureComparison, FillProgress, OnDeviceAi, FixtureAiFill];
 };

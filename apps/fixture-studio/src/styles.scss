@@ -6,7 +6,7 @@
 @use '@fontsource/fragment-mono/400-italic' as fragment-mono-italic;
 @use './styles/code-view';
 @use './styles/endpoint-list';
-@use './styles/workbench-tabs';
+@use './styles/workspace-tabs';
 
 // Design tokens. Every color is a light-dark() pair so the whole app, Material and
 // CodeMirror included, follows prefers-color-scheme without JavaScript.
@@ -168,6 +168,36 @@ kbd {
 :focus-visible {
   outline: 2px solid var(--fs-accent);
   outline-offset: 2px;
+}
+
+// Every folding section draws the same chevron as the step headings, pointing down while open; the native
+// marker disappears as soon as a summary is laid out as flex, so it is replaced everywhere.
+summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary::before {
+  display: inline-block;
+  flex: none;
+  width: 0.4em;
+  height: 0.4em;
+  margin-inline-end: var(--fs-space-2);
+  vertical-align: 0.15em;
+  content: '';
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  opacity: 0.6;
+  rotate: -45deg;
+  transition: rotate var(--fs-duration) var(--fs-ease-out);
+}
+
+details[open] > summary::before {
+  rotate: 45deg;
 }
 
 @media (prefers-reduced-motion: reduce) {

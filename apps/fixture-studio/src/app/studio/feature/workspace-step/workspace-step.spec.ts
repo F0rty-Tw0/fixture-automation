@@ -21,7 +21,7 @@ const STUDIO_ENGINE = provideHttpStudioEngine();
 
 const CREATE_INVOICE: Endpoint = { ...ENDPOINT_STUB, id: 'POST /v1/invoices', method: 'POST' };
 const SPEC: LoadedSpec = { ...LOADED_SPEC_STUB, endpoints: [ENDPOINT_STUB, CREATE_INVOICE] };
-const LIST_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, json: '{}' };
+const LIST_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, json: '{}', stub: 'export const INVOICE_LIST_STUB = {};' };
 const CREATE_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, endpointId: CREATE_INVOICE.id, schemaName: 'Invoice', json: '{}' };
 const RESULT: GenerateResult = { fixtures: [LIST_FIXTURE, CREATE_FIXTURE] };
 
@@ -80,6 +80,18 @@ describe('FEATURE: WorkspaceStep', (): void => {
       await fixture.whenStable();
 
       expect(tabLabels(fixture)).toStrictEqual(['GET /v1/invoices', 'POST /v1/invoices']);
+    });
+
+    it('WHEN the API answers THEN the first document is open and the others fold', async (): Promise<void> => {
+      await answerGenerate(http, 'spec-1', RESULT);
+      await fixture.whenStable();
+
+      const matches = hostOf(fixture).querySelectorAll<HTMLDetailsElement>('.workspace__document');
+      const documents = [...matches];
+      const openStates = documents.map((document) => document.open);
+
+      expect(textsAt(fixture, '.workspace__file')).toStrictEqual(['InvoiceList.json', 'InvoiceList.stub.ts']);
+      expect(openStates).toStrictEqual([true, false]);
     });
 
     it('WHEN another endpoint tab is chosen THEN it becomes the endpoint the later steps follow', async (): Promise<void> => {

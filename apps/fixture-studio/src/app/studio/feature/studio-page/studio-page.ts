@@ -1,29 +1,37 @@
 import { Component, computed, inject } from '@angular/core';
+import type { Signal } from '@angular/core';
 
+import type { StudioProgress, StudioSteps } from '../../common/studio.type.ts';
 import { FixtureGeneration } from '../../domain-logic/fixture-generation.service.ts';
 import { SpecBrowser } from '../../domain-logic/spec-browser.service.ts';
 import { StudioStep } from '../../ui/studio-step/studio-step.ts';
 import { studioSteps } from '../../utils/studio-steps.util.ts';
+import { EndpointSteps } from '../endpoint-steps/endpoint-steps.ts';
 import { EndpointsStep } from '../endpoints-step/endpoints-step.ts';
 import { SpecStep } from '../spec-step/spec-step.ts';
 import { WorkspaceStep } from '../workspace-step/workspace-step.ts';
 
-/** The whole studio on one page: spec, endpoints, and workspace stacked on the pipeline rail. */
+/**
+ * The whole studio on one page, one pipeline rail: spec, endpoints and generate, then compare, missing values and AI fill
+ * for the endpoint chosen in Generate. Each generated endpoint keeps its own last three steps.
+ */
 @Component({
   selector: 'fs-studio-page',
-  imports: [EndpointsStep, SpecStep, StudioStep, WorkspaceStep],
+  imports: [EndpointSteps, EndpointsStep, SpecStep, StudioStep, WorkspaceStep],
   templateUrl: './studio-page.html',
   styleUrl: './studio-page.scss'
 })
 export class StudioPage {
   protected readonly browser = inject(SpecBrowser);
-  private readonly generation = inject(FixtureGeneration);
+  protected readonly generation = inject(FixtureGeneration);
 
-  protected readonly steps = computed(() => {
+  /** The first three steps; before any fixture, the last three simply wait. */
+  protected readonly steps: Signal<StudioSteps> = computed(() => {
     const hasSpec = this.browser.loadedSpec() !== undefined;
     const hasFixtures = this.generation.views().length > 0;
+    const progress: StudioProgress = { hasSpec, hasFixtures, hasDiff: false, isFilling: false, hasMerge: false };
 
-    return studioSteps(hasSpec, hasFixtures);
+    return studioSteps(progress);
   });
 
   protected readonly specStatus = computed(() => {
@@ -47,7 +55,7 @@ export class StudioPage {
     return `${this.browser.selectedCount()} of ${spec.endpoints.length} selected`;
   });
 
-  protected readonly workspaceStatus = computed(() => {
+  protected readonly generateStatus = computed(() => {
     const count = this.generation.views().length;
 
     if (count === 0) return 'Waiting for fixtures';

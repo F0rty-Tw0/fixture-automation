@@ -108,7 +108,10 @@
 </form>
 
 @if (fill.isRunning() || fill.log().length > 0) {
-  <fs-progress-log [lines]="fill.log()" />
+  <details class="fill__section" open>
+    <summary class="fill__section-title">Model output</summary>
+    <fs-progress-log [lines]="fill.log()" />
+  </details>
 }
 
 @if (fill.runError(); as error) {
@@ -132,21 +135,17 @@
       </ul>
     }
 
-    <mat-tab-group animationDuration="0ms" aria-label="Fill results" mat-stretch-tabs="false">
-      @if (mergedDocument(); as document) {
-        <mat-tab label="Merged fixture">
-          <ng-template matTabContent>
-            <fs-document-view [document]="document" [original]="existingPretty()" class="fill__document" />
-          </ng-template>
-        </mat-tab>
-      }
-      @if (filledDocument(); as document) {
-        <mat-tab label="Filled values">
-          <ng-template matTabContent>
-            <fs-document-view [document]="document" class="fill__document" />
-          </ng-template>
-        </mat-tab>
-      }
-    </mat-tab-group>
+    @if (mergedDocument(); as document) {
+      <details class="fill__section" open>
+        <summary class="fill__section-title">Merged fixture</summary>
+        <fs-document-view [document]="document" [original]="existingPretty()" />
+      </details>
+    }
+    @if (filledDocument(); as document) {
+      <details class="fill__section">
+        <summary class="fill__section-title">Filled values</summary>
+        <fs-document-view [document]="document" />
+      </details>
+    }
   </section>
 }

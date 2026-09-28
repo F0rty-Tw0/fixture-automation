@@ -1,13 +1,13 @@
 import type { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
-import type { HttpTestingController } from '@angular/common/http/testing';
+import type { HttpTestingController, TestRequest } from '@angular/common/http/testing';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
-import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
+import { MatSelectHarness } from '@angular/material/select/testing';
 
-import type { DiffResult } from '@fixture-automation/fixture-studio-api/contract';
+import type { EnvelopeResult } from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComparePanel } from './compare-panel.ts';
@@ -15,10 +15,12 @@ import { provideFixtureWorkbench } from '../../domain-logic/fixture-workbench.pr
 import { SpecBrowser } from '../../domain-logic/spec-browser.service.ts';
 import { provideHttpStudioEngine } from '../../domain-logic/studio-engine.provider.ts';
 import { DIFF_RESULT_STUB, FIXTURE_VIEW_STUB, LOADED_SPEC_STUB } from '../../test/stubs/studio.stub.ts';
-import { hostOf, requiredElement, textAt, textsAt } from '../../test/utils/fixture-dom.spec.util.ts';
+import { hostOf, requiredElement, textAt } from '../../test/utils/fixture-dom.spec.util.ts';
 import { answerSpecLoad, configureStudioHttp, settle } from '../../test/utils/studio-http.spec.util.ts';
 
 const STUDIO_ENGINE = provideHttpStudioEngine();
+const DETECTED_DATA: EnvelopeResult = { candidates: ['data', 'meta'], detected: 'data' };
+const NO_ENVELOPE: EnvelopeResult = { candidates: [], detected: undefined };
 
 const dropFile = (fixture: ComponentFixture<ComparePanel>, file: File): void => {
   const drop = new Event('drop', { cancelable: true });
@@ -44,24 +46,34 @@ const shown = async (fixture: ComponentFixture<ComparePanel>, selector: string):
 };
 
 /**
- * Answers the diff the panel sent and renders the result; returns the body that was sent. While a diff is open, harness
- * actions wait for a settle that never comes, so clicks that start a diff go through the DOM.
+ * Waits for the panel to send `url`, answers it, renders, and returns the body that was sent. While a request is open,
+ * harness actions wait for a settle that never comes, so clicks that start one go through the DOM.
  */
-const answerDiff = async (
+const answer = async (
   http: HttpTestingController,
   fixture: ComponentFixture<ComparePanel>,
-  result: DiffResult = DIFF_RESULT_STUB
+  url: string,
+  body: object
 ): Promise<unknown> => {
-  TestBed.tick();
-  const request = http.expectOne('/api/specs/spec-1/diff');
+  const expectRequest = (): TestRequest => {
+    TestBed.tick();
+
+    return http.expectOne(url);
+  };
+
+  const request = await vi.waitFor(expectRequest);
   const sent: unknown = request.request.body;
 
-  request.flush(result);
+  request.flush(body);
   await settle();
   fixture.detectChanges();
 
   return sent;
 };
+
+const ENVELOPE_URL = '/api/specs/spec-1/envelope';
+
+const DIFF_URL = '/api/specs/spec-1/diff';
 
 describe('FEATURE: ComparePanel', (): void => {
   let http: HttpTestingController;
@@ -89,52 +101,82 @@ describe('FEATURE: ComparePanel', (): void => {
 
   describe('GIVEN a dropped JSON fixture', (): void => {
     beforeEach(async (): Promise<void> => {
-      dropFile(fixture, new File(['{"id":"in_1"}'], 'invoice.json'));
+      dropFile(fixture, new File(['{"data":{"id":"in_1"}}'], 'invoice.json'));
       await shown(fixture, '.compare__name');
     });
 
-    it('WHEN read THEN names it and compares it at once, replacing placeholders by default', async (): Promise<void> => {
-      const sent = await answerDiff(http, fixture);
-      const replace = await loader.getHarness(MatCheckboxHarness.with({ label: 'Replace placeholder and invalid values' }));
+    it('WHEN read THEN asks the API for its envelope with the parsed fixture', async (): Promise<void> => {
+      const sent = await answer(http, fixture, ENVELOPE_URL, DETECTED_DATA);
+      const payload = { id: 'in_1' };
+      const fixtureValue = { data: payload };
 
-      expect(textAt(fixture, '.compare__name')).toBe('invoice.json');
-      expect(await replace.isChecked()).toBe(true);
-      expect(sent).toMatchObject({ replacePlaceholders: true });
+      expect(sent).toStrictEqual({ endpointId: FIXTURE_VIEW_STUB.endpointId, fixture: fixtureValue });
+      await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
     });
 
-    it('WHEN the diff answers THEN lists the missing paths and steps the compare button back', async (): Promise<void> => {
-      await answerDiff(http, fixture);
-      const compare = await loader.getHarness(MatButtonHarness.with({ text: 'Compare with schema' }));
+    describe('WHEN the API detects an envelope', (): void => {
+      let sentDiff: unknown;
 
-      expect(textAt(fixture, '.missing__count')).toBe('1');
-      expect(textsAt(fixture, '.missing__path')).toStrictEqual(['status']);
-      expect(await compare.getAppearance()).toBe('outlined');
+      beforeEach(async (): Promise<void> => {
+        await answer(http, fixture, ENVELOPE_URL, DETECTED_DATA);
+        sentDiff = await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
+      });
+
+      it('THEN preselects it and compares inside it at once, replacing placeholders', async (): Promise<void> => {
+        const select = await loader.getHarness(MatSelectHarness);
+
+        expect(textAt(fixture, '.compare__name')).toBe('invoice.json');
+        expect(await select.getValueText()).toBe('data');
+        expect(sentDiff).toMatchObject({ objectShape: 'data', replacePlaceholders: true });
+      });
+
+      it('THEN offers "none" and every candidate', async (): Promise<void> => {
+        const select = await loader.getHarness(MatSelectHarness);
+
+        await select.open();
+        const options = await select.getOptions();
+        const labels = await Promise.all(options.map(async (option) => option.getText()));
+
+        expect(labels).toStrictEqual(['None — the fixture is the payload', 'data', 'meta']);
+      });
+
+      it('THEN shows the diff and steps the compare button back', async (): Promise<void> => {
+        const compare = await loader.getHarness(MatButtonHarness.with({ text: 'Compare with schema' }));
+
+        expect(hostOf(fixture).querySelector('.compare__diff fs-document-view')).not.toBeNull();
+        expect(await compare.getAppearance()).toBe('outlined');
+      });
+
+      it('THEN choosing no envelope compares again with the fixture as the payload', async (): Promise<void> => {
+        const select = await loader.getHarness(MatSelectHarness);
+
+        await select.open();
+        document.querySelector<HTMLElement>('mat-option')?.click();
+        const sent = await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
+
+        expect(sent).toMatchObject({ objectShape: undefined });
+      });
     });
 
-    it('WHEN the replace box is unchecked after the diff THEN compare turns primary and asks to keep them', async (): Promise<void> => {
-      await answerDiff(http, fixture);
-      const replace = await loader.getHarness(MatCheckboxHarness.with({ label: 'Replace placeholder and invalid values' }));
-      const compare = await loader.getHarness(MatButtonHarness.with({ text: 'Compare with schema' }));
+    it('WHEN the API finds no envelope THEN compares the fixture as the payload', async (): Promise<void> => {
+      await answer(http, fixture, ENVELOPE_URL, NO_ENVELOPE);
+      const sent = await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
 
-      await replace.uncheck();
-
-      expect(await compare.getAppearance()).toBe('filled');
-
-      requiredElement(fixture, '.compare__submit').click();
-      const sent = await answerDiff(http, fixture);
-
-      expect(sent).toMatchObject({ replacePlaceholders: false });
+      expect(sent).toMatchObject({ objectShape: undefined });
     });
 
-    it('WHEN the diff replaced values THEN lists them apart from the missing paths and counts both on the fill', async (): Promise<void> => {
-      const replaced: DiffResult = { ...DIFF_RESULT_STUB, missingPaths: ['status', 'memo', 'id'], replacedPaths: ['memo', 'id'] };
+    it('WHEN the envelope detection fails THEN still compares, as the payload', async (): Promise<void> => {
+      const expectRequest = (): TestRequest => {
+        TestBed.tick();
 
-      await answerDiff(http, fixture, replaced);
-      const fillButton = await loader.getHarness(MatButtonHarness.with({ text: /with AI/u }));
+        return http.expectOne(ENVELOPE_URL);
+      };
+      const request = await vi.waitFor(expectRequest);
 
-      expect(textsAt(fixture, '.missing__heading')).toStrictEqual(['Missing paths 1', 'Replaced values 2']);
-      expect(textsAt(fixture, '.missing__path')).toStrictEqual(['status', 'memo', 'id']);
-      expect(await fillButton.getText()).toBe('Fill 3 values with AI');
+      request.flush({ message: 'down' }, { status: 502, statusText: 'Bad Gateway' });
+      const sent = await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
+
+      expect(sent).toMatchObject({ objectShape: undefined });
     });
   });
 
@@ -148,7 +190,8 @@ describe('FEATURE: ComparePanel', (): void => {
 
     expect(hostOf(fixture).querySelector('.compare__reading')).toBeNull();
 
-    await answerDiff(http, fixture);
+    await answer(http, fixture, ENVELOPE_URL, NO_ENVELOPE);
+    await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
   });
 
   it('GIVEN a TypeScript fixture with a call WHEN dropped THEN explains why it cannot be read', async (): Promise<void> => {
@@ -167,6 +210,7 @@ describe('FEATURE: ComparePanel', (): void => {
 
     expect(await shown(fixture, '.compare__name')).toBe('Pasted text');
 
-    await answerDiff(http, fixture);
+    await answer(http, fixture, ENVELOPE_URL, NO_ENVELOPE);
+    await answer(http, fixture, DIFF_URL, DIFF_RESULT_STUB);
   });
 });

@@ -20,7 +20,17 @@
           </span>
         </ng-template>
         <ng-template matTabContent>
-          <fs-fixture-workbench [view]="view" class="workspace__panel" />
+          <div class="workspace__documents">
+            @for (document of view.documents; track document.format; let isFirst = $first) {
+              <details [open]="isFirst" class="workspace__document">
+                <summary class="workspace__document-title">
+                  {{ document.label }}
+                  <span class="workspace__file">{{ document.fileName }}</span>
+                </summary>
+                <fs-document-view [document]="document" />
+              </details>
+            }
+          </div>
         </ng-template>
       </mat-tab>
     }
@@ -28,5 +38,7 @@
 } @else if (generation.isGenerating()) {
   <p class="workspace__empty">Generating fixtures…</p>
 } @else {
-  <p class="workspace__empty">Select endpoints above and press Generate. Each endpoint opens here as a tab, with a sub-tab per format.</p>
+  <p class="workspace__empty">
+    Select endpoints above and press Generate. Each endpoint opens here as a tab, with a folding section per format.
+  </p>
 }

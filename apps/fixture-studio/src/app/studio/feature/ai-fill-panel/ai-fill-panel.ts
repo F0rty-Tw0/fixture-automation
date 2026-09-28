@@ -7,7 +7,6 @@ import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatSelect } from '@angular/material/select';
-import { MatTab, MatTabContent, MatTabGroup } from '@angular/material/tabs';
 
 import { AI_AVAILABILITY_LABELS } from '../../common/ai-fill.const.ts';
 import type { FixtureDocument, FixtureView } from '../../common/studio.type.ts';
@@ -38,9 +37,6 @@ import { jsonDocument } from '../../utils/fixture-document.util.ts';
     MatOption,
     MatProgressBar,
     MatSelect,
-    MatTab,
-    MatTabContent,
-    MatTabGroup,
     ProgressLog
   ],
   templateUrl: './ai-fill-panel.html',

@@ -4,13 +4,16 @@ import { MatTab, MatTabContent, MatTabGroup, MatTabLabel } from '@angular/materi
 
 import { FixtureGeneration } from '../../domain-logic/fixture-generation.service.ts';
 import { ApiErrorNotice } from '../../ui/api-error-notice/api-error-notice.ts';
+import { DocumentView } from '../../ui/document-view/document-view.ts';
 import { MethodBadge } from '../../ui/method-badge/method-badge.ts';
-import { FixtureWorkbench } from '../fixture-workbench/fixture-workbench.ts';
 
-/** Step three: one tab per generated endpoint; each tab holds that endpoint's documents. The chosen tab is the active endpoint. */
+/**
+ * Step three: one tab per generated endpoint, each holding its documents as folding sections. The chosen tab is the
+ * endpoint that Compare, Missing values and AI fill follow.
+ */
 @Component({
   selector: 'fs-workspace-step',
-  imports: [ApiErrorNotice, FixtureWorkbench, MatTab, MatTabContent, MatTabGroup, MatTabLabel, MethodBadge],
+  imports: [ApiErrorNotice, DocumentView, MatTab, MatTabContent, MatTabGroup, MatTabLabel, MethodBadge],
   templateUrl: './workspace-step.html',
   styleUrl: './workspace-step.scss'
 })

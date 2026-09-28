@@ -1,6 +1,8 @@
 :host {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--fs-space-4);
+  min-width: 0;
 }
 
 .fill__provider {
@@ -161,8 +163,10 @@
 }
 
 .fill__errors {
+  max-height: min(40vh, 16rem);
   padding: 0;
   margin: 0;
+  overflow: auto;
   font-family: var(--fs-font-mono);
   font-size: var(--fs-text-xs);
   list-style: none;
@@ -170,10 +174,18 @@
 
 .fill__error {
   color: var(--fs-danger);
+  overflow-wrap: anywhere;
 }
 
-.fill__document {
-  padding-top: var(--fs-space-3);
+.fill__section {
+  min-width: 0;
+}
+
+.fill__section-title {
+  margin-bottom: var(--fs-space-2);
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 @media (width < 48rem) {

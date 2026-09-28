@@ -9,6 +9,7 @@ import { hostOf, textAt, textsAt } from '../../test/utils/fixture-dom.spec.util.
 
 const STDERR: AiFillProgressEvent = { type: 'progress', stream: 'stderr', text: 'warning: slow' };
 const STATUS: AiFillProgressEvent = { type: 'progress', stream: 'status', text: 'Cancelled.' };
+const ANSWER: AiFillProgressEvent = { type: 'progress', stream: 'stdout', text: '{\n  "memo": "Net 30"\n}' };
 
 describe('FEATURE: ProgressLog', (): void => {
   let fixture: ComponentFixture<ProgressLog>;
@@ -36,5 +37,14 @@ describe('FEATURE: ProgressLog', (): void => {
 
     expect(textsAt(fixture, '.log__line')).toStrictEqual(['warning: slow', 'Cancelled.']);
     expect(streams).toStrictEqual(['stderr', 'status']);
+  });
+
+  it('GIVEN a streamed answer WHEN rendered THEN shows it as one block, keeping its line breaks', async (): Promise<void> => {
+    fixture.componentRef.setInput('lines', [STATUS, ANSWER]);
+    await fixture.whenStable();
+
+    const block = hostOf(fixture).querySelector<HTMLElement>('[data-stream="stdout"]');
+
+    expect(block?.textContent).toBe(ANSWER.text);
   });
 });

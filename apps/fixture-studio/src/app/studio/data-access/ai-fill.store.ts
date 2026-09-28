@@ -6,11 +6,11 @@ import type { AiFillProgressEvent, MergeResult } from '@fixture-automation/fixtu
 import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
 import { ComparisonStore } from './comparison.store.ts';
 import { STUDIO_ENGINE } from './studio-engine.token.ts';
-import { AI_LOG_LIMIT, DEFAULT_AI_FILL_FORM } from '../common/ai-fill.const.ts';
+import { AI_LOG_BLOCK_LIMIT, AI_LOG_LIMIT, DEFAULT_AI_FILL_FORM } from '../common/ai-fill.const.ts';
 import type { AiFillForm, AiRunOptions, AiRunRequest, MergeRequest } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
 import type { EngineCall, EngineStreamCall } from '../common/engine.type.ts';
-import { appendCapped } from '../utils/ai-log.util.ts';
+import { appendProgress } from '../utils/ai-log.util.ts';
 import { cliFillBody } from '../utils/ai-provider.util.ts';
 
 const CANCELLED: AiFillProgressEvent = { type: 'progress', stream: 'status', text: 'Cancelled.' };
@@ -137,10 +137,7 @@ export class AiFillStore {
     }
   }
 
-  /** CLI lines arrive with their newline; the log renders one entry per line, so it is dropped. */
   private appendLog(event: AiFillProgressEvent): void {
-    const line: AiFillProgressEvent = { ...event, text: event.text.trimEnd() };
-
-    this.log.update((lines) => appendCapped(lines, line, AI_LOG_LIMIT));
+    this.log.update((lines) => appendProgress(lines, event, AI_LOG_LIMIT, AI_LOG_BLOCK_LIMIT));
   }
 }

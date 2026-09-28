@@ -118,10 +118,17 @@ describe('FEATURE: AI fill store', (): void => {
       expect(store.log().at(-1)?.text).toBe('Cancelled.');
     });
 
-    it('WHEN a CLI line ends in a newline THEN logs it without the newline', (): void => {
-      reportProgress({ type: 'progress', stream: 'stdout', text: 'mock: done\n' });
+    it('WHEN a status line ends in a newline THEN logs it without the newline', (): void => {
+      reportProgress({ type: 'progress', stream: 'status', text: 'mock: done\n' });
 
       expect(store.log().map((line) => line.text)).toStrictEqual(['mock: done']);
+    });
+
+    it('WHEN the model output arrives in fragments THEN logs them as one growing entry', (): void => {
+      reportProgress({ type: 'progress', stream: 'stdout', text: '{"status":' });
+      reportProgress({ type: 'progress', stream: 'stdout', text: '"open"}\n' });
+
+      expect(store.log().map((line) => line.text)).toStrictEqual(['{"status":"open"}\n']);
     });
 
     it('WHEN started again THEN clears the previous log', (): void => {

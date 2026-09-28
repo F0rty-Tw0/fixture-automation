@@ -5,6 +5,9 @@ import type { AiAvailability, AiFillForm } from './ai-fill.type.ts';
 /** The progress log keeps only the latest lines so a chatty CLI can't grow the DOM without bound. */
 export const AI_LOG_LIMIT = 400;
 
+/** One streamed answer keeps only its last 64 KiB in the log, so a huge answer can't bloat the DOM. */
+export const AI_LOG_BLOCK_LIMIT = 64 * 1024;
+
 export const AI_OPT_IN_STORAGE_KEY = 'fixture-studio.use-chrome-ai';
 
 export const DEFAULT_AI_FILL_FORM: AiFillForm = {

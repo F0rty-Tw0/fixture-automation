@@ -27,12 +27,21 @@ const isDownloadEvent = (event: Event): event is LanguageModelDownloadEvent => {
   return 'loaded' in event && typeof event.loaded === 'number';
 };
 
-const readAll = async (reader: ReadableStreamDefaultReader<string>, text: string): Promise<string> => {
+const output = (text: string): AiFillProgressEvent => {
+  const event: AiFillProgressEvent = { type: 'progress', stream: 'stdout', text };
+
+  return event;
+};
+
+/** Reads the streamed answer to its end, reporting each chunk as model output so the log shows the answer as it grows. */
+const readAll = async (reader: ReadableStreamDefaultReader<string>, text: string, options: AiRunOptions): Promise<string> => {
   const chunk = await reader.read();
 
   if (chunk.done) return text;
 
-  return readAll(reader, text + chunk.value);
+  options.onProgress(output(chunk.value));
+
+  return readAll(reader, text + chunk.value, options);
 };
 
 const parseAnswer = (text: string): unknown => {
@@ -58,7 +67,7 @@ const answerOf = async (session: LanguageModelSession, prompt: AiPromptResult, o
   const constrained = { responseConstraint: prompt.responseSchema, omitResponseConstraintInput: true, signal: options.signal };
 
   try {
-    return await readAll(session.promptStreaming(prompt.prompt, constrained).getReader(), '');
+    return await readAll(session.promptStreaming(prompt.prompt, constrained).getReader(), '', options);
   } catch (error) {
     const isRejected = isConstraintRejected(error);
 
@@ -68,7 +77,7 @@ const answerOf = async (session: LanguageModelSession, prompt: AiPromptResult, o
 
     const unconstrained = { signal: options.signal };
 
-    return readAll(session.promptStreaming(prompt.prompt, unconstrained).getReader(), '');
+    return readAll(session.promptStreaming(prompt.prompt, unconstrained).getReader(), '', options);
   }
 };
 

@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { LoadedSpec } from '@fixture-automation/fixture-studio-api/contract';
+import type { EnvelopeResult, LoadedSpec } from '@fixture-automation/fixture-studio-api/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FixtureComparison } from './fixture-comparison.service.ts';
@@ -17,6 +17,9 @@ import { settle } from '../test/utils/studio-http.spec.util.ts';
 const SPEC: LoadedSpec = { ...LOADED_SPEC_STUB, specId: 'spec-1' };
 const PAYLOAD = { id: 1 };
 const ENVELOPE_FORM: CompareForm = { pasted: '', objectShape: ' data ', replacePlaceholders: false };
+const DETECTED_DATA: EnvelopeResult = { candidates: ['data', 'meta'], detected: 'data' };
+const NO_ENVELOPE: EnvelopeResult = { candidates: [], detected: undefined };
+const ENDPOINT_ID = 'GET /v1/invoices';
 
 describe('FEATURE: fixture comparison', (): void => {
   let engine: StudioEngine;
@@ -174,6 +177,72 @@ describe('FEATURE: fixture comparison', (): void => {
 
         expect(comparison.error()).toStrictEqual({ message: 'spec not found', fix: 'Reload the spec.' });
       });
+    });
+  });
+
+  describe('SCENARIO: reading and comparing in one go', (): void => {
+    beforeEach(async (): Promise<void> => {
+      vi.mocked(engine.loadSpec).mockResolvedValue(SPEC);
+      vi.mocked(engine.diff).mockResolvedValue(DIFF_RESULT_STUB);
+      TestBed.inject(SpecBrowser).loadUrl('https://example.com/a.json');
+      await settle();
+    });
+
+    it('GIVEN the API detects an envelope WHEN a file is compared THEN offers the candidates and diffs inside it', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockResolvedValue(DETECTED_DATA);
+
+      await comparison.compareFile(new File(['{"data":{"id":1}}'], 'a.json'), ENDPOINT_ID);
+      await settle();
+
+      const enveloped = { data: PAYLOAD };
+      const envelopeBody = { endpointId: ENDPOINT_ID, fixture: enveloped };
+
+      expect(engine.envelope).toHaveBeenCalledWith('spec-1', envelopeBody, expect.anything());
+      expect(comparison.envelopes()).toStrictEqual(['data', 'meta']);
+      expect(engine.diff).toHaveBeenCalledWith('spec-1', expect.objectContaining({ objectShape: 'data' }), expect.anything());
+    });
+
+    it('GIVEN no envelope is found WHEN pasted text is compared THEN diffs the fixture as the payload', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockResolvedValue(NO_ENVELOPE);
+      comparison.form.set({ pasted: '{"id":1}', objectShape: 'data', replacePlaceholders: true });
+
+      await comparison.comparePasted(ENDPOINT_ID);
+      await settle();
+
+      expect(engine.diff).toHaveBeenCalledWith('spec-1', expect.objectContaining({ objectShape: undefined }), expect.anything());
+    });
+
+    it('GIVEN the detection fails WHEN a file is compared THEN still diffs, as the payload', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockRejectedValue(new Error('down'));
+
+      await comparison.compareFile(new File(['{"id":1}'], 'a.json'), ENDPOINT_ID);
+      await settle();
+
+      expect(comparison.envelopes()).toStrictEqual([]);
+      expect(engine.diff).toHaveBeenCalledTimes(1);
+    });
+
+    it('GIVEN an unreadable file WHEN compared THEN neither detects nor diffs', async (): Promise<void> => {
+      await comparison.compareFile(new File(['export const A = { at: now() };'], 'a.ts'), ENDPOINT_ID);
+
+      expect(engine.envelope).not.toHaveBeenCalled();
+      expect(engine.diff).not.toHaveBeenCalled();
+    });
+
+    it('GIVEN a newer file read during a detection WHEN the old detection answers THEN it is ignored', async (): Promise<void> => {
+      const late = Promise.withResolvers<EnvelopeResult>();
+
+      vi.mocked(engine.envelope).mockReturnValueOnce(late.promise).mockResolvedValueOnce(NO_ENVELOPE);
+
+      const first = comparison.compareFile(new File(['{"data":{"id":1}}'], 'a.json'), ENDPOINT_ID);
+
+      await vi.waitFor((): void => expect(engine.envelope).toHaveBeenCalledTimes(1));
+      await comparison.compareFile(new File(['{"id":2}'], 'b.json'), ENDPOINT_ID);
+      late.resolve(DETECTED_DATA);
+      await first;
+
+      expect(comparison.form().objectShape).toBe('');
+      expect(comparison.envelopes()).toStrictEqual([]);
     });
   });
 });

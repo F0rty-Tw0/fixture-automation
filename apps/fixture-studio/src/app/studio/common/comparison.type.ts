@@ -24,7 +24,7 @@ export type LiteralParse = LiteralRead | LiteralRejected;
 /** Model of the compare form. */
 export type CompareForm = {
   readonly pasted: string;
-  /** Envelope property holding the payload, e.g. `data`; empty when the fixture is the payload. */
+  /** Envelope property holding the payload, e.g. `data`; empty when the fixture is the payload. Detected on read. */
   readonly objectShape: string;
   /** Also refill present values that break the schema or are openapi-sampler defaults. */
   readonly replacePlaceholders: boolean;

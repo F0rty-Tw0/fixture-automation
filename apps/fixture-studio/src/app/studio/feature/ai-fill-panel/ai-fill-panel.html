@@ -59,9 +59,11 @@
 
 <form class="fill__form" novalidate (submit)="$event.preventDefault(); run()">
   <mat-form-field appearance="outline" class="fill__scenario" subscriptSizing="dynamic">
-    <mat-label>Scenario</mat-label>
-    <textarea [formField]="aiForm.scenario" matInput placeholder="An overdue invoice for a German customer" rows="2"></textarea>
-    <mat-hint>Optional: what the filled values should describe</mat-hint>
+    <mat-label>Extra prompt (scenario)</mat-label>
+    <textarea [formField]="aiForm.scenario" matInput rows="2"></textarea>
+    <mat-hint>
+      Optional. Added to the built-in instructions sent to the model, e.g. 'an overdue invoice for a German customer'.
+    </mat-hint>
   </mat-form-field>
 
   @if (fill.provider() === 'cli') {

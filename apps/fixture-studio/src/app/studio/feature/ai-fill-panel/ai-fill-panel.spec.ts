@@ -119,6 +119,11 @@ describe('FEATURE: AiFillPanel', (): void => {
         expect(textAt(fixture, '.fill__availability')).toBe('Chrome AI: Not available in this browser');
       });
 
+      it('GIVEN the scenario field WHEN rendered THEN calls it an extra prompt added to the built-in instructions', (): void => {
+        expect(textAt(fixture, '.fill__scenario mat-label')).toBe('Extra prompt (scenario)');
+        expect(textAt(fixture, '.fill__scenario mat-hint')).toContain('Added to the built-in instructions sent to the model');
+      });
+
       it('GIVEN a browser without Chrome AI WHEN the user opts in THEN keeps the CLI and says so', async (): Promise<void> => {
         const optIn = await loader.getHarness(MatCheckboxHarness.with({ label: 'Use on-device Chrome AI' }));
 

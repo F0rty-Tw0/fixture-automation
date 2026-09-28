@@ -1,7 +1,13 @@
 :host {
   display: block;
+  min-width: 0;
 }
 
+.missing {
+  min-width: 0;
+}
+
+// The summary is the list's heading and its fold toggle.
 .missing__heading {
   display: flex;
   gap: var(--fs-space-2);
@@ -9,6 +15,7 @@
   margin: 0 0 var(--fs-space-2);
   font-size: var(--fs-text-sm);
   font-weight: 600;
+  cursor: pointer;
 }
 
 .missing__count {
@@ -26,21 +33,60 @@
   background: var(--fs-surface-sunken);
 }
 
+// Thousands of paths scroll inside this box instead of stretching the page.
+.missing__groups {
+  max-height: min(50vh, 28rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-md);
+}
+
+.missing__group + .missing__group {
+  border-top: 1px solid var(--fs-line);
+}
+
+.missing__summary {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: var(--fs-space-2);
+  align-items: baseline;
+  padding: var(--fs-space-1) var(--fs-space-3);
+  font-size: var(--fs-text-sm);
+  cursor: pointer;
+  background: var(--fs-surface);
+}
+
+.missing__root {
+  font-family: var(--fs-font-mono);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.missing__group-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--fs-ink-faint);
+}
+
 .missing__paths {
   display: flex;
   flex-wrap: wrap;
   gap: var(--fs-space-1) var(--fs-space-2);
-  padding: 0;
+  padding: 0 var(--fs-space-3) var(--fs-space-2);
   margin: 0;
   list-style: none;
 }
 
 .missing__path {
+  min-width: 0;
   padding: 0 var(--fs-space-2);
   font-family: var(--fs-font-mono);
   font-size: var(--fs-text-xs);
   line-height: 1.8;
   color: var(--fs-ink);
+  overflow-wrap: anywhere;
   background: var(--fs-surface-sunken);
   border-radius: var(--fs-radius-sm);
 }

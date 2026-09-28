@@ -10,6 +10,7 @@ import type {
   MissingFile
 } from '@fixture-automation/fixture-studio-api/contract';
 
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../../common/ai-fill.const.ts';
 import type { FixtureDocument, FixtureView } from '../../common/studio.type.ts';
 
 export const ENDPOINT_STUB: Endpoint = {
@@ -58,6 +59,9 @@ export const DIFF_RESULT_STUB: DiffResult = {
   completeJson: '{\n  "id": "in_1",\n  "status": "draft"\n}',
   promptBytes: 900
 };
+
+/** One byte past what the on-device model is offered for. */
+export const OVERSIZED_DIFF_RESULT_STUB: DiffResult = { ...DIFF_RESULT_STUB, promptBytes: ON_DEVICE_PROMPT_BYTE_LIMIT + 1 };
 
 export const MERGE_RESULT_STUB: MergeResult = {
   mergedJson: '{\n  "id": "in_1",\n  "status": "open"\n}',

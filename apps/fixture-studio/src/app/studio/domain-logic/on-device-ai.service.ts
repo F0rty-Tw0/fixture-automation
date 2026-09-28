@@ -7,7 +7,8 @@ import type { AiAvailability, AiProviderId, OnDeviceState } from '../common/ai-f
 import { AiFillStore } from '../data-access/ai-fill.store.ts';
 import { AiSettingsStore } from '../data-access/ai-settings.store.ts';
 import { CHROME_AI_PROVIDER } from '../data-access/chrome-built-in-ai.provider.ts';
-import { chooseAiProvider, onDeviceState } from '../utils/ai-provider.util.ts';
+import { ComparisonStore } from '../data-access/comparison.store.ts';
+import { chooseAiProvider, fitsOnDevice, onDeviceState } from '../utils/ai-provider.util.ts';
 import { toApiError } from '../utils/api-error.util.ts';
 
 /**
@@ -19,6 +20,7 @@ export class OnDeviceAi {
   private readonly store = inject(AiFillStore);
   private readonly settings = inject(AiSettingsStore);
   private readonly chrome = inject(CHROME_AI_PROVIDER);
+  private readonly comparison = inject(ComparisonStore);
 
   public readonly isChromeOptedIn: Signal<boolean> = this.settings.isChromeOptedIn;
   public readonly downloadRatio: Signal<number | undefined> = this.store.downloadRatio.asReadonly();
@@ -31,8 +33,22 @@ export class OnDeviceAi {
     loader: async (): Promise<AiAvailability> => this.chrome.availability()
   });
 
-  /** On-device AI when the user opted in and Chrome can run it; the local CLI otherwise. */
-  public readonly provider: Signal<AiProviderId> = computed(() => chooseAiProvider(this.isChromeOptedIn(), this.chromeAvailability.value()));
+  /** Before a diff, or while its trimmed prompt fits, the on-device model is offered; a bigger fixture never is. */
+  public readonly isOffered: Signal<boolean> = computed(() => {
+    const diff = this.comparison.diff;
+
+    if (!diff.hasValue()) return true;
+
+    const { promptBytes } = diff.value();
+
+    return fitsOnDevice(promptBytes);
+  });
+
+  /** The opt-in counts only while the fixture fits; it stays saved for the next, smaller one. */
+  private readonly isChromeChosen: Signal<boolean> = computed(() => this.isChromeOptedIn() && this.isOffered());
+
+  /** On-device AI when the user opted in, the fixture fits, and Chrome can run it; the local CLI otherwise. */
+  public readonly provider: Signal<AiProviderId> = computed(() => chooseAiProvider(this.isChromeChosen(), this.chromeAvailability.value()));
 
   public readonly state: Signal<OnDeviceState> = computed(() => onDeviceState(this.chromeAvailability.value(), this.isDownloading()));
 
@@ -40,7 +56,7 @@ export class OnDeviceAi {
   public readonly isAwaitingChrome: Signal<boolean> = computed(() => {
     const isAvailabilityLoading = this.chromeAvailability.isLoading();
 
-    return this.isChromeOptedIn() && isAvailabilityLoading;
+    return this.isChromeChosen() && isAvailabilityLoading;
   });
 
   /** The on-device provider is chosen but its model is not ready to prompt. */

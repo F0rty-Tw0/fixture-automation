@@ -1,9 +1,7 @@
-import { MISSING_PROMPT_LIMIT_BYTES, missingDocument, missingPromptBytes } from '@fixture-automation/openapi-ai-fixtures';
-import type { MissingPromptInput } from '@fixture-automation/openapi-ai-fixtures';
+import { MISSING_PROMPT_LIMIT_BYTES } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-import { baselineContext } from './baseline-context.util.ts';
-import { missingChunk } from './missing-chunk.util.ts';
+import { chunkPromptBytes, promptBytes } from './ai-prompt.util.ts';
 import type { MissingFile } from '../contract/common/studio-api.type.ts';
 
 type ChunkScope = {
@@ -18,25 +16,9 @@ const CHUNK_BUDGET_BYTES = 256 * 1024;
 const CHUNK_MAX_PATHS = 150;
 const OVERSIZE_FIX = 'fill that field by hand, or trim the fixture around it: its prompt alone exceeds the 1 MiB CLI input limit';
 
-const promptBytes = (fixture: unknown, missing: MissingFile, scenario: string): number => {
-  const fixtureJson: unknown = JSON.stringify(fixture);
-
-  if (typeof fixtureJson !== 'string')
-    throw new FixtureError('the fixture is not JSON-serializable', 'send the parsed fixture object');
-
-  const document = missingDocument(missing);
-  const input: MissingPromptInput = { fixtureJson, missing: document, scenario };
-
-  return missingPromptBytes(input);
-};
-
 /** The prompt of one chunk: only its paths, with the baseline trimmed to their context. */
-const chunkBytes = (scope: ChunkScope, paths: string[]): number => {
-  const chunk = missingChunk(scope.missing, paths);
-  const baseline = baselineContext(scope.fixture, chunk.paths);
-
-  return promptBytes(baseline, chunk, scope.scenario);
-};
+const chunkBytes = (scope: ChunkScope, paths: string[]): number =>
+  chunkPromptBytes(scope.fixture, scope.missing, paths, scope.scenario);
 
 const halves = (paths: string[]): string[][] => {
   const middle = Math.ceil(paths.length / 2);

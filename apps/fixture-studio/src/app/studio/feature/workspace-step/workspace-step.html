@@ -3,7 +3,14 @@
 }
 
 @if (generation.views().length > 0) {
-  <mat-tab-group [preserveContent]="true" animationDuration="0ms" aria-label="Generated endpoints" class="workspace__tabs" mat-stretch-tabs="false">
+  <mat-tab-group
+    [preserveContent]="true"
+    [selectedIndex]="activeIndex()"
+    animationDuration="0ms"
+    aria-label="Generated endpoints"
+    class="workspace__tabs"
+    mat-stretch-tabs="false"
+    (selectedIndexChange)="selectTab($event)">
     @for (view of generation.views(); track view.endpointId) {
       <mat-tab>
         <ng-template mat-tab-label>

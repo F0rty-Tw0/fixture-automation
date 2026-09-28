@@ -1,4 +1,4 @@
-import { Service, computed, inject } from '@angular/core';
+import { Service, computed, inject, linkedSignal } from '@angular/core';
 import type { Signal, WritableSignal } from '@angular/core';
 
 import type { ApiErrorBody, FixtureFormat, GenerateBody } from '@fixture-automation/fixture-studio-api/contract';
@@ -10,6 +10,15 @@ import { SpecStore } from '../data-access/spec.store.ts';
 import { toApiError } from '../utils/api-error.util.ts';
 import { fixtureFormats, fixtureViews } from '../utils/fixture-document.util.ts';
 import { selectedEndpointIds } from '../utils/selection.util.ts';
+
+/** The endpoint the steps after Generate follow: the one chosen before, while it is still generated, else the first. */
+const activeEndpointFor = (views: FixtureView[], previous: string | undefined): string | undefined => {
+  const isStillGenerated = views.some((view) => view.endpointId === previous);
+
+  if (isStillGenerated) return previous;
+
+  return views[0]?.endpointId;
+};
 
 /** Turns the selected endpoints and chosen formats into generated fixtures. */
 @Service()
@@ -29,6 +38,14 @@ export class FixtureGeneration {
     return fixtureViews(this.generation.result.value().fixtures);
   });
 
+  private readonly chosenEndpoint = linkedSignal<FixtureView[], string | undefined>({
+    source: this.views,
+    computation: (views, previous) => activeEndpointFor(views, previous?.value)
+  });
+
+  /** The generated endpoint that Compare, Missing values and AI fill show; picked in Generate or Compare. */
+  public readonly activeEndpointId: Signal<string | undefined> = this.chosenEndpoint.asReadonly();
+
   public readonly canGenerate: Signal<boolean> = computed(() => {
     const hasSpec = this.specStore.loadedSpec() !== undefined;
     const hasSelection = this.selection.selectedIds().size > 0;
@@ -36,6 +53,10 @@ export class FixtureGeneration {
 
     return hasSpec && hasSelection && hasFormat;
   });
+
+  public selectEndpoint(endpointId: string): void {
+    this.chosenEndpoint.set(endpointId);
+  }
 
   /** Posts the selection; does nothing while `canGenerate` is false. */
   public generate(): void {

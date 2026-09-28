@@ -1,6 +1,8 @@
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import type { HttpTestingController } from '@angular/common/http/testing';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
+import { MatTabGroupHarness } from '@angular/material/tabs/testing';
 
 import type { Endpoint, GenerateResult, GeneratedFixture, LoadedSpec } from '@fixture-automation/fixture-studio-api/contract';
 import type { Mock } from 'vitest';
@@ -78,6 +80,15 @@ describe('FEATURE: WorkspaceStep', (): void => {
       await fixture.whenStable();
 
       expect(tabLabels(fixture)).toStrictEqual(['GET /v1/invoices', 'POST /v1/invoices']);
+    });
+
+    it('WHEN another endpoint tab is chosen THEN it becomes the endpoint the later steps follow', async (): Promise<void> => {
+      await answerGenerate(http, 'spec-1', RESULT);
+      const tabs = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatTabGroupHarness);
+
+      await tabs.selectTab({ label: 'POST /v1/invoices' });
+
+      expect(TestBed.inject(FixtureGeneration).activeEndpointId()).toBe(CREATE_INVOICE.id);
     });
 
     it('WHEN the API answers THEN scrolls the workspace into view, since it opens below the endpoint list', async (): Promise<void> => {

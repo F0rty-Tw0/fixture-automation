@@ -21,6 +21,8 @@ const NO_FORMATS: GenerateOptions = { ...DEFAULT_GENERATE_OPTIONS, json: false, 
 const TYPES_REQUIRED_ONLY: GenerateOptions = { json: false, stub: false, types: true, requiredOnly: true };
 const FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, endpointId: 'GET /a', json: '{}' };
 const RESULT: GenerateResult = { fixtures: [FIXTURE] };
+const SECOND_FIXTURE: GeneratedFixture = { ...FIXTURE, endpointId: 'GET /b' };
+const BOTH: GenerateResult = { fixtures: [FIXTURE, SECOND_FIXTURE] };
 
 describe('FEATURE: fixture generation', (): void => {
   let http: HttpTestingController;
@@ -86,6 +88,45 @@ describe('FEATURE: fixture generation', (): void => {
 
       expect(generation.isGenerating()).toBe(false);
       expect(generation.views().map((view) => view.endpointId)).toStrictEqual(['GET /a']);
+    });
+
+    it('WHEN nothing is generated yet THEN no endpoint is active', (): void => {
+      expect(generation.activeEndpointId()).toBeUndefined();
+    });
+
+    describe('WHEN two fixtures are generated', (): void => {
+      beforeEach(async (): Promise<void> => {
+        generation.generate();
+        await answerGenerate(http, 'spec-1', BOTH);
+      });
+
+      it('THEN the first endpoint is active', (): void => {
+        expect(generation.activeEndpointId()).toBe('GET /a');
+      });
+
+      it('THEN another endpoint can be chosen', (): void => {
+        generation.selectEndpoint('GET /b');
+
+        expect(generation.activeEndpointId()).toBe('GET /b');
+      });
+
+      it('THEN the chosen endpoint stays active across a new generate that still has it', async (): Promise<void> => {
+        generation.selectEndpoint('GET /b');
+        generation.options.set(TYPES_REQUIRED_ONLY);
+        generation.generate();
+        await answerGenerate(http, 'spec-1', BOTH);
+
+        expect(generation.activeEndpointId()).toBe('GET /b');
+      });
+
+      it('THEN a new generate without the chosen endpoint falls back to the first', async (): Promise<void> => {
+        generation.selectEndpoint('GET /b');
+        generation.options.set(TYPES_REQUIRED_ONLY);
+        generation.generate();
+        await answerGenerate(http, 'spec-1', RESULT);
+
+        expect(generation.activeEndpointId()).toBe('GET /a');
+      });
     });
 
     it('WHEN the API fails THEN exposes its message and fix', async (): Promise<void> => {

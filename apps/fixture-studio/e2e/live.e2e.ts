@@ -1,10 +1,12 @@
-import { test } from './studio.fixture.ts';
+import { test } from './live.fixture.ts';
 import { SAMPLE_PARTIAL_INVOICE_TS_PATH } from './test/common/fixture-file.const.ts';
 import { SAMPLE_SPEC_PATH } from './test/common/playwright.const.ts';
 import { expectLogLine, expectValidMerge, fillMissingValues } from './test/pages/ai-fill-panel.page.ts';
-import { pickExistingFixture } from './test/pages/compare-panel.page.ts';
+import { expectEnvelope, pickExistingFixture } from './test/pages/compare-panel.page.ts';
 import { generate, toggleEndpoint } from './test/pages/endpoints-step.page.ts';
 import { continueToAiFill, expectMissingPaths } from './test/pages/missing-values-step.page.ts';
+import { expectLogEntries } from './test/pages/progress-log.page.ts';
+import { expectStepStatus } from './test/pages/rail.page.ts';
 import { expectSpecLoaded, loadSpecFromFile, openStudio } from './test/pages/spec-step.page.ts';
 import { generateSampleInvoice } from './test/pages/workbench.page.ts';
 import { expectCode, expectEndpointTabs } from './test/pages/workspace-step.page.ts';
@@ -13,7 +15,46 @@ import { SAMPLE_INVOICE_ENDPOINT_STUB } from './test/stubs/studio-api.stub.ts';
 /** What the real diff reports for `sample-partial-invoice.fixture.ts` against the sample spec's invoice. */
 const LIVE_MISSING_PATHS = ['memo', 'customer'];
 
+/** The mock AI's output for one chunk, merged into one block. */
+const MOCK_OUTPUT = 'mock: reading the missing schema mock: sampling values mock: done';
+
+/** Each of the two missing paths needs a prompt over the chunk budget, so each is its own chunk. */
+const CHUNKED_LOG = ['Chunk 1 of 2: 1 field…', MOCK_OUTPUT, 'Chunk 2 of 2: 1 field…', MOCK_OUTPUT];
+
+/** A big fixture takes a few seconds to read, diff, render and merge; the whole run stays well under this. */
+const BIG_FIXTURE_TIMEOUT_MS = 60_000;
+
 test.describe('FEATURE: live studio', () => {
+  test('GIVEN a partial invoice over 5 MB, it is compared, filled in chunks and merged valid', { tag: ['@slow'] }, async ({
+    bigInvoicePath,
+    page
+  }): Promise<void> => {
+    test.setTimeout(BIG_FIXTURE_TIMEOUT_MS);
+
+    await test.step('WHEN the studio is opened', async (): Promise<void> => openStudio(page));
+
+    await test.step('AND the sample invoice fixture is generated', async (): Promise<void> => generateSampleInvoice(page));
+
+    await test.step('AND the big partial invoice is dropped into Compare', async (): Promise<void> =>
+      pickExistingFixture(page, bigInvoicePath));
+
+    await test.step('THEN the API detected no envelope', async (): Promise<void> => expectEnvelope(page, 'None — the fixture is the payload'));
+
+    await test.step('AND the API diffed it and lists the missing paths', async (): Promise<void> =>
+      expectMissingPaths(page, LIVE_MISSING_PATHS));
+
+    await test.step('AND the step counts them', async (): Promise<void> =>
+      expectStepStatus(page, 'Missing & broken values', '2 missing · 0 broken'));
+
+    await test.step('WHEN the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
+
+    await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+
+    await test.step('THEN the log shows each chunk and its output', async (): Promise<void> => expectLogEntries(page, CHUNKED_LOG));
+
+    await test.step('AND the merge is valid', async (): Promise<void> => expectValidMerge(page, LIVE_MISSING_PATHS.length));
+  });
+
   test.describe('GIVEN the real API runs with mocked AI', () => {
     test.beforeEach(async ({ page }): Promise<void> => {
       await test.step('GIVEN the studio is open', async (): Promise<void> => openStudio(page));

@@ -11,6 +11,10 @@ describe('FEATURE: spec action routes', (): void => {
     expect(specActionUrl('a/b c', 'generate')).toBe('/api/specs/a%2Fb%20c/generate');
   });
 
+  it('GIVEN the envelope action WHEN building a route THEN nests it under the spec', (): void => {
+    expect(specActionUrl('spec-1', 'envelope')).toBe('/api/specs/spec-1/envelope');
+  });
+
   it('GIVEN a camel-cased action WHEN building a route THEN uses its hyphenated path', (): void => {
     expect(specActionUrl('spec-1', 'aiFill')).toBe('/api/specs/spec-1/ai-fill');
   });

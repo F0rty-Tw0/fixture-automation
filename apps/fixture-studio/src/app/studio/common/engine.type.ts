@@ -8,6 +8,8 @@ import type {
   AiToolsResult,
   DiffBody,
   DiffResult,
+  EnvelopeBody,
+  EnvelopeResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -37,6 +39,8 @@ export type StudioEngine = {
   loadSpec(body: LoadSpecBody, call: EngineCall): Promise<LoadedSpec>;
   generate(specId: string, body: GenerateBody, call: EngineCall): Promise<GenerateResult>;
   diff(specId: string, body: DiffBody, call: EngineCall): Promise<DiffResult>;
+  /** Names the fixture's top-level keys that could hold the payload, best match first. */
+  envelope(specId: string, body: EnvelopeBody, call: EngineCall): Promise<EnvelopeResult>;
   merge(specId: string, body: MergeBody, call: EngineCall): Promise<MergeResult>;
   aiPrompt(specId: string, body: AiPromptBody, call: EngineCall): Promise<AiPromptResult>;
   cliModels(tool: AiTool, call: EngineCall): Promise<AiModelsResult>;

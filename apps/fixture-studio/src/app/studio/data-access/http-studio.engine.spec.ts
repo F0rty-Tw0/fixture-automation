@@ -10,6 +10,8 @@ import type {
   AiPromptBody,
   ApiErrorBody,
   DiffBody,
+  EnvelopeBody,
+  EnvelopeResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -38,6 +40,8 @@ const GENERATE_BODY: GenerateBody = { endpointIds: ['GET /v1/invoices'], formats
 const GENERATE_RESULT: GenerateResult = { fixtures: [GENERATED_FIXTURE_STUB] };
 const FIXTURE = { id: 'in_1' };
 const DIFF_BODY: DiffBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, requiredOnly: false };
+const ENVELOPE_BODY: EnvelopeBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE };
+const ENVELOPE: EnvelopeResult = { candidates: ['data'], detected: 'data' };
 const POPULATED = { status: 'open' };
 const MERGE_BODY: MergeBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, populated: POPULATED };
 const PROMPT_BODY: AiPromptBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, missing: MISSING_FILE_STUB };
@@ -86,6 +90,16 @@ describe('FEATURE: HttpStudioEngine', (): void => {
 
       expect(request.request.body).toStrictEqual(DIFF_BODY);
       await expect(diffing).resolves.toStrictEqual(DIFF_RESULT_STUB);
+    });
+
+    it('GIVEN an envelope call WHEN the API answers THEN posts the fixture and resolves the candidates', async (): Promise<void> => {
+      const detecting = engine.envelope('spec-1', ENVELOPE_BODY, call);
+      const request = http.expectOne('/api/specs/spec-1/envelope');
+
+      request.flush(ENVELOPE);
+
+      expect(request.request.body).toStrictEqual(ENVELOPE_BODY);
+      await expect(detecting).resolves.toStrictEqual(ENVELOPE);
     });
 
     it('GIVEN a merge call WHEN the API answers THEN resolves the merge', async (): Promise<void> => {

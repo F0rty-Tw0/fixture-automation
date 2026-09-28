@@ -10,6 +10,8 @@ import type {
   AiToolsResult,
   DiffBody,
   DiffResult,
+  EnvelopeBody,
+  EnvelopeResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -39,6 +41,10 @@ export class HttpStudioEngine implements StudioEngine {
 
   public async diff(specId: string, body: DiffBody, call: EngineCall): Promise<DiffResult> {
     return untilAborted(this.http.post<DiffResult>(specActionUrl(specId, 'diff'), body), call.signal);
+  }
+
+  public async envelope(specId: string, body: EnvelopeBody, call: EngineCall): Promise<EnvelopeResult> {
+    return untilAborted(this.http.post<EnvelopeResult>(specActionUrl(specId, 'envelope'), body), call.signal);
   }
 
   public async merge(specId: string, body: MergeBody, call: EngineCall): Promise<MergeResult> {

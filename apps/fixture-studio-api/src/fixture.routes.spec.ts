@@ -127,6 +127,14 @@ describe('FEATURE: fixture routes', (): void => {
         expect(response.statusCode).toBe(200);
         expect(response.json<DiffResult>().missingPaths).toStrictEqual(['status', 'customer']);
       });
+
+      it('WHEN diffed THEN promptBytes counts the root string the trimmed prompt keeps', async (): Promise<void> => {
+        const body: DiffBody = { ...DIFF_BODY, fixture: LARGE_INVOICE };
+
+        const response = await post('diff', body);
+
+        expect(response.json<DiffResult>().promptBytes).toBeGreaterThan(LARGE_INVOICE.memo.length);
+      });
     });
 
     describe('GIVEN an enveloped fixture holding a schema-invalid value', (): void => {

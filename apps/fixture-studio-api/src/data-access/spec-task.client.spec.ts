@@ -81,7 +81,11 @@ describe('FEATURE: spec task', (): void => {
 
       const outcome = await runSpecTask(task);
 
-      expect(outcome).toMatchObject({ ok: false, isFixtureError: true, message: 'fixture has no own property "data" for object-shape' });
+      expect(outcome).toMatchObject({
+        ok: false,
+        isFixtureError: true,
+        message: 'fixture has no own property "data" for object-shape'
+      });
     });
 
     it('WHEN it throws a plain Error THEN reports its message without a fix', async (): Promise<void> => {
@@ -95,7 +99,12 @@ describe('FEATURE: spec task', (): void => {
 
       const outcome = await runSpecTask(task);
 
-      expect(outcome).toMatchObject({ ok: false, isFixtureError: false, fix: undefined, message: 'OpenAPI 3.0 schema type must be a string' });
+      expect(outcome).toMatchObject({
+        ok: false,
+        isFixtureError: false,
+        fix: undefined,
+        message: 'OpenAPI 3.0 schema type must be a string'
+      });
     });
   });
 });

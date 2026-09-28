@@ -11,7 +11,11 @@ describe('FEATURE: CLI run slots', (): void => {
       slots.claim();
 
       expect((): void => slots.claim()).toThrow(
-        expect.objectContaining({ statusCode: 429, message: 'too many AI CLI runs at once', fix: 'wait for a running fill or model lookup to finish' })
+        expect.objectContaining({
+          statusCode: 429,
+          message: 'too many AI CLI runs at once',
+          fix: 'wait for a running fill or model lookup to finish'
+        })
       );
     });
 

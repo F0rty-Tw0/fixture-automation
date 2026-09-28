@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { SpecWorkers } from './spec-workers.store.ts';
 
-const READY_SOURCE = "const { parentPort } = require('node:worker_threads'); setInterval(() => {}, 1000); parentPort.postMessage('ready');";
+const READY_SOURCE =
+  "const { parentPort } = require('node:worker_threads'); setInterval(() => {}, 1000); parentPort.postMessage('ready');";
 const CRASH_SOURCE = "throw new Error('boot failed');";
 
 describe('FEATURE: spec workers', (): void => {

@@ -1,6 +1,7 @@
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { aiPrompt, promptBytes, trimmedPromptBytes } from './ai-prompt.util.ts';
 import { fixtureDiffResult } from './fixture-diff-result.util.ts';
 import { fixtureJson } from './fixture-merge.util.ts';
 import type { DiffBody } from '../contract/common/studio-api.type.ts';
@@ -12,6 +13,10 @@ const CUSTOMER = { id: 'cus_9' };
 const NESTED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open', memo: 'm', customer: CUSTOMER };
 const PLACEHOLDER_INVOICE = { id: 'in_9', amount_due: 0, status: 'open', memo: 'string' };
 const PLACEHOLDER_BASELINE = { id: 'in_9', status: 'open' };
+const REQUIRED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open' };
+const NOTES = Array.from({ length: 400 }, (_value: unknown, index: number): string => `note ${index}`);
+const HISTORY = { notes: NOTES };
+const INVOICE_WITH_HISTORY = { ...PARTIAL_INVOICE, history: HISTORY };
 
 const diffBody = (fixture: unknown, requiredOnly: boolean, objectShape?: string, replacePlaceholders?: boolean): DiffBody => {
   const body: DiffBody = { endpointId: 'GET /v1/invoices/{id}', fixture, requiredOnly, replacePlaceholders };
@@ -67,6 +72,34 @@ describe('FEATURE: fixture diff result', (): void => {
     });
   });
 
+  describe('GIVEN an invoice with a large subtree off every missing path', (): void => {
+    it('WHEN diffed THEN promptBytes is the byte length of the prompt trimmed to the missing paths', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICE_WITH_HISTORY, false));
+
+      const trimmed = aiPrompt(result.baseline, result.missing, undefined, result.missingPaths);
+      const expected = Buffer.byteLength(trimmed.prompt, 'utf8');
+
+      expect(result.promptBytes).toBe(expected);
+    });
+
+    it('WHEN diffed THEN promptBytes is a fraction of the untrimmed baseline prompt', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICE_WITH_HISTORY, false));
+
+      const untrimmed = promptBytes(result.baseline, result.missing, undefined);
+
+      expect(result.promptBytes).toBeLessThan(untrimmed / 2);
+    });
+  });
+
+  describe('GIVEN an invoice with every required field', (): void => {
+    it('WHEN diffed with requiredOnly THEN nothing is missing and promptBytes is 0', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(REQUIRED_INVOICE, true));
+
+      expect(result.missingPaths).toStrictEqual([]);
+      expect(result.promptBytes).toBe(0);
+    });
+  });
+
   describe('GIVEN a nested object missing a referenced child', (): void => {
     it('WHEN diffed THEN the missing components carry the referenced schema and the text only inserts', (): void => {
       const before = fixtureJson(NESTED_INVOICE);
@@ -86,6 +119,16 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(result.replacedPaths).toStrictEqual(['amount_due', 'memo']);
       expect(result.missingPaths).toStrictEqual(['amount_due', 'memo', 'customer']);
       expect(result.baseline).toStrictEqual(PLACEHOLDER_BASELINE);
+    });
+
+    it('WHEN diffed THEN promptBytes sizes the baseline without them, not the fixture', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(PLACEHOLDER_INVOICE, false));
+
+      const fromBaseline = trimmedPromptBytes(PLACEHOLDER_BASELINE, result.missing);
+      const fromFixture = trimmedPromptBytes(PLACEHOLDER_INVOICE, result.missing);
+
+      expect(result.promptBytes).toBe(fromBaseline);
+      expect(result.promptBytes).not.toBe(fromFixture);
     });
 
     it('WHEN completed THEN each replaced key keeps its place from the original fixture', (): void => {

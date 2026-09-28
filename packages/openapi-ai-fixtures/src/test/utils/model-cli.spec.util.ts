@@ -9,5 +9,7 @@ const execute = promisify(execFile);
 const cliFile = fileURLToPath(new URL('../../cli.ts', import.meta.url));
 
 export const runModelCli = async (args: string[]): Promise<CliResult> => {
-  return execute(process.execPath, ['--conditions=@fixture-automation/source', cliFile, '--list-models', ...args], { timeout: SUBPROCESS_TEST_TIMEOUT_MS });
+  return execute(process.execPath, ['--conditions=@fixture-automation/source', cliFile, '--list-models', ...args], {
+    timeout: SUBPROCESS_TEST_TIMEOUT_MS
+  });
 };

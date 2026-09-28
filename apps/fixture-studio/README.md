@@ -91,6 +91,7 @@ Two providers. The studio picks one for you:
 - Remembered per browser in `localStorage` (key `fixture-studio.use-chrome-ai`).
 - The panel shows Chrome AI's state: `Ready`, `Model not downloaded yet`, `Downloading the model`, or `Not available in this browser`.
 - No model yet → **Download model** downloads it once, with a progress bar. Fill stays disabled until the model is ready; a fill never starts the download.
+- Too large → the diff's prompt, trimmed to the missing paths, is over 100,000 bytes (about 4 prompts of Nano's window). The opt-in is hidden, the panel says the local CLI fills it, and the saved opt-in comes back for the next smaller fixture.
 
 ### Chrome AI limits
 

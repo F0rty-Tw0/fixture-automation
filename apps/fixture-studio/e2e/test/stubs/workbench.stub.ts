@@ -15,6 +15,7 @@ import type {
   MissingFile
 } from '@fixture-automation/fixture-studio-api/contract';
 
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../../../src/app/studio/common/ai-fill.const.ts';
 import type { PartialInvoice } from '../common/playwright.type.ts';
 
 /** The value of `test/fixtures/partial-invoice.json` and `partial-invoice.fixture.ts`: no `memo`, no `customer`. */
@@ -46,7 +47,14 @@ export const DIFF_RESULT_STUB: DiffResult = {
   baseline: PARTIAL_INVOICE_STUB,
   completeJson:
     '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open",\n  "memo": "string",\n' +
-    '  "customer": {\n    "id": "cus_1",\n    "address": {\n      "city": "Oslo"\n    }\n  }\n}\n'
+    '  "customer": {\n    "id": "cus_1",\n    "address": {\n      "city": "Oslo"\n    }\n  }\n}\n',
+  promptBytes: 1200
+};
+
+/** The same diff with a prompt one byte over what on-device Chrome AI is offered, so only the local CLI may fill it. */
+export const TOO_LARGE_FOR_CHROME_AI_DIFF_RESULT_STUB: DiffResult = {
+  ...DIFF_RESULT_STUB,
+  promptBytes: ON_DEVICE_PROMPT_BYTE_LIMIT + 1
 };
 
 /** `amount_due` held the sampler's placeholder `0`; the diff replaced it, so AI fill rewrites it with the missing values. */
@@ -79,7 +87,8 @@ export const COMPLETE_DIFF_RESULT_STUB: DiffResult = {
   replacedPaths: [],
   broken: [],
   baseline: PARTIAL_INVOICE_STUB,
-  completeJson: '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open"\n}\n'
+  completeJson: '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open"\n}\n',
+  promptBytes: 0
 };
 
 export const MERGED_JSON_STUB: string =

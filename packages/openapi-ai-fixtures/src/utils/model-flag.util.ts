@@ -13,7 +13,8 @@ export const selectedModel = (options: AiFixtureOptions): string | undefined => 
 
   const looksLikeFlag = model.startsWith('-');
 
-  if (looksLikeFlag) throw new FixtureError(`model "${model}" must not start with "-"`, 'pass the model slug itself, e.g. --model gpt-5');
+  if (looksLikeFlag)
+    throw new FixtureError(`model "${model}" must not start with "-"`, 'pass the model slug itself, e.g. --model gpt-5');
 
   return model;
 };

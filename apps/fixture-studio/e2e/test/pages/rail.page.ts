@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 /** The six steps on the rail, in order; the last three follow the endpoint chosen in Generate. */
 export const STEP_HEADINGS = ['Spec', 'Endpoints', 'Generate', 'Compare', 'Missing & broken values', 'Fill with AI'];
@@ -16,20 +16,13 @@ export const toggleStep = async (page: Page, heading: string): Promise<void> => 
 export const expectSteps = async (page: Page, headings: string[]): Promise<void> => {
   const titles = page.getByRole('main').getByRole('heading', { level: 2 });
 
-  await test.step(`THEN the rail shows ${headings.join(', ')}`, async (): Promise<void> => expect(titles).toHaveText(headings), {
-    box: true
-  });
+  await expect(titles).toHaveText(headings);
 };
 
 export const expectStepExpanded = async (page: Page, heading: string, isExpanded: boolean): Promise<void> => {
   const toggle = stepToggle(page, heading);
-  const state = isExpanded ? 'open' : 'folded';
 
-  await test.step(
-    `THEN the ${heading} step is ${state}`,
-    async (): Promise<void> => expect(toggle).toHaveAttribute('aria-expanded', String(isExpanded)),
-    { box: true }
-  );
+  await expect(toggle).toHaveAttribute('aria-expanded', String(isExpanded));
 };
 
 /** Any text a step's body shows: a folded body keeps its box (`hidden="until-found"`), so only its content can be seen to hide. */
@@ -46,7 +39,6 @@ const FOLD_WAIT = { timeout: 5_000 };
  */
 export const expectStepFold = async (page: Page, heading: string, isExpanded: boolean): Promise<void> => {
   const toggle = stepToggle(page, heading);
-  const state = isExpanded ? 'open' : 'folded';
 
   const controlsBody = async (): Promise<void> => {
     const bodyId = await toggle.getAttribute('aria-controls');
@@ -56,31 +48,22 @@ export const expectStepFold = async (page: Page, heading: string, isExpanded: bo
     await expect(body.getByText(ANY_TEXT).first()).toBeVisible({ ...CONTROL_WAIT, visible: isExpanded });
   };
 
-  await test.step(`THEN the ${heading} toggle and the body it controls are ${state}`, async (): Promise<void> => {
-    await expect(toggle).toHaveAttribute('aria-expanded', String(isExpanded));
-    await expect(controlsBody).toPass(FOLD_WAIT);
-  }, { box: true });
+  await expect(toggle).toHaveAttribute('aria-expanded', String(isExpanded));
+  await expect(controlsBody).toPass(FOLD_WAIT);
 };
 
 /** The line under a step's heading: the endpoint for Compare, counts and progress for the later steps. */
 export const expectStepStatus = async (page: Page, heading: string, status: string): Promise<void> => {
   const header = step(page, heading).locator('header').getByRole('paragraph');
 
-  await test.step(`THEN the ${heading} step reads "${status}"`, async (): Promise<void> => expect(header).toHaveText(status), {
-    box: true
-  });
+  await expect(header).toHaveText(status);
 };
 
 /** A folded step keeps its heading but hides what it holds; `probe` is text only its body shows. */
 export const expectStepBodyShown = async (page: Page, heading: string, probe: string, isShown: boolean): Promise<void> => {
   const body = step(page, heading).getByText(probe);
-  const state = isShown ? 'shows' : 'hides';
 
-  await test.step(`THEN the ${heading} step ${state} "${probe}"`, async (): Promise<void> => {
-    if (isShown) return expect(body).toBeVisible();
-
-    return expect(body).toBeHidden();
-  }, { box: true });
+  await expect(body).toBeVisible({ visible: isShown });
 };
 
 /** The page never scrolls sideways, whatever the width of a fixture, a path, or the viewport. */
@@ -91,9 +74,7 @@ export const expectNoHorizontalOverflow = async (page: Page): Promise<void> => {
     return page.evaluate(measure);
   };
 
-  await test.step('THEN the page does not scroll sideways', async (): Promise<void> => expect.poll(overflow).toBeLessThanOrEqual(0), {
-    box: true
-  });
+  await expect.poll(overflow).toBeLessThanOrEqual(0);
 };
 
 /** Long content scrolls inside its own box, so however long a fixture is, the page stays within `screens` viewport heights. */
@@ -104,6 +85,5 @@ export const expectPageHeightWithin = async (page: Page, screens: number): Promi
     return page.evaluate(measure);
   };
 
-  await test.step(`THEN the page is at most ${screens} screens tall`, async (): Promise<void> =>
-    expect.poll(heightInScreens).toBeLessThanOrEqual(screens), { box: true });
+  await expect.poll(heightInScreens).toBeLessThanOrEqual(screens);
 };

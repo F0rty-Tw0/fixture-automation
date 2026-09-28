@@ -2,6 +2,7 @@ import type { BrokenValue, DiffResult, Endpoint, GenerateResult, GeneratedFixtur
 
 import { test } from './mocked-api.fixture.ts';
 import { DIFF_ROUTE, ENVELOPE_ROUTE, GENERATE_ROUTE } from './test/common/playwright.const.ts';
+import type { StudioOptions } from './test/common/playwright.type.ts';
 import { generateMock } from './test/mocks/studio-api.mock.ts';
 import { diffMock, envelopeMock } from './test/mocks/workbench.mock.ts';
 import { pasteFixture } from './test/pages/compare-panel.page.ts';
@@ -12,7 +13,7 @@ import { openStudioWithSpec } from './test/pages/studio.page.ts';
 import { expectEndpointTabs } from './test/pages/workspace-step.page.ts';
 import { INVOICE_ENDPOINT_STUB, LOADED_SPEC_STUB } from './test/stubs/studio-api.stub.ts';
 import { DIFF_RESULT_STUB, MISSING_FILE_STUB } from './test/stubs/workbench.stub.ts';
-import { routeApi } from './test/utils/route.spec.util.ts';
+import { apiRoute } from './test/utils/route.spec.util.ts';
 
 /** A path and a value far wider than any screen: each one alone would push a careless layout sideways. */
 const LONG_SEGMENT = 'a-very-long-path-segment-that-never-wraps-'.repeat(8);
@@ -62,23 +63,22 @@ const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
 
 test.describe('FEATURE: long and wide fixtures', () => {
-  test.beforeEach(async ({ page }): Promise<void> => {
-    await test.step('GIVEN a desktop-wide window', async (): Promise<void> => page.setViewportSize(DESKTOP));
+  test('GIVEN a very long path and a wide fixture, the page never scrolls sideways, wide or narrow', async ({
+    page
+  }): Promise<void> => {
+    const routes = [
+      apiRoute(GENERATE_ROUTE, generateMock(WIDE_RESULT)),
+      apiRoute(ENVELOPE_ROUTE, envelopeMock()),
+      apiRoute(DIFF_ROUTE, diffMock(WIDE_DIFF))
+    ];
+    const options: StudioOptions = { routes, spec: WIDE_SPEC, viewport: DESKTOP };
 
-    await test.step('AND the API answers with a wide fixture everywhere', async (): Promise<void> => {
-      await routeApi(page, GENERATE_ROUTE, generateMock(WIDE_RESULT).handler);
-      await routeApi(page, ENVELOPE_ROUTE, envelopeMock().handler);
-      await routeApi(page, DIFF_ROUTE, diffMock(WIDE_DIFF).handler);
-    });
+    await test.step('WHEN the studio is opened in a desktop-wide window', async (): Promise<void> =>
+      openStudioWithSpec(page, options));
 
-    await test.step('AND a spec with a very long path is loaded', async (): Promise<unknown> => openStudioWithSpec(page, WIDE_SPEC));
-  });
+    await test.step('AND the long-path endpoint is selected', async (): Promise<void> => toggleEndpoint(page, WIDE_ENDPOINT));
 
-  test('GIVEN a wide fixture generated and compared, the page never scrolls sideways, wide or narrow', async ({ page }): Promise<void> => {
-    await test.step('WHEN the long-path endpoint is generated', async (): Promise<void> => {
-      await toggleEndpoint(page, WIDE_ENDPOINT);
-      await generate(page);
-    });
+    await test.step('AND generate is pressed', async (): Promise<void> => generate(page));
 
     await test.step('THEN its tab is shown', async (): Promise<void> => expectEndpointTabs(page, [WIDE_ENDPOINT.id]));
 
@@ -88,7 +88,8 @@ test.describe('FEATURE: long and wide fixtures', () => {
 
     await test.step('AND at 1280px nothing overflows', async (): Promise<void> => expectNoHorizontalOverflow(page));
 
-    await test.step('AND the 4000-line fixture and 2000 broken values scroll inside their boxes', async (): Promise<void> => expectPageHeightWithin(page, 6));
+    await test.step('AND the 4000-line fixture and 2000 broken values scroll inside their boxes', async (): Promise<void> =>
+      expectPageHeightWithin(page, 6));
 
     await test.step('WHEN the window is phone-narrow', async (): Promise<void> => page.setViewportSize(PHONE));
 

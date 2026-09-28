@@ -13,11 +13,14 @@ const messageOf = (identity: RequestIdentity): string | undefined => requestReje
 
 describe('FEATURE: request guard', (): void => {
   describe('GIVEN the Host header', (): void => {
-    it.each(['127.0.0.1:3333', 'localhost:3333', 'LOCALHOST:3333', 'localhost:4200'])('WHEN it is %s THEN passes', (host: string): void => {
-      const identity: RequestIdentity = { ...CURL, host };
+    it.each(['127.0.0.1:3333', 'localhost:3333', 'LOCALHOST:3333', 'localhost:4200'])(
+      'WHEN it is %s THEN passes',
+      (host: string): void => {
+        const identity: RequestIdentity = { ...CURL, host };
 
-      expect(messageOf(identity)).toBeUndefined();
-    });
+        expect(messageOf(identity)).toBeUndefined();
+      }
+    );
 
     it.each<[string, string | undefined]>([
       ['a rebinding domain', 'evil.example:3333'],
@@ -46,11 +49,14 @@ describe('FEATURE: request guard', (): void => {
   });
 
   describe('GIVEN no Origin header on a known host', (): void => {
-    it.each<[string | undefined]>([[undefined], ['same-origin'], ['none']])('WHEN Sec-Fetch-Site is %s THEN passes', (fetchSite: string | undefined): void => {
-      const identity: RequestIdentity = { ...CURL, fetchSite };
+    it.each<[string | undefined]>([[undefined], ['same-origin'], ['none']])(
+      'WHEN Sec-Fetch-Site is %s THEN passes',
+      (fetchSite: string | undefined): void => {
+        const identity: RequestIdentity = { ...CURL, fetchSite };
 
-      expect(messageOf(identity)).toBeUndefined();
-    });
+        expect(messageOf(identity)).toBeUndefined();
+      }
+    );
 
     it.each<[string | string[]]>([['cross-site'], ['same-site'], [['same-origin', 'cross-site']]])(
       'WHEN Sec-Fetch-Site is %s THEN is refused as cross-site',

@@ -21,7 +21,8 @@ import {
   DIFF_RESULT_STUB,
   FIXTURE_VIEW_STUB,
   LOADED_SPEC_STUB,
-  MERGE_RESULT_STUB
+  MERGE_RESULT_STUB,
+  OVERSIZED_DIFF_RESULT_STUB
 } from '../../test/stubs/studio.stub.ts';
 import { hostOf, requiredElement, textAt, textsAt } from '../../test/utils/fixture-dom.spec.util.ts';
 import { answerSpecLoad, configureStudioHttp, settle } from '../../test/utils/studio-http.spec.util.ts';
@@ -214,6 +215,22 @@ describe('FEATURE: AiFillPanel', (): void => {
       expect(factory.create).toHaveBeenCalledTimes(1);
       expect(textAt(fixture, '.fill__model-text')).toBe('The on-device model is ready.');
       expect(runButton(fixture).disabled).toBe(false);
+    });
+  });
+
+  describe('GIVEN a fixture too large for the on-device model', (): void => {
+    beforeEach(async (): Promise<void> => {
+      TestBed.inject(FixtureComparison).setReplacePlaceholders('GET /v1/invoices', false);
+      TestBed.tick();
+      http.expectOne('/api/specs/spec-1/diff').flush(OVERSIZED_DIFF_RESULT_STUB);
+      await answerPanel(http, TOOLS_URL, CLI_TOOLS_RESULT_STUB);
+      await answerPanel(http, '/api/ai/cli/models?tool=claude', MODELS);
+      await fixture.whenStable();
+    });
+
+    it('WHEN rendered THEN hides the Chrome AI opt-in and says the local CLI fills it', (): void => {
+      expect(textsAt(fixture, '.fill__opt-in')).toStrictEqual([]);
+      expect(textAt(fixture, '.fill__note')).toBe('This fixture is too large for on-device Chrome AI, so the local CLI fills it.');
     });
   });
 

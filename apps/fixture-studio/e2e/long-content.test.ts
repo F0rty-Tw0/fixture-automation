@@ -17,7 +17,7 @@ test.describe('FEATURE: long missing and broken lists', () => {
   }): Promise<void> => {
     const routes = [apiRoute(DIFF_ROUTE, diffMock(LONG_DIFF))];
 
-    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, routes));
+    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
 
     await test.step('AND the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 

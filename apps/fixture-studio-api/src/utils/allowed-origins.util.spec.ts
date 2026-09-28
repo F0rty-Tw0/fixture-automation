@@ -54,6 +54,5 @@ describe('FEATURE: allowed origins', (): void => {
         expect(hosts).toContain('studio.example');
       });
     });
-
   });
 });

@@ -1,6 +1,7 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 
-import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../common/ai-fill.const.ts';
+import type { AiAvailability, AiFillContext, AiProviderId, DiffPromptSize, OnDeviceState } from '../common/ai-fill.type.ts';
 
 /** On-device AI is usable unless Chrome says it can't run here; a download starts on first use. */
 const isUsableAvailability = (availability: AiAvailability | undefined): boolean => {
@@ -12,6 +13,21 @@ export const chooseAiProvider = (isOptedIn: boolean, availability: AiAvailabilit
   const isUsable = isUsableAvailability(availability);
 
   return isOptedIn && isUsable ? 'chrome' : 'cli';
+};
+
+/** Whether a diff's trimmed prompt is small enough to offer the on-device model. */
+const fitsOnDevice = (promptBytes: number): boolean => promptBytes <= ON_DEVICE_PROMPT_BYTE_LIMIT;
+
+/**
+ * Whether the on-device model is offered: a settled diff decides by its size, a diff on its way keeps the earlier
+ * answer so a re-compare doesn't flash the opt-in, and with neither the model is offered.
+ */
+export const isOfferedOnDevice = (size: DiffPromptSize, wasOffered: boolean | undefined): boolean => {
+  if (size === 'loading') return wasOffered ?? true;
+
+  if (size === undefined) return true;
+
+  return fitsOnDevice(size);
 };
 
 /** The on-device model's state: a download the user started wins over what Chrome last reported. */

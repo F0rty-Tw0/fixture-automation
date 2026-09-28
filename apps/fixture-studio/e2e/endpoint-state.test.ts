@@ -28,9 +28,11 @@ test.describe('FEATURE: per-endpoint compare state', () => {
 
     await test.step('WHEN the invoice and the customer are generated', async (): Promise<void> => openTwoEndpointCompare(page, diff));
 
-    await test.step('THEN Compare is for the invoice', async (): Promise<void> => expectStepStatus(page, 'Compare', INVOICE_ENDPOINT_STUB.id));
+    await test.step('THEN Compare is for the invoice', async (): Promise<void> =>
+      expectStepStatus(page, 'Compare', INVOICE_ENDPOINT_STUB.id));
 
-    await test.step('WHEN the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+    await test.step('WHEN the partial invoice is picked', async (): Promise<void> =>
+      pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 
     await test.step('THEN its missing paths are listed', async (): Promise<void> =>
       expectMissingPaths(page, DIFF_RESULT_STUB.missingPaths));
@@ -66,8 +68,7 @@ test.describe('FEATURE: per-endpoint compare state', () => {
 
     await test.step('AND its counts are back', async (): Promise<void> => expectStepStatus(page, MISSING, INVOICE_MISSING_STATUS));
 
-    await test.step('AND each endpoint was diffed once, switching sent nothing', (): void =>
-      expect(diff.bodies).toEqual(onePerEndpoint));
+    await test.step('AND each endpoint was diffed exactly once', (): void => expect(diff.bodies).toEqual(onePerEndpoint));
   });
 
   test('GIVEN two generated endpoints, switching Generate tabs keeps each endpoint its own diff', async ({ page }): Promise<void> => {
@@ -75,7 +76,8 @@ test.describe('FEATURE: per-endpoint compare state', () => {
 
     await test.step('WHEN the invoice and the customer are generated', async (): Promise<void> => openTwoEndpointCompare(page, diff));
 
-    await test.step('AND the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+    await test.step('AND the partial invoice is picked', async (): Promise<void> =>
+      pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 
     await test.step('THEN its missing paths are listed', async (): Promise<void> =>
       expectMissingPaths(page, DIFF_RESULT_STUB.missingPaths));
@@ -89,7 +91,8 @@ test.describe('FEATURE: per-endpoint compare state', () => {
     await test.step('AND its missing values wait for a compare', async (): Promise<void> =>
       expectStepStatus(page, MISSING, 'Waiting for a compare'));
 
-    await test.step('WHEN the invoice tab is opened again', async (): Promise<void> => openEndpointTab(page, INVOICE_ENDPOINT_STUB.id));
+    await test.step('WHEN the invoice tab is opened again', async (): Promise<void> =>
+      openEndpointTab(page, INVOICE_ENDPOINT_STUB.id));
 
     await test.step('THEN Compare follows it back to the invoice', async (): Promise<void> =>
       expectStepStatus(page, 'Compare', INVOICE_ENDPOINT_STUB.id));
@@ -97,6 +100,7 @@ test.describe('FEATURE: per-endpoint compare state', () => {
     await test.step('AND the invoice missing paths are still listed', async (): Promise<void> =>
       expectMissingPaths(page, DIFF_RESULT_STUB.missingPaths));
 
-    await test.step('AND its counts are still shown', async (): Promise<void> => expectStepStatus(page, MISSING, INVOICE_MISSING_STATUS));
+    await test.step('AND its counts are still shown', async (): Promise<void> =>
+      expectStepStatus(page, MISSING, INVOICE_MISSING_STATUS));
   });
 });

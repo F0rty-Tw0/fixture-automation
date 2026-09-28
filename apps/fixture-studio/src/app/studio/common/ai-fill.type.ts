@@ -5,6 +5,9 @@ export type AiAvailability = 'available' | 'downloadable' | 'downloading' | 'una
 
 export type AiProviderId = 'chrome' | 'cli';
 
+/** The compared diff's trimmed prompt size; `'loading'` while a new diff is on its way, `undefined` with none. */
+export type DiffPromptSize = number | 'loading' | undefined;
+
 /** Where the on-device model stands, as the AI step walks the user through it: checking, missing, downloading, ready. */
 export type OnDeviceState = 'checking' | 'downloading' | 'needs-download' | 'ready' | 'unavailable';
 

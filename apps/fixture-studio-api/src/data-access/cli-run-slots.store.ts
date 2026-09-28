@@ -1,6 +1,6 @@
 import { statusError } from '../utils/status-error.util.ts';
 
-// ponytail: one global cap of 2 concurrent CLI runs per server (model discovery and fills alike); queue or cap per tool when users need more.
+/** One cap for the whole server, shared by model discovery and fills of every tool. */
 const CLI_RUN_LIMIT = 2;
 
 /** Counts running AI CLI processes; a claim beyond `CLI_RUN_LIMIT` fails with a 429. */

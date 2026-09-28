@@ -1,4 +1,3 @@
-import type { AiToolsResult, DiffResult } from '@fixture-automation/fixture-studio-api/contract';
 import type { Page } from '@playwright/test';
 
 import { fillMissingValues } from './ai-fill-panel.page.ts';
@@ -18,64 +17,67 @@ import {
   MERGE_ROUTE,
   SAMPLE_SPEC_PATH
 } from '../common/playwright.const.ts';
-import type { ApiRoute, LanguageModelStubConfig, RecordingRoute } from '../common/playwright.type.ts';
+import type { AiFillOptions, ApiRoute, RecordingRoute, StudioOptions } from '../common/playwright.type.ts';
 import { generateMock } from '../mocks/studio-api.mock.ts';
 import { aiFillMock, cliModelsMock, cliToolsMock, diffMock, envelopeMock, mergeMock } from '../mocks/workbench.mock.ts';
 import { CUSTOMER_ENDPOINT_STUB, INVOICE_ENDPOINT_STUB, SAMPLE_INVOICE_ENDPOINT_STUB } from '../stubs/studio-api.stub.ts';
-import { AI_TOOLS_STUB, BROKEN_DIFF_RESULT_STUB, DIFF_RESULT_STUB } from '../stubs/workbench.stub.ts';
+import { BROKEN_DIFF_RESULT_STUB } from '../stubs/workbench.stub.ts';
+import { optInToChromeAi } from '../utils/ai-settings.spec.util.ts';
 import { stubLanguageModel } from '../utils/language-model.spec.util.ts';
-import { apiRoute, routeAll, routeApi } from '../utils/route.spec.util.ts';
+import { apiRoute, routeApi } from '../utils/route.spec.util.ts';
 
 /**
  * Arrange shared by compare scenarios: the invoice fixture generated, so its Compare step is the active one. The envelope
- * detection finds none unless `routes` (routed last, so they answer first) or a scenario routes its own answer after this.
+ * detection finds none unless the options' routes, routed after these defaults so they answer first, say otherwise.
  */
-export const openInvoiceCompare = async (page: Page, routes: ApiRoute[] = []): Promise<void> => {
+export const openInvoiceCompare = async (page: Page, options: StudioOptions = {}): Promise<void> => {
   await routeApi(page, ENVELOPE_ROUTE, envelopeMock().handler);
-  await openStudioWithSpec(page);
   await routeApi(page, GENERATE_ROUTE, generateMock().handler);
+  await openStudioWithSpec(page, options);
   await toggleEndpoint(page, INVOICE_ENDPOINT_STUB);
   await generate(page);
-  await routeAll(page, routes);
 };
 
-/** Arrange for per-endpoint state: the invoice and the customer generated, each compare answered by `diff`; the invoice is active. */
-export const openTwoEndpointCompare = async (page: Page, diff: RecordingRoute): Promise<void> => {
-  await routeApi(page, ENVELOPE_ROUTE, envelopeMock().handler);
-  await routeApi(page, DIFF_ROUTE, diff.handler);
-  await openStudioWithSpec(page);
+/** Arrange for the Generate workspace: the invoice and the customer generated from the billing spec; the invoice is active. */
+export const generateInvoiceAndCustomer = async (page: Page, options: StudioOptions = {}): Promise<void> => {
+  await openStudioWithSpec(page, options);
   await routeApi(page, GENERATE_ROUTE, generateMock().handler);
   await toggleEndpoint(page, INVOICE_ENDPOINT_STUB);
   await toggleEndpoint(page, CUSTOMER_ENDPOINT_STUB);
   await generate(page);
 };
 
-/** Arrange shared by AI fill scenarios: the partial invoice compared, `diff` and the CLI install check answered, the AI fill step open. */
-export const openInvoiceAiFill = async (
-  page: Page,
-  diff: DiffResult = DIFF_RESULT_STUB,
-  tools: AiToolsResult = AI_TOOLS_STUB,
-  routes: ApiRoute[] = []
-): Promise<void> => {
-  await routeApi(page, DIFF_ROUTE, diffMock(diff).handler);
-  await routeApi(page, CLI_TOOLS_ROUTE, cliToolsMock(tools).handler);
-  await routeApi(page, CLI_MODELS_ROUTE, cliModelsMock().handler);
-  await openInvoiceCompare(page, routes);
-  await pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH);
-  await continueToAiFill(page);
+/** Arrange for per-endpoint state: the invoice and the customer generated, each compare answered by `diff`; the invoice is active. */
+export const openTwoEndpointCompare = async (page: Page, diff: RecordingRoute): Promise<void> => {
+  const routes = [apiRoute(ENVELOPE_ROUTE, envelopeMock()), apiRoute(DIFF_ROUTE, diff)];
+  const options: StudioOptions = { routes };
+
+  await generateInvoiceAndCustomer(page, options);
 };
 
-/** The AI fill step open with Chrome's Prompt API scripted by `model`, before the app loads. */
-export const openInvoiceAiFillOnDevice = async (page: Page, model: LanguageModelStubConfig, routes: ApiRoute[]): Promise<void> => {
-  await stubLanguageModel(page, model);
-  await openInvoiceAiFill(page, DIFF_RESULT_STUB, AI_TOOLS_STUB, routes);
+/** Arrange shared by AI fill scenarios: the partial invoice compared, the diff and the CLI install check answered, the AI fill step open. */
+export const openInvoiceAiFill = async (page: Page, options: AiFillOptions = {}): Promise<void> => {
+  const routes = options.routes ?? [];
+  const compareOptions: StudioOptions = { routes };
+
+  if (options.model !== undefined) await stubLanguageModel(page, options.model);
+
+  if (options.isChromeAiOptedIn === true) await optInToChromeAi(page);
+
+  await routeApi(page, DIFF_ROUTE, diffMock(options.diff).handler);
+  await routeApi(page, CLI_TOOLS_ROUTE, cliToolsMock(options.tools).handler);
+  await routeApi(page, CLI_MODELS_ROUTE, cliModelsMock().handler);
+  await openInvoiceCompare(page, compareOptions);
+  await pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH);
+  await continueToAiFill(page);
 };
 
 /** Every step holding its content: the invoice with a broken value compared, filled by the CLI and merged. */
 export const fillBrokenInvoice = async (page: Page): Promise<void> => {
   const routes = [apiRoute(AI_FILL_ROUTE, aiFillMock()), apiRoute(MERGE_ROUTE, mergeMock())];
+  const options: AiFillOptions = { diff: BROKEN_DIFF_RESULT_STUB, routes };
 
-  await openInvoiceAiFill(page, BROKEN_DIFF_RESULT_STUB, AI_TOOLS_STUB, routes);
+  await openInvoiceAiFill(page, options);
   await fillMissingValues(page);
 };
 
@@ -99,5 +101,3 @@ export const workbenchRoutes = (): ApiRoute[] => {
 
   return routes;
 };
-
-export const routeWorkbenchApi = async (page: Page): Promise<void> => routeAll(page, workbenchRoutes());

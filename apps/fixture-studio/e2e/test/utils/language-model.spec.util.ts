@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import type { LanguageModelCreateCall, LanguageModelStubConfig } from '../common/playwright.type.ts';
 
@@ -76,14 +77,20 @@ export const stubLanguageModel = async (page: Page, config: LanguageModelStubCon
   await page.addInitScript(installLanguageModelStub, config);
 };
 
-/** Every `promptStreaming` call the app made: its prompt text and whether it sent a response schema. */
-export const languageModelCalls = async (page: Page): Promise<unknown> => {
-  return page.evaluate((name: string): unknown => Reflect.get(globalThis, name), CALLS_GLOBAL);
+const readGlobal = (name: string): unknown => Reflect.get(globalThis, name);
+
+/** Every `promptStreaming` call the app made, in order: its prompt text and whether it sent a response schema. */
+export const expectPromptCalls = async (page: Page, calls: unknown[]): Promise<void> => {
+  const promptCalls = async (): Promise<unknown> => page.evaluate(readGlobal, CALLS_GLOBAL);
+
+  await expect.poll(promptCalls).toEqual(calls);
 };
 
 /** Every `create` call the app made, in order: a download creates without a system prompt, a fill's session with one. */
-export const languageModelCreates = async (page: Page): Promise<unknown> => {
-  return page.evaluate((name: string): unknown => Reflect.get(globalThis, name), CREATES_GLOBAL);
+export const expectModelCreates = async (page: Page, creates: LanguageModelCreateCall[]): Promise<void> => {
+  const createCalls = async (): Promise<unknown> => page.evaluate(readGlobal, CREATES_GLOBAL);
+
+  await expect.poll(createCalls).toEqual(creates);
 };
 
 /** Lets a held `create` finish its download. */

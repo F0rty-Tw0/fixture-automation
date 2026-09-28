@@ -94,16 +94,26 @@ describe('FEATURE: studio server', (): void => {
         const origins = allowedOrigins('http://127.0.0.1:4300');
         const hosts = allowedHosts(3334, origins);
 
-        fastify = buildServer({ allowedOrigins: origins, allowedHosts: hosts, logger: false, ai: MOCK_AI, computeTimeoutMs: 15_000, warmSpecWorker: false });
+        fastify = buildServer({
+          allowedOrigins: origins,
+          allowedHosts: hosts,
+          logger: false,
+          ai: MOCK_AI,
+          computeTimeoutMs: 15_000,
+          warmSpecWorker: false
+        });
       });
 
-      it.each(['127.0.0.1:4300', '127.0.0.1:3334', 'localhost:3334'])('WHEN the Host is %s THEN reaches the route', async (host: string): Promise<void> => {
-        const headers = { host, origin: 'http://127.0.0.1:4300' };
+      it.each(['127.0.0.1:4300', '127.0.0.1:3334', 'localhost:3334'])(
+        'WHEN the Host is %s THEN reaches the route',
+        async (host: string): Promise<void> => {
+          const headers = { host, origin: 'http://127.0.0.1:4300' };
 
-        const response = await fastify.inject({ method: 'POST', url: MISSING_SPEC_URL, headers, payload: GENERATE_BODY });
+          const response = await fastify.inject({ method: 'POST', url: MISSING_SPEC_URL, headers, payload: GENERATE_BODY });
 
-        expect(response.statusCode).toBe(404);
-      });
+          expect(response.statusCode).toBe(404);
+        }
+      );
 
       it('WHEN the Host is the default port THEN answers 403', async (): Promise<void> => {
         const headers = { host: 'localhost:3333' };

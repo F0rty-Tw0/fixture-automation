@@ -38,7 +38,8 @@ test.describe('FEATURE: live studio', () => {
     await test.step('AND the big partial invoice is dropped into Compare', async (): Promise<void> =>
       pickExistingFixture(page, bigInvoicePath));
 
-    await test.step('THEN the API detected no envelope', async (): Promise<void> => expectEnvelope(page, 'None — the fixture is the payload'));
+    await test.step('THEN the API detected no envelope', async (): Promise<void> =>
+      expectEnvelope(page, 'None — the fixture is the payload'));
 
     await test.step('AND the API diffed it and lists the missing paths', async (): Promise<void> =>
       expectMissingPaths(page, LIVE_MISSING_PATHS));
@@ -55,43 +56,41 @@ test.describe('FEATURE: live studio', () => {
     await test.step('AND the merge is valid', async (): Promise<void> => expectValidMerge(page, LIVE_MISSING_PATHS.length));
   });
 
-  test.describe('GIVEN the real API runs with mocked AI', () => {
-    test.beforeEach(async ({ page }): Promise<void> => {
-      await test.step('GIVEN the studio is open', async (): Promise<void> => openStudio(page));
-    });
+  test('GIVEN the API sample spec file, picking it generates a real invoice fixture', async ({ page }): Promise<void> => {
+    await test.step('WHEN the studio is opened', async (): Promise<void> => openStudio(page));
 
-    test('SCENARIO: the sample spec file generates a real invoice fixture', async ({ page }): Promise<void> => {
-      await test.step('WHEN the sample spec file is picked', async (): Promise<void> => loadSpecFromFile(page, SAMPLE_SPEC_PATH));
+    await test.step('AND the sample spec file is picked', async (): Promise<void> => loadSpecFromFile(page, SAMPLE_SPEC_PATH));
 
-      await test.step('THEN the API parsed the spec', async (): Promise<void> => expectSpecLoaded(page, 'Studio API'));
+    await test.step('THEN the API parsed the spec', async (): Promise<void> => expectSpecLoaded(page, 'Studio API'));
 
-      await test.step('AND the invoice endpoint is selected', async (): Promise<void> =>
-        toggleEndpoint(page, SAMPLE_INVOICE_ENDPOINT_STUB));
+    await test.step('WHEN the invoice endpoint is selected', async (): Promise<void> =>
+      toggleEndpoint(page, SAMPLE_INVOICE_ENDPOINT_STUB));
 
-      await test.step('AND generate is pressed', async (): Promise<void> => generate(page));
+    await test.step('AND generate is pressed', async (): Promise<void> => generate(page));
 
-      await test.step('THEN the workspace has the invoice tab', async (): Promise<void> =>
-        expectEndpointTabs(page, [SAMPLE_INVOICE_ENDPOINT_STUB.id]));
+    await test.step('THEN the workspace has the invoice tab', async (): Promise<void> =>
+      expectEndpointTabs(page, [SAMPLE_INVOICE_ENDPOINT_STUB.id]));
 
-      await test.step('AND the editor shows the sampled invoice', async (): Promise<void> =>
-        expectCode(page, 'invoice.json', '"id": "in_123"'));
-    });
+    await test.step('AND the editor shows the sampled invoice', async (): Promise<void> =>
+      expectCode(page, 'invoice.json', '"id": "in_123"'));
+  });
 
-    test('SCENARIO: a partial .ts fixture is compared, filled by the mock CLI and merged valid', async ({ page }): Promise<void> => {
-      await test.step('GIVEN the sample invoice fixture is generated', async (): Promise<void> => generateSampleInvoice(page));
+  test('GIVEN a partial .ts fixture, it is compared, filled by the mock CLI and merged valid', async ({ page }): Promise<void> => {
+    await test.step('WHEN the studio is opened', async (): Promise<void> => openStudio(page));
 
-      await test.step('WHEN the partial invoice .ts is picked', async (): Promise<void> =>
-        pickExistingFixture(page, SAMPLE_PARTIAL_INVOICE_TS_PATH));
+    await test.step('AND the sample invoice fixture is generated', async (): Promise<void> => generateSampleInvoice(page));
 
-      await test.step('THEN the API lists the missing paths', async (): Promise<void> => expectMissingPaths(page, LIVE_MISSING_PATHS));
+    await test.step('AND the partial invoice .ts is picked', async (): Promise<void> =>
+      pickExistingFixture(page, SAMPLE_PARTIAL_INVOICE_TS_PATH));
 
-      await test.step('AND the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
+    await test.step('THEN the API lists the missing paths', async (): Promise<void> => expectMissingPaths(page, LIVE_MISSING_PATHS));
 
-      await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+    await test.step('WHEN the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
 
-      await test.step('THEN the mock CLI progress is logged', async (): Promise<void> => expectLogLine(page, 'mock: done'));
+    await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
 
-      await test.step('AND the merge is valid', async (): Promise<void> => expectValidMerge(page, LIVE_MISSING_PATHS.length));
-    });
+    await test.step('THEN the mock CLI progress is logged', async (): Promise<void> => expectLogLine(page, 'mock: done'));
+
+    await test.step('AND the merge is valid', async (): Promise<void> => expectValidMerge(page, LIVE_MISSING_PATHS.length));
   });
 });

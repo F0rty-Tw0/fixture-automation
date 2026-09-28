@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { escapeRegExp } from '../utils/regexp.spec.util.ts';
 import { hiddenOverflow } from '../utils/scroll.spec.util.ts';
@@ -19,9 +19,7 @@ export const continueToAiFill = async (page: Page): Promise<void> => {
 export const expectMissingPaths = async (page: Page, paths: string[]): Promise<void> => {
   const items = missingStep(page).getByRole('region', { name: 'Missing paths' }).getByRole('listitem');
 
-  await test.step(`THEN the missing paths are ${paths.join(', ')}`, async (): Promise<void> => expect(items).toHaveText(paths), {
-    box: true
-  });
+  await expect(items).toHaveText(paths);
 };
 
 /** Each broken value's row reads its path, then the value found, then why it is broken. */
@@ -30,28 +28,26 @@ export const expectBrokenValues = async (page: Page, paths: string[]): Promise<v
   const rowPattern = (path: string): RegExp => new RegExp(`^${escapeRegExp(path)}`, 'u');
   const patterns = paths.map(rowPattern);
 
-  await test.step(`THEN the broken values are ${paths.join(', ')}`, async (): Promise<void> => expect(items).toHaveText(patterns), {
-    box: true
-  });
+  await expect(items).toHaveText(patterns);
 };
 
 export const expectFillCount = async (page: Page, count: number): Promise<void> => {
   const noun = count === 1 ? 'value' : 'values';
   const counter = missingStep(page).getByText(`${count} ${noun} to fill`);
 
-  await test.step(`THEN ${count} ${noun} wait for AI fill`, async (): Promise<void> => expect(counter).toBeVisible(), { box: true });
+  await expect(counter).toBeVisible();
 };
 
 export const expectNothingMissing = async (page: Page): Promise<void> => {
   const complete = missingStep(page).getByText('Nothing is missing', { exact: false });
 
-  await test.step('THEN the fixture is reported complete', async (): Promise<void> => expect(complete).toBeVisible(), { box: true });
+  await expect(complete).toBeVisible();
 };
 
 export const expectNothingToFill = async (page: Page): Promise<void> => {
   const continueButton = missingStep(page).getByRole('button', { name: 'Continue to AI fill' });
 
-  await test.step('THEN AI fill is not offered', async (): Promise<void> => expect(continueButton).toHaveCount(0), { box: true });
+  await expect(continueButton).toHaveCount(0);
 };
 
 /** Long lists scroll inside their own capped boxes instead of stretching the step. */
@@ -60,8 +56,6 @@ export const expectListsScrollInside = async (page: Page): Promise<void> => {
   const missingOverflow = async (): Promise<number> => hiddenOverflow(step.getByRole('region', { name: 'Missing paths' }));
   const brokenOverflow = async (): Promise<number> => hiddenOverflow(step.getByRole('list', { name: 'Broken values' }));
 
-  await test.step('THEN the missing and broken lists each scroll inside their box', async (): Promise<void> => {
-    await expect.poll(missingOverflow).toBeGreaterThan(0);
-    await expect.poll(brokenOverflow).toBeGreaterThan(0);
-  }, { box: true });
+  await expect.poll(missingOverflow).toBeGreaterThan(0);
+  await expect.poll(brokenOverflow).toBeGreaterThan(0);
 };

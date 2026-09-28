@@ -1,13 +1,13 @@
 import type { Endpoint } from '@fixture-automation/fixture-studio-api/contract';
 import type { Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { escapeRegExp } from '../utils/regexp.spec.util.ts';
 
 const endpointsRegion = (page: Page): Locator => page.getByRole('region', { name: 'Endpoints' });
 
 /** A row's checkbox is named `METHOD /path summary-or-reason`. */
-export const endpointCheckbox = (page: Page, endpoint: Endpoint): Locator => {
+const endpointCheckbox = (page: Page, endpoint: Endpoint): Locator => {
   const rows = endpointsRegion(page).getByRole('listitem');
 
   return rows.getByRole('checkbox', { name: `${endpoint.method} ${endpoint.path}` });
@@ -63,11 +63,8 @@ const rowPattern = (endpoint: Endpoint): RegExp => {
 export const expectVisibleEndpoints = async (page: Page, endpoints: Endpoint[]): Promise<void> => {
   const rows = endpointsRegion(page).getByRole('listitem');
   const patterns = endpoints.map(rowPattern);
-  const ids = endpoints.map((endpoint: Endpoint): string => endpoint.id);
 
-  await test.step(`THEN the list shows exactly ${ids.join(', ')}`, async (): Promise<void> => expect(rows).toHaveText(patterns), {
-    box: true
-  });
+  await expect(rows).toHaveText(patterns);
 };
 
 /** Disabled, and named by the reason it cannot be sampled instead of its summary. */
@@ -75,23 +72,29 @@ export const expectUnsupported = async (page: Page, endpoint: Endpoint): Promise
   const name = `${endpoint.method} ${endpoint.path} ${endpoint.unsupportedReason ?? ''}`;
   const checkbox = endpointsRegion(page).getByRole('checkbox', { disabled: true, exact: true, name });
 
-  await test.step(`THEN ${endpoint.id} is disabled with its reason`, async (): Promise<void> => expect(checkbox).toBeVisible(), {
-    box: true
-  });
+  await expect(checkbox).toBeVisible();
+};
+
+export const expectEndpointChecked = async (page: Page, endpoint: Endpoint, isChecked: boolean): Promise<void> => {
+  const checkbox = endpointCheckbox(page, endpoint);
+
+  await expect(checkbox).toBeChecked({ checked: isChecked });
+};
+
+export const expectEndpointFocused = async (page: Page, endpoint: Endpoint): Promise<void> => {
+  const checkbox = endpointCheckbox(page, endpoint);
+
+  await expect(checkbox).toBeFocused();
 };
 
 export const expectSelectionSummary = async (page: Page, summary: string): Promise<void> => {
   const counter = endpointsRegion(page).getByText(/selected ·/u);
 
-  await test.step(`THEN the counter reads "${summary}"`, async (): Promise<void> => expect(counter).toHaveText(summary), {
-    box: true
-  });
+  await expect(counter).toHaveText(summary);
 };
 
 export const expectFormatError = async (page: Page, message: string): Promise<void> => {
   const alert = endpointsRegion(page).getByRole('alert');
 
-  await test.step(`THEN the options explain "${message}"`, async (): Promise<void> => expect(alert).toHaveText(message), {
-    box: true
-  });
+  await expect(alert).toHaveText(message);
 };

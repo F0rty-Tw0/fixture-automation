@@ -37,7 +37,8 @@ export const CUSTOMER_DIFF_RESULT_STUB: DiffResult = {
   broken: [],
   baseline: PARTIAL_CUSTOMER_STUB,
   completeJson:
-    '{\n  "id": "cus_7",\n  "email": "ada@example.com",\n  "address": {\n    "city": "Bergen",\n    "street": "Bryggen 1"\n  }\n}\n'
+    '{\n  "id": "cus_7",\n  "email": "ada@example.com",\n  "address": {\n    "city": "Bergen",\n    "street": "Bryggen 1"\n  }\n}\n',
+  promptBytes: 1100
 };
 
 /** The invoice keeps a broken value, so switching away and back must also keep the broken list. */

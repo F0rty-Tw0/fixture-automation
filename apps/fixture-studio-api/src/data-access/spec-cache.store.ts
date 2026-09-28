@@ -4,7 +4,7 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 
 import { statusError } from '../utils/status-error.util.ts';
 
-// ponytail: in-memory, last 5 specs only, lost on restart; persist to disk when specs must outlive the process.
+/** Specs live in memory only: a restart drops every one of them. */
 const SPEC_CACHE_LIMIT = 5;
 const RELOAD_FIX = 'load the spec again; the API keeps only the last few in memory';
 

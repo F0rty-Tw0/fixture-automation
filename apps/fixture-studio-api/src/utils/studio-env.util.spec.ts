@@ -28,7 +28,13 @@ describe('FEATURE: studio start-up settings', (): void => {
 
       expect(env).toMatchObject({ port: 3334, computeTimeoutMs: 2000, isAiMock: true, isProduction: true });
       expect(env.allowedOrigins).toContain('http://127.0.0.1:4300');
-      expect(env.allowedHosts).toStrictEqual(['127.0.0.1:3334', 'localhost:3334', 'localhost:4200', '127.0.0.1:4200', '127.0.0.1:4300']);
+      expect(env.allowedHosts).toStrictEqual([
+        '127.0.0.1:3334',
+        'localhost:3334',
+        'localhost:4200',
+        '127.0.0.1:4200',
+        '127.0.0.1:4300'
+      ]);
     });
   });
 
@@ -40,13 +46,16 @@ describe('FEATURE: studio start-up settings', (): void => {
       ['STUDIO_COMPUTE_TIMEOUT_MS', 'NaN', 'an integer from 1 to 2147483647', 15_000],
       ['STUDIO_COMPUTE_TIMEOUT_MS', '1.5', 'an integer from 1 to 2147483647', 15_000],
       ['STUDIO_COMPUTE_TIMEOUT_MS', '-1', 'an integer from 1 to 2147483647', 15_000]
-    ])('WHEN %s is "%s" THEN fails naming the variable, its range and a fix', (name: string, value: string, range: string, fallback: number): void => {
-      const variables = { [name]: value };
-      const message = `${name} must be ${range}, got "${value}"`;
-      const fix = `unset ${name}, or set it to e.g. ${fallback}`;
+    ])(
+      'WHEN %s is "%s" THEN fails naming the variable, its range and a fix',
+      (name: string, value: string, range: string, fallback: number): void => {
+        const variables = { [name]: value };
+        const message = `${name} must be ${range}, got "${value}"`;
+        const fix = `unset ${name}, or set it to e.g. ${fallback}`;
 
-      expect((): unknown => studioEnv(variables)).toThrow(expect.objectContaining({ message, fix }));
-    });
+        expect((): unknown => studioEnv(variables)).toThrow(expect.objectContaining({ message, fix }));
+      }
+    );
   });
 
   describe('GIVEN a blank number', (): void => {

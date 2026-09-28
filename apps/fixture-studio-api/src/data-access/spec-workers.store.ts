@@ -50,8 +50,7 @@ const readyWorker = async (spawn: WorkerSpawn): Promise<Worker> => {
   return ready;
 };
 
-// ponytail: one warm spare, every task still gets a fresh worker; a pool of N warm workers when requests overlap often.
-/** Hands out one fresh, already-loaded worker per spec task and starts loading the next one right away. */
+/** Hands out one fresh, already-loaded worker per spec task and starts loading the next one right away; one spare at most. */
 export class SpecWorkers {
   private readonly spawn: WorkerSpawn;
   private spare: Promise<Worker> | undefined;

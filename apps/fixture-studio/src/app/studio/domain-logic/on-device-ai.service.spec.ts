@@ -1,16 +1,23 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import type { DiffBody, DiffResult } from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { provideFixtureWorkbench } from './fixture-workbench.provider.ts';
 import { OnDeviceAi } from './on-device-ai.service.ts';
 import type { AiAvailability, ChromeAiProvider } from '../common/ai-fill.type.ts';
+import type { DiffRequest } from '../common/comparison.type.ts';
 import { AiSettingsStore } from '../data-access/ai-settings.store.ts';
 import { CHROME_AI_PROVIDER } from '../data-access/chrome-built-in-ai.provider.ts';
+import { ComparisonStore } from '../data-access/comparison.store.ts';
 import { STUDIO_ENGINE } from '../data-access/studio-engine.token.ts';
 import { studioEngineMock } from '../test/mocks/studio-engine.mock.ts';
+import { OVERSIZED_DIFF_RESULT_STUB } from '../test/stubs/studio.stub.ts';
 import { settle } from '../test/utils/studio-http.spec.util.ts';
+
+const BODY: DiffBody = { endpointId: 'GET /v1/invoices', fixture: {}, requiredOnly: false };
+const DIFF_REQUEST: DiffRequest = { specId: 'spec-1', body: BODY };
 
 describe('FEATURE: on-device AI', (): void => {
   let chrome: ChromeAiProvider;
@@ -109,6 +116,45 @@ describe('FEATURE: on-device AI', (): void => {
       expect(onDevice.provider()).toBe('cli');
       expect(onDevice.state()).toBe('unavailable');
       expect(onDevice.isAwaitingModel()).toBe(false);
+    });
+  });
+
+  describe('GIVEN an opt-in and a fixture too large for the on-device model', (): void => {
+    beforeEach(async (): Promise<void> => {
+      vi.mocked(TestBed.inject(STUDIO_ENGINE).diff).mockResolvedValue(OVERSIZED_DIFF_RESULT_STUB);
+      TestBed.inject(AiSettingsStore).setChromeOptIn(true);
+      TestBed.inject(ComparisonStore).compare(DIFF_REQUEST);
+      await settle();
+    });
+
+    it('WHEN Chrome is ready THEN the on-device model is not offered and the local CLI fills', async (): Promise<void> => {
+      const onDevice = await setUp('available');
+
+      expect(onDevice.isOffered()).toBe(false);
+      expect(onDevice.provider()).toBe('cli');
+      expect(onDevice.isChromeOptedIn()).toBe(true);
+    });
+
+    it('WHEN the fixture is compared again THEN the model stays hidden while the new diff loads', async (): Promise<void> => {
+      const onDevice = await setUp('available');
+      const again: DiffRequest = { ...DIFF_REQUEST };
+      const wasOffered = onDevice.isOffered();
+
+      vi.mocked(TestBed.inject(STUDIO_ENGINE).diff).mockReturnValue(new Promise<DiffResult>((): undefined => undefined));
+      TestBed.inject(ComparisonStore).compare(again);
+      TestBed.tick();
+
+      expect(wasOffered).toBe(false);
+      expect(onDevice.isOffered()).toBe(false);
+      expect(onDevice.provider()).toBe('cli');
+    });
+
+    it('WHEN Chrome has not answered yet THEN nothing waits for it', (): void => {
+      vi.spyOn(chrome, 'availability').mockReturnValue(new Promise<AiAvailability>((): undefined => undefined));
+
+      const onDevice = TestBed.inject(OnDeviceAi);
+
+      expect(onDevice.isAwaitingChrome()).toBe(false);
     });
   });
 

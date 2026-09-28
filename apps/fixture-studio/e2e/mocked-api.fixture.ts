@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test';
+import type { PlaywrightTestArgs, TestInfo } from '@playwright/test';
 
 import { expect, test as studioTest } from './studio.fixture.ts';
 import { API_ROUTE_PATTERN } from './test/common/playwright.const.ts';
@@ -8,15 +8,11 @@ type MockedApiFixtures = {
   readonly unmockedApiGuard: undefined;
 };
 
-type GuardArgs = {
-  readonly page: Page;
-};
-
 type UseGuard = (value: undefined) => Promise<void>;
 
 const AUTO = { auto: true };
 
-const guardUnmockedApi = async ({ page }: GuardArgs, use: UseGuard, testInfo: TestInfo): Promise<void> => {
+const guardUnmockedApi = async ({ page }: PlaywrightTestArgs, use: UseGuard, testInfo: TestInfo): Promise<void> => {
   const unmockedUrls: string[] = [];
 
   await page.route(API_ROUTE_PATTERN, unmockedApiMock(unmockedUrls));

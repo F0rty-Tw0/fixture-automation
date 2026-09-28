@@ -7,7 +7,7 @@ import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
 import { ComparisonStore } from './comparison.store.ts';
 import { STUDIO_ENGINE } from './studio-engine.token.ts';
 import { AI_LOG_BLOCK_LIMIT, AI_LOG_LIMIT, DEFAULT_AI_FILL_FORM } from '../common/ai-fill.const.ts';
-import type { AiFillForm, AiRunOptions, AiRunRequest, MergeRequest } from '../common/ai-fill.type.ts';
+import type { AiDownloadOptions, AiFillForm, AiRunOptions, AiRunRequest, MergeRequest } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
 import type { EngineCall, EngineStreamCall } from '../common/engine.type.ts';
 import { appendProgress } from '../utils/ai-log.util.ts';
@@ -34,6 +34,9 @@ export class AiFillStore {
   private activeRun: AbortController | undefined;
   private readonly settledChromeRuns = signal(0);
 
+  /** Counts "Download model" clicks; each one starts a download. */
+  private readonly downloadRequest = signal<number | undefined>(undefined);
+
   public readonly form: WritableSignal<AiFillForm> = signal(DEFAULT_AI_FILL_FORM);
 
   public readonly log = linkedSignal<DiffRequest | undefined, AiFillProgressEvent[]>({
@@ -47,7 +50,7 @@ export class AiFillStore {
     computation: (): undefined => undefined
   });
 
-  /** Bumps when an on-device run settles: its download may have changed Chrome's availability. */
+  /** Bumps when an on-device run or model download settles: either may have changed Chrome's availability. */
   public readonly chromeRunsSettled: Signal<number> = this.settledChromeRuns.asReadonly();
 
   public readonly run: ResourceRef<unknown> = resource({
@@ -67,6 +70,12 @@ export class AiFillStore {
 
       return this.fillWith(params, options);
     }
+  });
+
+  /** The on-device model download; its value is `true` once Chrome has the model. */
+  public readonly download: ResourceRef<boolean | undefined> = resource({
+    params: () => this.downloadRequest(),
+    loader: async ({ abortSignal }): Promise<boolean> => this.downloadOnDevice(abortSignal)
   });
 
   private readonly mergeRequest: Signal<MergeRequest | undefined> = computed(() => {
@@ -107,6 +116,12 @@ export class AiFillStore {
     this.runRequest.set(request);
   }
 
+  /** Call from the "Download model" click: Chrome only starts a download with that click's user activation. */
+  public startDownload(): void {
+    this.downloadRatio.set(0);
+    this.downloadRequest.update((count) => (count ?? 0) + 1);
+  }
+
   /** Aborts the running call; the provider stops (the API kills the CLI when the request closes). */
   public cancel(): void {
     this.abortActiveRun();
@@ -133,6 +148,19 @@ export class AiFillStore {
     try {
       return await this.chrome.fill(request.context, options);
     } finally {
+      this.settledChromeRuns.update((count) => count + 1);
+    }
+  }
+
+  private async downloadOnDevice(abortSignal: AbortSignal): Promise<boolean> {
+    const options: AiDownloadOptions = { signal: abortSignal, onDownload: (ratio): void => this.downloadRatio.set(ratio) };
+
+    try {
+      await this.chrome.download(options);
+
+      return true;
+    } finally {
+      this.downloadRatio.set(undefined);
       this.settledChromeRuns.update((count) => count + 1);
     }
   }

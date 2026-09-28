@@ -87,9 +87,28 @@
   color: var(--fs-danger);
 }
 
-.fill__download {
+// The on-device model's own sub-step: missing, downloading, ready.
+.fill__model {
   display: grid;
-  gap: var(--fs-space-1);
+  gap: var(--fs-space-2);
+  justify-items: start;
+  padding-top: var(--fs-space-2);
+  border-top: 1px solid var(--fs-line);
+
+  > mat-progress-bar {
+    justify-self: stretch;
+  }
+}
+
+.fill__model-text {
+  max-width: 70ch;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink);
+}
+
+.fill__model-action {
+  margin-left: calc(-1 * var(--fs-space-2));
 }
 
 .fill__download-label {

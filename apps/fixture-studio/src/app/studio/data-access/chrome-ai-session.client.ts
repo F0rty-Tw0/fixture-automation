@@ -1,5 +1,6 @@
 import type { AiFillProgressEvent, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
 
+import { downloadMonitor } from './chrome-ai-download.client.ts';
 import type { AiRunOptions } from '../common/ai-fill.type.ts';
 import type { StudioEngineFailure } from '../common/studio.type.ts';
 
@@ -21,10 +22,6 @@ export const status = (text: string): AiFillProgressEvent => {
   const event: AiFillProgressEvent = { type: 'progress', stream: 'status', text };
 
   return event;
-};
-
-const isDownloadEvent = (event: Event): event is LanguageModelDownloadEvent => {
-  return 'loaded' in event && typeof event.loaded === 'number';
 };
 
 const output = (text: string): AiFillProgressEvent => {
@@ -92,12 +89,7 @@ const answerSession = async (base: LanguageModelSession, signal: AbortSignal): P
 export const baseSession = async (factory: LanguageModelFactory, system: string, options: AiRunOptions): Promise<LanguageModelSession> => {
   const systemPrompt: LanguageModelPrompt = { role: 'system', content: system };
   const initialPrompts = [systemPrompt];
-  const reportDownload = (event: Event): void => {
-    if (isDownloadEvent(event)) options.onDownload(event.loaded);
-  };
-  const monitor = (target: LanguageModelMonitor): void => {
-    target.addEventListener('downloadprogress', reportDownload);
-  };
+  const monitor = downloadMonitor(options.onDownload);
 
   options.onProgress(status('Starting the on-device model…'));
 

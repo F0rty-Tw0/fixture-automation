@@ -8,29 +8,54 @@
   </p>
   <p class="fill__explain">{{ providerExplanation() }}</p>
   <div class="fill__opt-in">
-    <mat-checkbox [checked]="fill.isChromeOptedIn()" class="fill__opt-in-check" (change)="onOptInChange($event.checked)">
+    <mat-checkbox [checked]="onDevice.isChromeOptedIn()" class="fill__opt-in-check" (change)="onOptInChange($event.checked)">
       Use on-device Chrome AI
     </mat-checkbox>
     <div class="fill__opt-in-detail">
       <span class="fill__availability">Chrome AI: {{ availabilityLabel() }}</span>
       <p class="fill__opt-in-hint">
-        Off by default. On-device means Gemini Nano runs inside Chrome: nothing leaves this machine, and the first run may download
-        the model.
+        Off by default. On-device means Gemini Nano runs inside Chrome: nothing leaves this machine. The model downloads once, when
+        you ask for it.
       </p>
     </div>
   </div>
-  @if (fill.isChromeOptedIn() && fill.provider() === 'cli') {
-    <p class="fill__note">Chrome AI can't run in this browser, so the local CLI fills instead.</p>
+
+  @if (onDevice.isChromeOptedIn()) {
+    <div class="fill__model">
+      @switch (onDevice.state()) {
+        @case ('checking') {
+          <p class="fill__model-text">Asking Chrome about the on-device model…</p>
+        }
+        @case ('unavailable') {
+          <p class="fill__note">Chrome AI can't run in this browser, so the local CLI fills instead.</p>
+        }
+        @case ('needs-download') {
+          <p class="fill__model-text">No on-device model on this machine yet. Download it once, then fill the missing values here.</p>
+          <button class="fill__model-action" mat-stroked-button type="button" (click)="downloadModel()">Download model</button>
+        }
+        @case ('downloading') {
+          @let percent = downloadPercent();
+          <span class="fill__download-label">
+            Downloading the on-device model{{ percent === undefined ? '…' : ` · ${percent}%` }}
+          </span>
+          <mat-progress-bar
+            [mode]="percent === undefined ? 'indeterminate' : 'determinate'"
+            [value]="percent ?? 0"
+            aria-label="Model download" />
+          @if (!onDevice.isDownloading()) {
+            <button class="fill__model-action" mat-button type="button" (click)="recheckModel()">Check again</button>
+          }
+        }
+        @case ('ready') {
+          <p class="fill__model-text">The on-device model is ready.</p>
+        }
+      }
+      @if (onDevice.downloadError(); as error) {
+        <fs-api-error-notice [error]="error" />
+      }
+    </div>
   }
 </section>
-
-@let percent = downloadPercent();
-@if (percent !== undefined) {
-  <div class="fill__download">
-    <span class="fill__download-label">Downloading the on-device model · {{ percent }}%</span>
-    <mat-progress-bar [value]="percent" aria-label="Model download" mode="determinate" />
-  </div>
-}
 
 <form class="fill__form" novalidate (submit)="$event.preventDefault(); run()">
   <mat-form-field appearance="outline" class="fill__scenario" subscriptSizing="dynamic">

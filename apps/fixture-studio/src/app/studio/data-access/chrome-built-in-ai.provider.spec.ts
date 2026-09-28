@@ -284,6 +284,24 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
       expect(session.destroy).toHaveBeenCalledTimes(1);
     });
 
+    it('GIVEN a model not downloaded yet WHEN filled THEN rejects without starting the download', async (): Promise<void> => {
+      vi.mocked(factory.availability).mockResolvedValue('downloadable');
+
+      const error = await rejectionOf(provider.fill(CONTEXT, options));
+
+      expect(error).toHaveProperty('message', 'The on-device model is not downloaded yet.');
+      expect(factory.create).not.toHaveBeenCalled();
+    });
+
+    it('GIVEN the Prompt API WHEN the model is downloaded THEN creates a session only to drop it', async (): Promise<void> => {
+      vi.mocked(factory.create).mockResolvedValue(session);
+
+      await provider.download(options);
+
+      expect(session.destroy).toHaveBeenCalledTimes(1);
+      expect(session.promptStreaming).not.toHaveBeenCalled();
+    });
+
     it('GIVEN another failure WHEN filled THEN passes it through', async (): Promise<void> => {
       const failure = new Error('aborted');
 
@@ -299,5 +317,13 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
     const error = await rejectionOf(provider.fill(CONTEXT, options));
 
     expect(error).toHaveProperty('message', 'This browser has no on-device Chrome AI.');
+  });
+
+  it('GIVEN a browser without the Prompt API WHEN the model is downloaded THEN rejects pointing at the local CLI', async (): Promise<void> => {
+    vi.stubGlobal('LanguageModel', undefined);
+
+    const error = await rejectionOf(provider.download(options));
+
+    expect(error).toHaveProperty('fix', 'Turn off "Use on-device Chrome AI" to fill it with the local CLI instead.');
   });
 });

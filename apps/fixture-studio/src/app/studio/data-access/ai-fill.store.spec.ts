@@ -8,7 +8,7 @@ import { AiFillStore } from './ai-fill.store.ts';
 import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
 import { ComparisonStore } from './comparison.store.ts';
 import { STUDIO_ENGINE } from './studio-engine.token.ts';
-import type { AiFillContext, AiRunOptions, AiRunRequest, ChromeAiProvider } from '../common/ai-fill.type.ts';
+import type { AiDownloadOptions, AiFillContext, AiRunOptions, AiRunRequest, ChromeAiProvider } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
 import type { EngineStreamCall, StudioEngine } from '../common/engine.type.ts';
 import { studioEngineMock } from '../test/mocks/studio-engine.mock.ts';
@@ -177,6 +177,45 @@ describe('FEATURE: AI fill store', (): void => {
       await settle();
 
       expect(engine.merge).toHaveBeenCalledWith('spec-1', expected, expect.anything());
+    });
+  });
+
+  describe('GIVEN a model download is started', (): void => {
+    let finishDownload: () => void;
+    let downloadOptions: AiDownloadOptions | undefined;
+
+    beforeEach((): void => {
+      const pendingDownload = async (options: AiDownloadOptions): Promise<void> => {
+        downloadOptions = options;
+
+        return new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      };
+
+      vi.spyOn(chrome, 'download').mockImplementation(pendingDownload);
+      store.startDownload();
+      TestBed.tick();
+    });
+
+    it('WHEN it is under way THEN shows progress from zero', (): void => {
+      expect(store.download.isLoading()).toBe(true);
+      expect(store.downloadRatio()).toBe(0);
+    });
+
+    it('WHEN Chrome reports progress THEN shows the ratio', (): void => {
+      downloadOptions?.onDownload(0.4);
+
+      expect(store.downloadRatio()).toBe(0.4);
+    });
+
+    it('WHEN it finishes THEN clears the progress and counts it as settled', async (): Promise<void> => {
+      finishDownload();
+      await settle();
+
+      expect(store.download.value()).toBe(true);
+      expect(store.downloadRatio()).toBeUndefined();
+      expect(store.chromeRunsSettled()).toBe(1);
     });
   });
 

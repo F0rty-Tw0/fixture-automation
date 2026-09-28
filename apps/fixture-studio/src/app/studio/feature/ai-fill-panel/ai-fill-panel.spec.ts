@@ -15,6 +15,7 @@ import { FixtureComparison } from '../../domain-logic/fixture-comparison.service
 import { provideFixtureWorkbench } from '../../domain-logic/fixture-workbench.provider.ts';
 import { SpecBrowser } from '../../domain-logic/spec-browser.service.ts';
 import { provideHttpStudioEngine } from '../../domain-logic/studio-engine.provider.ts';
+import { languageModelMock, languageModelSessionMock } from '../../test/mocks/browser.mock.ts';
 import {
   CLI_TOOLS_RESULT_STUB,
   DIFF_RESULT_STUB,
@@ -172,6 +173,42 @@ describe('FEATURE: AiFillPanel', (): void => {
         expect(textAt(fixture, '.fill__badge')).toBe('1 schema errors');
         expect(textsAt(fixture, '.fill__error')).toStrictEqual(['status: must be one of draft, open']);
       });
+    });
+  });
+
+  describe('GIVEN Chrome AI whose model is not downloaded yet', (): void => {
+    let factory: LanguageModelFactory;
+
+    beforeEach(async (): Promise<void> => {
+      factory = languageModelMock();
+      vi.mocked(factory.availability).mockResolvedValue('downloadable');
+      vi.mocked(factory.create).mockResolvedValue(languageModelSessionMock());
+      vi.stubGlobal('LanguageModel', factory);
+      await answerPanel(http, TOOLS_URL, CLI_TOOLS_RESULT_STUB);
+      await answerPanel(http, '/api/ai/cli/models?tool=claude', MODELS);
+
+      const optIn = await loader.getHarness(MatCheckboxHarness.with({ label: 'Use on-device Chrome AI' }));
+
+      await optIn.check();
+    });
+
+    it('WHEN opted in THEN says there is no model yet, offers the download, and keeps Fill disabled', (): void => {
+      expect(textAt(fixture, '.fill__model-text')).toContain('No on-device model on this machine yet');
+      expect(textAt(fixture, '.fill__model-action')).toBe('Download model');
+      expect(runButton(fixture).disabled).toBe(true);
+      expect(factory.create).not.toHaveBeenCalled();
+    });
+
+    it('WHEN the model is downloaded THEN it is ready and Fill is enabled', async (): Promise<void> => {
+      vi.mocked(factory.availability).mockResolvedValue('available');
+
+      requiredElement(fixture, '.fill__model-action').click();
+      await settle();
+      await fixture.whenStable();
+
+      expect(factory.create).toHaveBeenCalledTimes(1);
+      expect(textAt(fixture, '.fill__model-text')).toBe('The on-device model is ready.');
+      expect(runButton(fixture).disabled).toBe(false);
     });
   });
 

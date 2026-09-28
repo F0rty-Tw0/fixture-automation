@@ -11,16 +11,14 @@ import type {
   MergeResult
 } from '@fixture-automation/fixture-studio-api/contract';
 
+import { OnDeviceAi } from './on-device-ai.service.ts';
 import { CLI_TOOLS } from '../common/ai-fill.const.ts';
-import type { AiAvailability, AiFillContext, AiFillForm, AiProviderId, AiRunRequest } from '../common/ai-fill.type.ts';
+import type { AiFillContext, AiFillForm, AiProviderId, AiRunRequest } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
 import { AiFillStore } from '../data-access/ai-fill.store.ts';
-import { AiSettingsStore } from '../data-access/ai-settings.store.ts';
-import { CHROME_AI_PROVIDER } from '../data-access/chrome-built-in-ai.provider.ts';
 import { CliModelsStore } from '../data-access/cli-models.store.ts';
 import { CliToolsStore } from '../data-access/cli-tools.store.ts';
 import { ComparisonStore } from '../data-access/comparison.store.ts';
-import { chooseAiProvider } from '../utils/ai-provider.util.ts';
 import { toApiError } from '../utils/api-error.util.ts';
 import { installedChoice, installedTools, uncheckedTool } from '../utils/cli-tools.util.ts';
 import { prettyJson } from '../utils/fixture-source.util.ts';
@@ -38,32 +36,19 @@ const UNCHECKED_TOOLS = CLI_TOOLS.map(uncheckedTool);
 @Service({ autoProvided: false })
 export class FixtureAiFill {
   private readonly store = inject(AiFillStore);
-  private readonly settings = inject(AiSettingsStore);
   private readonly comparison = inject(ComparisonStore);
   private readonly cliModels = inject(CliModelsStore);
   private readonly cliTools = inject(CliToolsStore);
-  private readonly chrome = inject(CHROME_AI_PROVIDER);
+  private readonly onDevice = inject(OnDeviceAi);
 
   public readonly form: WritableSignal<AiFillForm> = this.store.form;
   public readonly log: Signal<AiFillProgressEvent[]> = this.store.log.asReadonly();
-  public readonly downloadRatio: Signal<number | undefined> = this.store.downloadRatio.asReadonly();
-  public readonly isChromeOptedIn: Signal<boolean> = this.settings.isChromeOptedIn;
-
-  /** Checked again after every on-device run: a first run downloads the model and changes the answer. */
-  public readonly chromeAvailability: ResourceRef<AiAvailability | undefined> = resource({
-    params: () => this.store.chromeRunsSettled(),
-    loader: async (): Promise<AiAvailability> => this.chrome.availability()
-  });
 
   /** On-device AI when the user opted in and Chrome can run it; the local CLI otherwise. */
-  public readonly provider: Signal<AiProviderId> = computed(() => chooseAiProvider(this.isChromeOptedIn(), this.chromeAvailability.value()));
+  public readonly provider: Signal<AiProviderId> = this.onDevice.provider;
 
-  /** An opted-in user's provider is unknown until Chrome answers; nothing may start the CLI meanwhile. */
-  private readonly isAwaitingChrome: Signal<boolean> = computed(() => {
-    const isAvailabilityLoading = this.chromeAvailability.isLoading();
-
-    return this.isChromeOptedIn() && isAvailabilityLoading;
-  });
+  private readonly isAwaitingChrome: Signal<boolean> = this.onDevice.isAwaitingChrome;
+  private readonly isAwaitingModel: Signal<boolean> = this.onDevice.isAwaitingModel;
 
   /** The CLI checks (install, models) are only worth asking once the CLI is the settled choice. */
   private readonly isCliSettled: Signal<boolean> = computed(() => {
@@ -154,6 +139,8 @@ export class FixtureAiFill {
 
     if (this.isAwaitingChrome()) return false;
 
+    if (this.isAwaitingModel()) return false;
+
     if (this.isToolMissing()) return false;
 
     const hasMissing = this.comparison.diff.value().missingPaths.length > 0;
@@ -161,12 +148,7 @@ export class FixtureAiFill {
     return hasMissing && !this.isRunning();
   });
 
-  public setChromeOptIn(isOptedIn: boolean): void {
-    this.settings.setChromeOptIn(isOptedIn);
-  }
-
   /**
-   * Call from the Run click: the on-device provider may need the click's user activation to download its model.
    * Endpoint and envelope come from the compared request, not the live form, and the fixture is the diff's
    * baseline: merge only fills absent keys, so a replaced value must already be gone from what it merges onto.
    */

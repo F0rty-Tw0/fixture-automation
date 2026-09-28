@@ -18,7 +18,7 @@ export const DEFAULT_AI_FILL_FORM: AiFillForm = {
 
 export const AI_AVAILABILITY_LABELS: Record<AiAvailability, string> = {
   available: 'Ready',
-  downloadable: 'Downloads the model on first run',
+  downloadable: 'Model not downloaded yet',
   downloading: 'Downloading the model',
   unavailable: 'Not available in this browser'
 };

@@ -6,13 +6,16 @@ It talks to the local [Fixture Studio API](../fixture-studio-api/README.md). Not
 
 ## What it does
 
+One page, six steps on a rail. Each step's heading folds it away; the active step opens by itself.
+
 1. **Spec** — load an OpenAPI JSON spec from an `http(s)` URL, or drop a local `.json` file.
 2. **Endpoints** — filter by path, tag, or method; pick one or more; optional "Required fields only".
-3. **Workspace** — one tab per endpoint, each with:
-   - **Generated views**: JSON fixture (`.json`), typed TS stub (`.stub.ts`), types (`.d.ts`).
-   - **Compare**: drop or paste an existing fixture; see the diff and the missing fields.
-   - **AI fill**: fill the missing fields; the result is merged and validated against the schema.
-4. **Export** — Copy or Export (download) any view.
+3. **Generate** — one tab per endpoint; each format is a folding section: JSON fixture (`.json`), typed TS stub (`.stub.ts`), types (`.d.ts`). The chosen tab is the endpoint steps 4–6 follow.
+4. **Compare** — drop or paste an existing fixture. The envelope property (e.g. `data`) is detected and preselected; change it to compare again. The diff has a change map beside it: click a mark, or use Previous/Next change.
+5. **Missing & broken values** — the missing paths, grouped by their first key, and the present values that are broken (path, value, reason). Fix broken values (AI fill rewrites them) or keep them. Then **Continue to AI fill**.
+6. **Fill with AI** — an optional extra prompt (scenario), then fill; the answer streams into the log as one block, and the result is merged and validated against the schema.
+
+Every step keeps its state per endpoint. Copy or Export (download) any document. Long lists, logs, and editors scroll inside their own box.
 
 Built with Angular 22 (zoneless, signals, signal forms), Angular Material 3, and CodeMirror 6 for the code and diff views.
 
@@ -86,8 +89,8 @@ Two providers. The studio picks one for you:
 
 - **Off** by default.
 - Remembered per browser in `localStorage` (key `fixture-studio.use-chrome-ai`).
-- The panel shows Chrome AI's state: `Ready`, `Downloads the model on first run`, `Downloading the model`, or `Not available in this browser`.
-- The first run may download the model; a progress bar shows it.
+- The panel shows Chrome AI's state: `Ready`, `Model not downloaded yet`, `Downloading the model`, or `Not available in this browser`.
+- No model yet → **Download model** downloads it once, with a progress bar. Fill stays disabled until the model is ready; a fill never starts the download.
 
 ### Chrome AI limits
 

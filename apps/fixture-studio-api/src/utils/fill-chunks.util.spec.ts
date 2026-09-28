@@ -9,6 +9,7 @@ const SCENARIO = 'An overdue invoice.';
 const INVOICE = { id: 'in_9', amount_due: 5 };
 const LARGE_INVOICE = { ...INVOICE, memo: 'm'.repeat(300 * 1024) };
 const HUGE_INVOICE = { ...INVOICE, memo: 'm'.repeat(1100 * 1024) };
+const LONG_SCENARIO = 's'.repeat(300 * 1024);
 const TEXT_SCHEMA = { type: 'string' };
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const EMPTY_COMPONENTS = { schemas: EMPTY_SCHEMAS };
@@ -48,6 +49,16 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
       const chunks = fillChunks(LARGE_INVOICE, missing, SCENARIO);
 
       expect(chunks).toStrictEqual([['status'], ['customer']]);
+    });
+  });
+
+  describe('GIVEN a small fixture and a scenario longer than the chunk budget', (): void => {
+    it('WHEN planned THEN the scenario counts in every chunk, so each path runs alone', (): void => {
+      const fourFields = wideMissing(4);
+
+      const chunks = fillChunks(INVOICE, fourFields, LONG_SCENARIO);
+
+      expect(chunks).toStrictEqual([['f0'], ['f1'], ['f2'], ['f3']]);
     });
   });
 

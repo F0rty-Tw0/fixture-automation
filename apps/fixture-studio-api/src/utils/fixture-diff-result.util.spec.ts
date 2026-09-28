@@ -1,7 +1,7 @@
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { trimmedPromptBytes } from './ai-prompt.util.ts';
+import { aiPrompt, promptBytes, trimmedPromptBytes } from './ai-prompt.util.ts';
 import { fixtureDiffResult } from './fixture-diff-result.util.ts';
 import { fixtureJson } from './fixture-merge.util.ts';
 import type { DiffBody } from '../contract/common/studio-api.type.ts';
@@ -14,6 +14,9 @@ const NESTED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open', memo: 'm', c
 const PLACEHOLDER_INVOICE = { id: 'in_9', amount_due: 0, status: 'open', memo: 'string' };
 const PLACEHOLDER_BASELINE = { id: 'in_9', status: 'open' };
 const REQUIRED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open' };
+const NOTES = Array.from({ length: 400 }, (_value: unknown, index: number): string => `note ${index}`);
+const HISTORY = { notes: NOTES };
+const INVOICE_WITH_HISTORY = { ...PARTIAL_INVOICE, history: HISTORY };
 
 const diffBody = (fixture: unknown, requiredOnly: boolean, objectShape?: string, replacePlaceholders?: boolean): DiffBody => {
   const body: DiffBody = { endpointId: 'GET /v1/invoices/{id}', fixture, requiredOnly, replacePlaceholders };
@@ -66,6 +69,25 @@ describe('FEATURE: fixture diff result', (): void => {
 
       expect(isInsertionOnly(before, result.completeJson)).toBe(true);
       expect(result.completeJson.length).toBeGreaterThan(before.length);
+    });
+  });
+
+  describe('GIVEN an invoice with a large subtree off every missing path', (): void => {
+    it('WHEN diffed THEN promptBytes is the byte length of the prompt trimmed to the missing paths', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICE_WITH_HISTORY, false));
+
+      const trimmed = aiPrompt(result.baseline, result.missing, undefined, result.missingPaths);
+      const expected = Buffer.byteLength(trimmed.prompt, 'utf8');
+
+      expect(result.promptBytes).toBe(expected);
+    });
+
+    it('WHEN diffed THEN promptBytes is a fraction of the untrimmed baseline prompt', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICE_WITH_HISTORY, false));
+
+      const untrimmed = promptBytes(result.baseline, result.missing, undefined);
+
+      expect(result.promptBytes).toBeLessThan(untrimmed / 2);
     });
   });
 

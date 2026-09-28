@@ -4,6 +4,7 @@ import type {
   AiFixtureOptions,
   AiFixtureProgress,
   AiMissingFactory,
+  AiMissingRequest,
   AiToolInstall,
   MissingFile,
   ModelDiscovery,
@@ -77,6 +78,17 @@ export type ErrorReply = {
 
 /** One AI fill, started by the NDJSON stream with its abort signal and progress sink. */
 export type AiFillJob = (signal: AbortSignal, onProgress: (progress: AiFixtureProgress) => void) => Promise<Record<string, unknown>>;
+
+/** One CLI fill; the chunked runner splits it into sequential `enrich` calls when its prompt is too big for one answer. */
+export type ChunkedFillRun = {
+  readonly enrich: AiMissingFactory;
+  readonly schemaName: string;
+  /** The whole fill: every missing path and the full fixture. */
+  readonly request: AiMissingRequest;
+  /** Checked between chunks, so a cancel starts no further CLI run. */
+  readonly signal: AbortSignal;
+  readonly onProgress: (progress: AiFixtureProgress) => void;
+};
 
 export type GenerateTask = {
   readonly name: 'generate';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fixturePrompt, missingPrompt } from './fixture-prompt.util.ts';
+import { fixturePrompt, missingPrompt, missingPromptBytes } from './fixture-prompt.util.ts';
 import { missingDocument } from './missing-document.util.ts';
 import { isSchemaRecord } from './schema-record.util.ts';
 import type { MissingFile, MissingPromptInput } from '../common/missing.type.ts';
@@ -20,6 +20,13 @@ const RESPONSE_RULE =
   'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals). The result is merged into `baseline` index by index, so every array that also exists in `baseline` must have exactly the baseline array length.';
 const OVERSIZE_RULE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
+const PADDED_FIXTURE_JSON = '{"memo":"  Net \\n  30  ","id":"in_1"}';
+const PADDED_NOTE = { type: 'string', description: '  Free \n text  ', pattern: '^a  b$', enum: ['  x  '] };
+const PADDED_PROPERTIES = { note: PADDED_NOTE };
+const PADDED_PROJECTION = { type: 'object', title: ' Missing   fields ', properties: PADDED_PROPERTIES };
+const MINIFIED_NOTE = { type: 'string', description: 'Free text', pattern: '^a  b$', enum: ['  x  '] };
+const MINIFIED_BASELINE = { memo: 'Net 30', id: 'in_1' };
+const PADDED_SCHEMA_JSON = '{"type":"object","description":"  An   invoice ","properties":{"memo":{"type":"string"}}}';
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const EMPTY_COMPONENTS = { schemas: EMPTY_SCHEMAS };
 
@@ -104,6 +111,48 @@ describe('FEATURE: missing-field prompt payload', (): void => {
       expect(text.length).toBeGreaterThan(1000);
     });
   });
+
+  describe('GIVEN padded baseline strings and schema prose', (): void => {
+    const paddedPrompt = (): Record<string, unknown> => {
+      const input: MissingPromptInput = { fixtureJson: PADDED_FIXTURE_JSON, missing: PADDED_PROJECTION, scenario: SCENARIO };
+      const parsed: unknown = JSON.parse(missingPrompt(input));
+
+      if (!isSchemaRecord(parsed)) throw new Error('the prompt payload is not a JSON object');
+
+      return parsed;
+    };
+
+    it('WHEN building the prompt THEN baseline strings are collapsed and trimmed', (): void => {
+      const prompt = paddedPrompt();
+
+      expect(prompt['baseline']).toStrictEqual(MINIFIED_BASELINE);
+    });
+
+    it('WHEN building the prompt THEN title and description collapse while pattern and enum stay exact', (): void => {
+      const prompt = paddedPrompt();
+
+      expect(prompt['missing']).toHaveProperty('title', 'Missing fields');
+      expect(prompt['missing']).toHaveProperty('properties.note', MINIFIED_NOTE);
+    });
+  });
+
+  describe('GIVEN a prompt measured before it is built', (): void => {
+    it('WHEN it fits THEN the size equals the built prompt in UTF-8 bytes', (): void => {
+      const input = promptInput(DOCUMENT);
+
+      const bytes = missingPromptBytes(input);
+
+      expect(bytes).toBe(Buffer.byteLength(missingPrompt(input), 'utf8'));
+    });
+
+    it('WHEN it exceeds 1 MiB THEN the size is reported without throwing', (): void => {
+      const input = promptInput(sizedDocument(1024 * 1024));
+
+      const bytes = missingPromptBytes(input);
+
+      expect(bytes).toBeGreaterThan(1024 * 1024);
+    });
+  });
 });
 
 describe('FEATURE: full fixture prompt payload', (): void => {
@@ -122,6 +171,14 @@ describe('FEATURE: full fixture prompt payload', (): void => {
         response: 'Return exactly one JSON value with no markdown or explanatory text.',
         restrictions: 'Do not access tools, code, project files, or external resources.'
       });
+    });
+
+    it('WHEN the schema prose is padded THEN it collapses while baseline strings stay exact', (): void => {
+      const text = fixturePrompt(PADDED_SCHEMA_JSON, PADDED_FIXTURE_JSON, SCENARIO);
+      const parsed: unknown = JSON.parse(text);
+
+      expect(parsed).toHaveProperty('schema.description', 'An invoice');
+      expect(parsed).toHaveProperty('baseline.memo', '  Net \n  30  ');
     });
   });
 });

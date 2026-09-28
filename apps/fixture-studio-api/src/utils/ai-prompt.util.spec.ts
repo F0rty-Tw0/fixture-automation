@@ -1,12 +1,13 @@
-import { MISSING_SCENARIO } from '@fixture-automation/openapi-ai-fixtures';
+import { MISSING_PROMPT_LIMIT_BYTES, MISSING_SCENARIO } from '@fixture-automation/openapi-ai-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { aiPrompt, missingScenario } from './ai-prompt.util.ts';
+import { aiPrompt, missingScenario, trimmedPromptBytes } from './ai-prompt.util.ts';
 import type { MissingFile } from '../contract/common/studio-api.type.ts';
 import { missingFixture } from '../test/utils/studio-spec.spec.util.ts';
 
 const FIXTURE = { id: 'in_9' };
+const HUGE_FIXTURE = { id: 'in_9', memo: 'm'.repeat(MISSING_PROMPT_LIMIT_BYTES) };
 const NOTES = Array.from({ length: 400 }, (_value: unknown, index: number): string => `note ${index}`);
 const HISTORY = { notes: NOTES };
 const ADDRESS = { city: 'Oslo' };
@@ -118,6 +119,30 @@ describe('FEATURE: AI prompt', (): void => {
 
         expect(payload['baseline']).toStrictEqual(LINES_FIXTURE);
       });
+    });
+  });
+
+  describe('SCENARIO: trimmed prompt size', (): void => {
+    it('GIVEN missing paths WHEN measured THEN counts the prompt trimmed to all of them', (): void => {
+      const trimmed = aiPrompt(FIXTURE, missing, undefined, missing.paths);
+
+      const bytes = trimmedPromptBytes(FIXTURE, missing);
+
+      expect(bytes).toBe(trimmed.prompt.length);
+    });
+
+    it('GIVEN nothing missing WHEN measured THEN is 0', (): void => {
+      const none: MissingFile = { ...missing, paths: [] };
+
+      const bytes = trimmedPromptBytes(FIXTURE, none);
+
+      expect(bytes).toBe(0);
+    });
+
+    it('GIVEN a root string over the agent input limit WHEN measured THEN counts past the limit without failing', (): void => {
+      const bytes = trimmedPromptBytes(HUGE_FIXTURE, missing);
+
+      expect(bytes).toBeGreaterThan(MISSING_PROMPT_LIMIT_BYTES);
     });
   });
 });

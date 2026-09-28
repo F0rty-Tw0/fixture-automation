@@ -1,4 +1,4 @@
-import { MISSING_SCENARIO, missingDocument, missingPrompt } from '@fixture-automation/openapi-ai-fixtures';
+import { MISSING_SCENARIO, missingDocument, missingPrompt, missingPromptBytes } from '@fixture-automation/openapi-ai-fixtures';
 import type { MissingPromptInput } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
@@ -19,7 +19,7 @@ export const missingScenario = (scenario: string | undefined): string => {
   return trimmed;
 };
 
-const promptResult = (baseline: unknown, missing: MissingFile, scenario: string | undefined): AiPromptResult => {
+const promptInput = (baseline: unknown, missing: MissingFile, scenario: string | undefined): MissingPromptInput => {
   const fixtureJson: unknown = JSON.stringify(baseline);
 
   if (typeof fixtureJson !== 'string')
@@ -27,6 +27,12 @@ const promptResult = (baseline: unknown, missing: MissingFile, scenario: string 
 
   const document = missingDocument(missing);
   const input: MissingPromptInput = { fixtureJson, missing: document, scenario: missingScenario(scenario) };
+
+  return input;
+};
+
+const promptResult = (baseline: unknown, missing: MissingFile, scenario: string | undefined): AiPromptResult => {
+  const input = promptInput(baseline, missing, scenario);
   const prompt = missingPrompt(input);
   const schema = responseSchema(missing);
   const result: AiPromptResult = { system: SYSTEM, prompt, responseSchema: schema };
@@ -46,4 +52,18 @@ export const aiPrompt = (fixture: unknown, missing: MissingFile, scenario: strin
   const baseline = baselineContext(fixture, chunk.paths);
 
   return promptResult(baseline, chunk, scenario);
+};
+
+/**
+ * UTF-8 size of the smallest single prompt a browser model can be sent: every missing path over a baseline trimmed
+ * to their context, without a scenario. Past the agent input limit it still counts, so a client can skip that model.
+ */
+export const trimmedPromptBytes = (fixture: unknown, missing: MissingFile): number => {
+  if (missing.paths.length === 0) return 0;
+
+  const chunk = missingChunk(missing, missing.paths);
+  const baseline = baselineContext(fixture, chunk.paths);
+  const input = promptInput(baseline, chunk, undefined);
+
+  return missingPromptBytes(input);
 };

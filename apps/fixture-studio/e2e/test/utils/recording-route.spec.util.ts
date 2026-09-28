@@ -1,4 +1,5 @@
 import type { Route } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import type { RecordingRoute } from '../common/playwright.type.ts';
 
@@ -17,4 +18,11 @@ export const recordingRoute = (payload: unknown): RecordingRoute => {
   const recording: RecordingRoute = { handler, bodies };
 
   return recording;
+};
+
+/** The request bodies `recording` answered, polled until they match: a request the UI sends after a change may still be on its way. */
+export const expectSentBodies = async (recording: RecordingRoute, bodies: unknown[]): Promise<void> => {
+  const sent = (): unknown[] => recording.bodies;
+
+  await expect.poll(sent).toEqual(bodies);
 };

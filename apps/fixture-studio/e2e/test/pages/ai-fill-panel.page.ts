@@ -1,11 +1,13 @@
 import type { ApiErrorBody } from '@fixture-automation/fixture-studio-api/contract';
 import type { Download, Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 /** The Fill with AI step of the endpoint chosen in Generate. */
 export const aiFillPanel = (page: Page): Locator => page.getByRole('region', { name: 'Fill with AI' });
 
 const mergeResult = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'Merge result' });
+
+const providerRegion = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'AI provider' });
 
 export const chromeOptIn = (page: Page): Locator => aiFillPanel(page).getByRole('checkbox', { name: 'Use on-device Chrome AI' });
 
@@ -22,22 +24,20 @@ export const openCliList = async (page: Page): Promise<void> => {
 export const expectChosenCli = async (page: Page, tool: string): Promise<void> => {
   const select = cliSelect(page);
 
-  await test.step(`THEN the CLI is ${tool}`, async (): Promise<void> => expect(select).toHaveText(tool), { box: true });
+  await expect(select).toHaveText(tool);
 };
 
 /** The open CLI list lives in an overlay outside the panel. */
 export const expectCliNotInstalled = async (page: Page, tool: string): Promise<void> => {
   const option = page.getByRole('option', { name: `${tool} — not installed` });
 
-  await test.step(`THEN ${tool} is offered disabled as not installed`, async (): Promise<void> => expect(option).toBeDisabled(), {
-    box: true
-  });
+  await expect(option).toBeDisabled();
 };
 
 export const expectMockAiBadge = async (page: Page): Promise<void> => {
   const badge = aiFillPanel(page).getByText('Mock AI — no CLI runs', { exact: true });
 
-  await test.step('THEN the mock AI is badged', async (): Promise<void> => expect(badge).toBeVisible(), { box: true });
+  await expect(badge).toBeVisible();
 };
 
 export const downloadModel = async (page: Page): Promise<void> => {
@@ -64,105 +64,98 @@ export const exportMerged = async (page: Page): Promise<Download> => {
 export const expectAiFillWaiting = async (page: Page): Promise<void> => {
   const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
 
-  await test.step('THEN AI fill waits for the missing values step', async (): Promise<void> => expect(fill).toHaveCount(0), {
-    box: true
-  });
+  await expect(fill).toHaveCount(0);
 };
 
 export const expectAiFillOpen = async (page: Page): Promise<void> => {
   const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
 
-  await test.step('THEN the AI fill step is open', async (): Promise<void> => expect(fill).toBeVisible(), { box: true });
+  await expect(fill).toBeVisible();
 };
 
 export const expectFillDisabled = async (page: Page): Promise<void> => {
   const fill = aiFillPanel(page).getByRole('button', { name: 'Fill missing values' });
 
-  await test.step('THEN Fill missing values is disabled', async (): Promise<void> => expect(fill).toBeDisabled(), { box: true });
+  await expect(fill).toBeDisabled();
 };
 
 export const expectNoModelYet = async (page: Page): Promise<void> => {
   const notice = aiFillPanel(page).getByText('No on-device model on this machine yet', { exact: false });
 
-  await test.step('THEN it says there is no on-device model yet', async (): Promise<void> => expect(notice).toBeVisible(), {
-    box: true
-  });
+  await expect(notice).toBeVisible();
 };
 
 export const expectModelReady = async (page: Page): Promise<void> => {
   const notice = aiFillPanel(page).getByText('The on-device model is ready.');
 
-  await test.step('THEN the on-device model is ready', async (): Promise<void> => expect(notice).toBeVisible(), { box: true });
+  await expect(notice).toBeVisible();
 };
 
 /** The provider chip is the one element whose whole text is the provider's label; the copy around it may change. */
 export const expectProvider = async (page: Page, label: string): Promise<void> => {
-  const provider = aiFillPanel(page).getByRole('region', { name: 'AI provider' });
-  const chip = provider.getByText(label, { exact: true });
+  const chip = providerRegion(page).getByText(label, { exact: true });
 
-  await test.step(`THEN the provider is ${label}`, async (): Promise<void> => expect(chip).toBeVisible(), { box: true });
+  await expect(chip).toBeVisible();
+};
+
+/** Past the on-device prompt limit the opt-in is not offered at all; the provider section says why instead. */
+export const expectTooLargeForChromeAi = async (page: Page): Promise<void> => {
+  const note = providerRegion(page).getByText('This fixture is too large for on-device Chrome AI, so the local CLI fills it.');
+
+  const optIn = chromeOptIn(page);
+
+  await expect(optIn).toHaveCount(0);
+  await expect(note).toBeVisible();
 };
 
 export const expectAvailability = async (page: Page, label: string): Promise<void> => {
   const availability = aiFillPanel(page).getByText(`Chrome AI: ${label}`);
 
-  await test.step(`THEN Chrome AI reads "${label}"`, async (): Promise<void> => expect(availability).toBeVisible(), { box: true });
+  await expect(availability).toBeVisible();
 };
 
 export const expectLogLine = async (page: Page, text: string): Promise<void> => {
   const log = aiFillPanel(page).getByRole('log', { name: 'AI progress' });
 
-  await test.step(`THEN the progress log shows "${text}"`, async (): Promise<void> => expect(log).toContainText(text), { box: true });
+  await expect(log).toContainText(text);
 };
 
 export const expectValidMerge = async (page: Page, filledCount: number): Promise<void> => {
   const badge = mergeResult(page).getByText(`Valid against the schema · ${filledCount} values filled`);
 
-  await test.step('THEN the merged fixture is valid', async (): Promise<void> => expect(badge).toBeVisible(), { box: true });
+  await expect(badge).toBeVisible();
 };
 
 export const expectSchemaErrors = async (page: Page, errors: string[]): Promise<void> => {
   const items = mergeResult(page).getByRole('list', { name: 'Schema errors' }).getByRole('listitem');
 
-  await test.step('THEN the schema errors are listed', async (): Promise<void> => expect(items).toHaveText(errors), { box: true });
+  await expect(items).toHaveText(errors);
 };
 
 export const expectMergedCode = async (page: Page, fileName: string, text: string): Promise<void> => {
   const editor = mergeResult(page).getByRole('textbox', { name: fileName, exact: true });
 
-  await test.step(
-    `THEN the merged ${fileName} shows the filled values`,
-    async (): Promise<void> => expect(editor).toContainText(text),
-    {
-      box: true
-    }
-  );
+  await expect(editor).toContainText(text);
 };
 
 /** A fresh compare resets AI fill: no merge result is left from the previous fixture. */
 export const expectNoMergeResult = async (page: Page): Promise<void> => {
   const result = mergeResult(page);
 
-  await test.step('THEN no merge result is shown', async (): Promise<void> => expect(result).toHaveCount(0), { box: true });
+  await expect(result).toHaveCount(0);
 };
 
 /** An empty log is not rendered at all, so "cleared" means no log holds the text, whether or not one is shown. */
 export const expectLogCleared = async (page: Page, text: string): Promise<void> => {
   const staleLog = aiFillPanel(page).getByRole('log', { name: 'AI progress' }).filter({ hasText: text });
 
-  await test.step(`THEN the progress log no longer shows "${text}"`, async (): Promise<void> => expect(staleLog).toHaveCount(0), {
-    box: true
-  });
+  await expect(staleLog).toHaveCount(0);
 };
 
 export const expectDownloadProgress = async (page: Page, percent: number): Promise<void> => {
   const bar = aiFillPanel(page).getByRole('progressbar', { name: 'Model download' });
 
-  await test.step(
-    `THEN the model download shows ${percent}%`,
-    async (): Promise<void> => expect(bar).toHaveAttribute('aria-valuenow', String(percent)),
-    { box: true }
-  );
+  await expect(bar).toHaveAttribute('aria-valuenow', String(percent));
 };
 
 export const expectFillError = async (page: Page, error: ApiErrorBody): Promise<void> => {
@@ -170,11 +163,5 @@ export const expectFillError = async (page: Page, error: ApiErrorBody): Promise<
   const candidates = [error.message, error.fix];
   const lines = candidates.filter((line: string | undefined): line is string => line !== undefined);
 
-  await test.step(
-    'THEN the notice shows the message and the fix',
-    async (): Promise<void> => expect(paragraphs).toContainText(lines),
-    {
-      box: true
-    }
-  );
+  await expect(paragraphs).toContainText(lines);
 };

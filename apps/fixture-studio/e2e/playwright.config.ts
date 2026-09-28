@@ -54,15 +54,19 @@ const webServer = isLive ? liveServers : mockedServers;
 
 const desktopChrome = { ...devices['Desktop Chrome'] };
 
-const mocked: PlaywrightTestProject = {
-  name: 'mocked',
-  testIgnore: ['**/live.e2e.ts', '**/screenshots.e2e.ts'],
-  use: desktopChrome
-};
+const LIVE_SPECS = ['**/live.e2e.ts'];
 
-const live: PlaywrightTestProject = { name: 'live', testMatch: '**/live.e2e.ts', use: desktopChrome };
+const SCREENSHOT_SPECS = ['**/screenshots.test.ts', '**/screenshots-spec-error.test.ts'];
 
-const screenshots: PlaywrightTestProject = { name: 'screenshots', testMatch: '**/screenshots.e2e.ts', use: desktopChrome };
+const mockedIgnore = [...LIVE_SPECS, ...SCREENSHOT_SPECS];
+
+const mocked: PlaywrightTestProject = { name: 'mocked', testIgnore: mockedIgnore, use: desktopChrome };
+
+const live: PlaywrightTestProject = { name: 'live', testMatch: LIVE_SPECS, use: desktopChrome };
+
+const screenshots: PlaywrightTestProject = { name: 'screenshots', testMatch: SCREENSHOT_SPECS, use: desktopChrome };
+
+const projects = [mocked, live, screenshots];
 
 const htmlOptions = { open: 'never', outputFolder: REPORT_DIR };
 
@@ -78,11 +82,10 @@ export default defineConfig({
   forbidOnly: isCi,
   fullyParallel: true,
   outputDir: RESULTS_DIR,
-  projects: [mocked, live, screenshots],
+  projects,
   reporter,
   retries: isCi ? 1 : 0,
-  testDir: '.',
-  testMatch: '**/*.e2e.ts',
+  testMatch: '**/*.@(e2e|test).ts',
   use,
   webServer
 });

@@ -44,27 +44,33 @@ test.describe('FEATURE: folding steps and sections', () => {
   }
 
   test('GIVEN a folded step that waits, it opens itself when it becomes the active one', async ({ page }): Promise<void> => {
-    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, workbenchRoutes()));
+    const routes = workbenchRoutes();
+
+    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
 
     await test.step('AND the waiting Missing & broken values step is folded', async (): Promise<void> =>
       toggleStep(page, 'Missing & broken values'));
 
     await test.step('THEN it is folded', async (): Promise<void> => expectStepFold(page, 'Missing & broken values', false));
 
-    await test.step('WHEN the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+    await test.step('WHEN the partial invoice is picked', async (): Promise<void> =>
+      pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 
     await test.step('THEN the now active step opened itself', async (): Promise<void> =>
       expectStepFold(page, 'Missing & broken values', true));
   });
 
   test('GIVEN steps the user folded, they stay folded until they become active again', async ({ page }): Promise<void> => {
-    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, workbenchRoutes()));
+    const routes = workbenchRoutes();
+
+    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
 
     await test.step('AND the done Generate step is folded', async (): Promise<void> => toggleStep(page, 'Generate'));
 
     await test.step('AND the waiting Fill with AI step is folded', async (): Promise<void> => toggleStep(page, 'Fill with AI'));
 
-    await test.step('AND the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+    await test.step('AND the partial invoice is picked', async (): Promise<void> =>
+      pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 
     await test.step('THEN Generate stays folded', async (): Promise<void> => expectStepFold(page, 'Generate', false));
 
@@ -73,7 +79,8 @@ test.describe('FEATURE: folding steps and sections', () => {
 
     await test.step('WHEN the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
 
-    await test.step('THEN Fill with AI, now active, opened itself', async (): Promise<void> => expectStepFold(page, 'Fill with AI', true));
+    await test.step('THEN Fill with AI, now active, opened itself', async (): Promise<void> =>
+      expectStepFold(page, 'Fill with AI', true));
 
     await test.step('AND Generate is still folded', async (): Promise<void> => expectStepFold(page, 'Generate', false));
   });

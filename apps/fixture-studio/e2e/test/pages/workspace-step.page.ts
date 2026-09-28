@@ -1,5 +1,5 @@
 import type { Download, Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { downloadText } from '../utils/download.spec.util.ts';
 
@@ -45,41 +45,32 @@ const readClipboard = async (page: Page): Promise<string> => {
 export const expectEndpointTabs = async (page: Page, endpointIds: string[]): Promise<void> => {
   const tabs = endpointTabs(page);
 
-  await test.step(`THEN the workspace has a tab per endpoint`, async (): Promise<void> => expect(tabs).toHaveText(endpointIds), {
-    box: true
-  });
+  await expect(tabs).toHaveText(endpointIds);
 };
 
 export const expectDocuments = async (page: Page, labels: string[]): Promise<void> => {
   const summaries = activePanel(page).locator('summary');
 
-  await test.step(`THEN the endpoint has a folding section per format`, async (): Promise<void> => expect(summaries).toContainText(labels), {
-    box: true
-  });
+  await expect(summaries).toContainText(labels);
 };
 
 /** CodeMirror's content element is the textbox named after the file it shows. */
 export const expectCode = async (page: Page, fileName: string, text: string): Promise<void> => {
   const editor = activePanel(page).getByRole('textbox', { name: fileName, exact: true });
 
-  await test.step(
-    `THEN the editor for ${fileName} shows the document`,
-    async (): Promise<void> => expect(editor).toContainText(text),
-    { box: true }
-  );
+  await expect(editor).toContainText(text);
 };
 
 export const expectClipboard = async (page: Page, text: string): Promise<void> => {
   const clipboard = async (): Promise<string> => readClipboard(page);
 
-  await test.step('THEN the clipboard holds the document', async (): Promise<void> => expect.poll(clipboard).toBe(text), {
-    box: true
-  });
+  await expect.poll(clipboard).toBe(text);
 };
 
 export const expectDownload = async (download: Download, fileName: string, content: string): Promise<void> => {
   const text = await downloadText(download);
+  const suggested = download.suggestedFilename();
 
-  await test.step(`THEN ${fileName} is downloaded`, (): void => expect(download.suggestedFilename()).toBe(fileName), { box: true });
-  await test.step('AND the file holds the document', (): void => expect(text).toBe(content), { box: true });
+  expect(suggested).toBe(fileName);
+  expect(text).toBe(content);
 };

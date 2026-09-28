@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { TS_READER_TIMEOUT_MS } from '../common/playwright.const.ts';
 
@@ -85,33 +85,19 @@ export const clickChangeMapEnd = async (page: Page): Promise<void> => {
 export const expectComparing = async (page: Page, sourceName: string): Promise<void> => {
   const loaded = compareStep(page).getByText(`Comparing ${sourceName}`);
 
-  await test.step(
-    `THEN ${sourceName} is the fixture being compared`,
-    async (): Promise<void> => expect(loaded).toBeVisible(TS_READER_WAIT),
-    {
-      box: true
-    }
-  );
+  await expect(loaded).toBeVisible(TS_READER_WAIT);
 };
 
 export const expectEnvelope = async (page: Page, label: string): Promise<void> => {
   const select = envelopeSelect(page);
 
-  await test.step(`THEN the envelope property reads "${label}"`, async (): Promise<void> => expect(select).toHaveText(label), {
-    box: true
-  });
+  await expect(select).toHaveText(label);
 };
 
 export const expectSourceRejected = async (page: Page, message: string): Promise<void> => {
   const alert = compareStep(page).getByRole('alert');
 
-  await test.step(
-    `THEN the fixture is rejected with "${message}"`,
-    async (): Promise<void> => expect(alert).toHaveText(message, TS_READER_WAIT),
-    {
-      box: true
-    }
-  );
+  await expect(alert).toHaveText(message, TS_READER_WAIT);
 };
 
 /**
@@ -122,25 +108,31 @@ export const expectInsertedLine = async (page: Page, fileName: string, text: str
   const editor = compareStep(page).getByRole('textbox', { name: fileName, exact: true });
   const inserted = editor.locator('.cm-changedLine').filter({ hasText: text });
 
-  await test.step(`THEN the diff marks ${text} as inserted`, async (): Promise<void> => expect(inserted).toBeVisible(), { box: true });
+  await expect(inserted).toBeVisible();
 };
 
 /** The change map's counter, e.g. `1 change` or `Change 1 of 1, line 5`. */
 export const expectChangeLabel = async (page: Page, label: string): Promise<void> => {
   const counter = compareStep(page).getByText(label, { exact: true });
 
-  await test.step(`THEN the change map reads "${label}"`, async (): Promise<void> => expect(counter).toBeVisible(), { box: true });
+  await expect(counter).toBeVisible();
 };
 
-/** Whether the diff line holding `text` shows inside the viewport; CodeMirror only renders lines near its scroll position. */
-export const expectLineInView = async (page: Page, fileName: string, text: string, isInView: boolean): Promise<void> => {
+/** The diff line holding `text`; CodeMirror only renders lines near its scroll position. */
+const diffLine = (page: Page, fileName: string, text: string): Locator => {
   const editor = compareStep(page).getByRole('textbox', { name: fileName, exact: true });
-  const line = editor.getByText(text);
-  const state = isInView ? 'in view' : 'out of view';
 
-  await test.step(`THEN the line ${text} is ${state}`, async (): Promise<void> => {
-    if (isInView) return expect(line).toBeInViewport();
+  return editor.getByText(text);
+};
 
-    return expect(line).not.toBeInViewport();
-  }, { box: true });
+export const expectLineInView = async (page: Page, fileName: string, text: string): Promise<void> => {
+  const line = diffLine(page, fileName, text);
+
+  await expect(line).toBeInViewport();
+};
+
+export const expectLineOutOfView = async (page: Page, fileName: string, text: string): Promise<void> => {
+  const line = diffLine(page, fileName, text);
+
+  await expect(line).not.toBeInViewport();
 };

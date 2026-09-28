@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { aiFillPanel } from './ai-fill-panel.page.ts';
 import { gapBelow, hiddenOverflow } from '../utils/scroll.spec.util.ts';
@@ -13,9 +13,7 @@ const logEntries = (page: Page): Locator => progressLog(page).locator('[data-str
 export const expectLogEntries = async (page: Page, texts: string[]): Promise<void> => {
   const entries = logEntries(page);
 
-  await test.step(`THEN the log holds ${texts.length} entries`, async (): Promise<void> => expect(entries).toHaveText(texts), {
-    box: true
-  });
+  await expect(entries).toHaveText(texts);
 };
 
 /** The log is a capped box: its lines scroll inside it, and it stays scrolled to the newest one. */
@@ -24,8 +22,6 @@ export const expectLogFollowsNewest = async (page: Page): Promise<void> => {
   const overflow = async (): Promise<number> => hiddenOverflow(log);
   const below = async (): Promise<number> => gapBelow(log);
 
-  await test.step('THEN the log scrolls inside its box, at its newest line', async (): Promise<void> => {
-    await expect.poll(overflow).toBeGreaterThan(0);
-    await expect.poll(below).toBeLessThanOrEqual(1);
-  }, { box: true });
+  await expect.poll(overflow).toBeGreaterThan(0);
+  await expect.poll(below).toBeLessThanOrEqual(1);
 };

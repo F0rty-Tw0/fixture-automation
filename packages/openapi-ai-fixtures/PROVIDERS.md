@@ -348,7 +348,38 @@ The staged system settings file, `.gemini/system-settings.json`, is:
     "hasSeenNudge": true
   },
   "tools": {
-    "core": [],
+    "exclude": [
+      "activate_skill",
+      "ask_user",
+      "complete_task",
+      "enter_plan_mode",
+      "exit_plan_mode",
+      "get_internal_docs",
+      "glob",
+      "google_web_search",
+      "grep_search",
+      "invoke_agent",
+      "list_background_processes",
+      "list_directory",
+      "list_mcp_resources",
+      "read_background_output",
+      "read_file",
+      "read_many_files",
+      "read_mcp_resource",
+      "replace",
+      "run_shell_command",
+      "take_snapshot",
+      "tracker_add_dependency",
+      "tracker_create_task",
+      "tracker_get_task",
+      "tracker_list_tasks",
+      "tracker_update_task",
+      "tracker_visualize",
+      "update_topic",
+      "web_fetch",
+      "write_file",
+      "write_todos"
+    ],
     "discoveryCommand": ""
   },
   "skills": {
@@ -365,7 +396,9 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 }
 ```
 
-Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, extensions sentinel `none`, empty core-tool list, empty discovery command, skill switch, hook switch, and IDE settings. The streaming event contract is documented in headless mode and implemented in the [v0.60.0 non-interactive runner](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/nonInteractiveCli.ts). `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
+`tools.exclude` lists every built-in tool name of the released v0.57.0 and v0.59.0 bundles (`ALL_BUILTIN_TOOL_NAMES`, `list_background_processes`, `read_background_output`, `take_snapshot`). An empty `tools.core` list disabled them too, but v0.57 then sends an empty tool entry and the API rejects every request with `400 tools[0].tool_type: required one_of 'tool_type' must have one initialized field`; a tool added by a later release stays enabled until it is added to the list. Model discovery stages the same `tools` block.
+
+Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, extensions sentinel `none`, tool exclusion list, empty discovery command, skill switch, hook switch, and IDE settings. The streaming event contract is documented in headless mode and implemented in the [v0.60.0 non-interactive runner](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/nonInteractiveCli.ts). `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
 
 ### Result and failure framing
 

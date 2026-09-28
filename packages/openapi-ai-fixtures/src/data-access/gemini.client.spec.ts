@@ -4,6 +4,7 @@ import { runAgent } from './agent-process.client.ts';
 import { geminiFixture } from './gemini.client.ts';
 import type { AgentCommand, AgentFile, AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureOptions, AiFixtureProgress } from '../common/ai-fixtures.type.ts';
+import { GEMINI_EXCLUDED_TOOLS } from '../common/gemini.const.ts';
 import { agentArgs, modelRequest } from '../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 
@@ -12,6 +13,7 @@ vi.mock('./agent-process.client.ts');
 const options = { tool: 'gemini' } as const;
 const request: AgentRequest = { prompt: 'Return a fixture.', options };
 const geminiEnvelope = agentResponse('gemini', '{}');
+const EXCLUDED_TOOLS = { exclude: GEMINI_EXCLUDED_TOOLS, discoveryCommand: '' };
 
 const onlyCommand = (calls: (readonly [AgentCommand, AiFixtureOptions])[]): AgentCommand => {
   const [call] = calls;
@@ -225,14 +227,31 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
   });
 
   describe('GIVEN any fixture request', (): void => {
-    it('WHEN the command is built THEN its system settings allow no built-in or discovered tools', async (): Promise<void> => {
+    it('WHEN the command is built THEN its system settings exclude every built-in tool and discover none', async (): Promise<void> => {
       vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
 
       await geminiFixture(request);
 
-      const tools = { core: [], discoveryCommand: '' };
+      expect(writtenSettings(vi.mocked(runAgent).mock.calls)).toHaveProperty('tools', EXCLUDED_TOOLS);
+    });
 
-      expect(writtenSettings(vi.mocked(runAgent).mock.calls)).toMatchObject({ tools });
+    it.each(['read_file', 'write_file', 'replace', 'run_shell_command', 'web_fetch', 'google_web_search', 'invoke_agent'])(
+      'WHEN the command is built THEN %s is excluded',
+      async (tool: string): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+        await geminiFixture(request);
+
+        expect(writtenSettings(vi.mocked(runAgent).mock.calls)).toHaveProperty('tools.exclude', expect.arrayContaining([tool]));
+      }
+    );
+
+    it('WHEN the command is built THEN no core allowlist is written, since an empty one makes the API answer 400', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(request);
+
+      expect(writtenSettings(vi.mocked(runAgent).mock.calls)).not.toHaveProperty('tools.core');
     });
   });
 

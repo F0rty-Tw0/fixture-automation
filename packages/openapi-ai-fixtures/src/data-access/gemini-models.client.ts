@@ -6,6 +6,7 @@ import { isMissingFile, isRecord } from '@fixture-automation/shared';
 
 import { runAgent } from './agent-process.client.ts';
 import type { AgentCommand, AgentFile, AgentRespond } from '../common/agent.type.ts';
+import { GEMINI_EXCLUDED_TOOLS } from '../common/gemini.const.ts';
 import type { ModelDiscoveryOptions } from '../common/model.type.ts';
 import { assertSafeGeminiSystemSettings } from '../utils/gemini-settings.util.ts';
 import { modelNames, modelRpcRequest, modelRpcResult } from '../utils/model-discovery.util.ts';
@@ -17,7 +18,7 @@ const general = { enableAutoUpdate: false, enableAutoUpdateNotification: false }
 const hooksConfig = { enabled: false };
 const ide = { enabled: false, hasSeenNudge: true };
 const skills = { enabled: false };
-const tools = { core: [], discoveryCommand: '' };
+const tools = { exclude: GEMINI_EXCLUDED_TOOLS, discoveryCommand: '' };
 const settings = { experimental, general, hooksConfig, ide, skills, tools };
 const GEMINI_SETTINGS_CONTENT = `${JSON.stringify(settings, null, 2)}\n`;
 

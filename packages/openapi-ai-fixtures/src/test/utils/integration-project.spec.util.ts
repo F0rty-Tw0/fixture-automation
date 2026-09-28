@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
+import { SUBPROCESS_TEST_TIMEOUT_MS } from '../common/integration.const.ts';
 import type { CliResult, IntegrationProject } from '../common/integration.type.ts';
 
 const execute = promisify(execFile);
@@ -32,7 +33,7 @@ export const integrationProject = async (): Promise<IntegrationProject> => {
     const specUrl = pathToFileURL(join(directory, 'spec.json')).href;
     const run = async (args: string[]): Promise<CliResult> => {
       const commandArgs = ['--conditions=@fixture-automation/source', cliFile, ...args];
-      const result = await execute(process.execPath, commandArgs, { cwd: directory, timeout: 20000 });
+      const result = await execute(process.execPath, commandArgs, { cwd: directory, timeout: SUBPROCESS_TEST_TIMEOUT_MS });
 
       return result;
     };

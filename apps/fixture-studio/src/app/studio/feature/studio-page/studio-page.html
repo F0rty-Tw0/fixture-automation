@@ -1,0 +1,25 @@
+<header class="masthead">
+  <span aria-hidden="true" class="masthead__mark"></span>
+  <h1 class="masthead__name">Fixture Studio</h1>
+  @if (browser.loadedSpec(); as spec) {
+    <span class="masthead__spec">{{ spec.title }} <span class="masthead__version">v{{ spec.version }}</span></span>
+  }
+</header>
+
+<main class="rail">
+  <fs-studio-step [state]="steps().spec" [status]="specStatus()" heading="Spec" headingId="step-spec">
+    <fs-spec-step />
+  </fs-studio-step>
+
+  <fs-studio-step [state]="steps().endpoints" [status]="endpointsStatus()" heading="Endpoints" headingId="step-endpoints">
+    @if (browser.loadedSpec()) {
+      <fs-endpoints-step />
+    } @else {
+      <p class="rail__waiting">Load a spec to list its operations here.</p>
+    }
+  </fs-studio-step>
+
+  <fs-studio-step [state]="steps().workspace" [status]="workspaceStatus()" heading="Workspace" headingId="step-workspace">
+    <fs-workspace-step />
+  </fs-studio-step>
+</main>

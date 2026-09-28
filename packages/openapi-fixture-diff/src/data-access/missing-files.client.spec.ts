@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { diffFixture } from './fixture-diff.client.ts';
-import { writeMissingFiles } from './missing-files.client.ts';
+import { writeBaselineFile, writeMissingFiles } from './missing-files.client.ts';
 import type { MissingFiles } from '../common/missing.type.ts';
 import { compiledMissing } from '../test/utils/compiled-missing.spec.util.ts';
 import { nestedOrder, nestedSpec } from '../test/utils/nested-spec.spec.util.ts';
@@ -57,6 +57,14 @@ describe('FEATURE: generated missing-field artifacts', (): void => {
       expect(missing).toMatchObject(expected);
     });
 
+    it('WHEN writing the artifacts THEN missing.json lists the replaced paths but never the baseline', async (): Promise<void> => {
+      const files = await missingFiles(DROPPED);
+      const missing: unknown = JSON.parse(await readFile(files.jsonFile, 'utf8'));
+
+      expect(missing).toHaveProperty('replaced', []);
+      expect(missing).not.toHaveProperty('baseline');
+    });
+
     it('WHEN typechecking the generated types and stub together THEN the stub exports the sampled value', async (): Promise<void> => {
       const files = await missingFiles(DROPPED);
 
@@ -76,6 +84,25 @@ describe('FEATURE: generated missing-field artifacts', (): void => {
       expect(types).toContain('missing: Record<string, never>;');
       expect(types).toContain(MISSING_ALIAS);
       expect(exported).toStrictEqual(EMPTY_EXPORTS);
+    });
+  });
+
+  describe('GIVEN a fixture holding a sampler placeholder', (): void => {
+    it('WHEN writing the baseline THEN baseline.json holds the fixture without the replaced path', async (): Promise<void> => {
+      directory = await mkdtemp(join(tmpdir(), 'missing-files-'));
+      const spec = await nestedSpec();
+      const order = await nestedOrder();
+      const fixture = { ...order, created: 0 };
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, replacePlaceholders: true });
+
+      const baselineFile = await writeBaselineFile(diff, directory);
+
+      const baseline: unknown = JSON.parse(await readFile(baselineFile, 'utf8'));
+
+      expect(baselineFile).toBe(join(directory, 'baseline.json'));
+      expect(diff.replaced).toStrictEqual(['created']);
+      expect(baseline).toStrictEqual(diff.baseline);
+      expect(baseline).not.toHaveProperty('created');
     });
   });
 });

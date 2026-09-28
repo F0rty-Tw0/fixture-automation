@@ -1,0 +1,82 @@
+@if (browser.loadedSpec(); as spec) {
+  <header class="spec">
+    <h3 class="spec__title">{{ spec.title }}</h3>
+    <span class="spec__version">v{{ spec.version }}</span>
+    <span class="spec__count">{{ spec.endpoints.length }} endpoints</span>
+  </header>
+}
+
+<div class="filters">
+  <mat-form-field appearance="outline" class="filters__query" subscriptSizing="dynamic">
+    <mat-label>Filter by path or summary</mat-label>
+    <input [formField]="filterForm.query" matInput type="search" />
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="filters__select" subscriptSizing="dynamic">
+    <mat-label>Tag</mat-label>
+    <mat-select [formField]="filterForm.tag">
+      <mat-option value="">All tags</mat-option>
+      @for (tag of browser.tags(); track tag) {
+        <mat-option [value]="tag">{{ tag }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="filters__select" subscriptSizing="dynamic">
+    <mat-label>Method</mat-label>
+    <mat-select [formField]="filterForm.method">
+      <mat-option value="">All methods</mat-option>
+      @for (method of browser.methods(); track method) {
+        <mat-option [value]="method">{{ method }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+<div class="selection">
+  <mat-checkbox
+    [checked]="browser.allVisibleSelected()"
+    [disabled]="browser.visibleEndpoints().length === 0"
+    class="selection__all"
+    (change)="browser.toggleAllVisible()">
+    Select all visible
+  </mat-checkbox>
+  <span aria-live="polite" class="selection__count">
+    {{ browser.selectedCount() }} selected · {{ browser.visibleEndpoints().length }} of {{ browser.endpoints().length }} shown
+  </span>
+</div>
+
+<div class="list">
+  @if (browser.visibleGroups().length > 0) {
+    <fs-endpoint-list [groups]="browser.visibleGroups()" [selectedIds]="browser.selectedIds()" (toggled)="browser.toggle($event)" />
+  } @else {
+    <div class="list__empty">
+      <p class="list__empty-text">No endpoint matches these filters.</p>
+      <button mat-button type="button" (click)="browser.resetFilter()">Clear filters</button>
+    </div>
+  }
+</div>
+
+<div class="options">
+  <fieldset class="options__formats">
+    <legend class="options__legend">Formats</legend>
+    <mat-checkbox [formField]="optionsForm.json">JSON fixture</mat-checkbox>
+    <mat-checkbox [formField]="optionsForm.stub">TS stub</mat-checkbox>
+    <mat-checkbox [formField]="optionsForm.types">.d.ts types</mat-checkbox>
+  </fieldset>
+  <mat-slide-toggle [formField]="optionsForm.requiredOnly" class="options__required">Required fields only</mat-slide-toggle>
+  <button
+    [disabled]="!generation.canGenerate() || generation.isGenerating()"
+    class="options__generate"
+    mat-flat-button
+    type="button"
+    (click)="generation.generate()">
+    {{ generateLabel() }}
+  </button>
+</div>
+
+@if (generation.isGenerating()) {
+  <mat-progress-bar aria-label="Generating fixtures" mode="indeterminate" />
+}
+
+@if (optionsForm().invalid()) {
+  <p class="options__error" role="alert">{{ optionsForm().errors()[0]?.message }}</p>
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declarationMap": false,
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "noEmit": true,
+    "tsBuildInfoFile": "../out-tsc/e2e/tsconfig.e2e.tsbuildinfo"
+  },
+  "include": ["**/*.ts", "../src/types/language-model.d.ts"],
+  "exclude": ["test/fixtures/**"]
+}

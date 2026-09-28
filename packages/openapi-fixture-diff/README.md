@@ -6,6 +6,7 @@ Corrupt a fixture, then diff it against its OpenAPI schema to describe exactly w
 
 - **Corrupts** a fixture by deleting named paths (`corrupt`).
 - **Diffs** a corrupt fixture against its schema and lists every absent path (`diff`).
+- **Replaces** placeholders on request: with `--replace-placeholders`, present values that break the schema or equal an openapi-sampler default (`"string"`, `0`, `true`, `user@example.com`) are listed too, and `baseline.json` holds the fixture without them.
 - **Writes** `missing.json`, `missing.d.ts`, and `missing.stub.ts` for the next pipeline step ([merge](../openapi-fixture-merge/README.md), or [AI fill](../openapi-ai-fixtures/README.md#examples)).
 
 ## Quick start
@@ -61,18 +62,19 @@ usage: openapi-fixture-diff <command> [options]
       defaults to the x-root-schema of a spec written by openapi-types
 ```
 
-**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`out.json` or `--out-dir`, `schema-name`, `object-shape`, `--required-only`); Enter takes the default or skips. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
+**Interactive.** In a terminal, running with no command starts a prompt session on stderr: it asks for `command` (`corrupt` or `diff`), then that subcommand's required inputs, then every unset optional (`out.json` or `--out-dir`, `schema-name`, `object-shape`, `--required-only`, `--replace-placeholders`); Enter takes the default or skips. A run that already names `corrupt`/`diff` with all required args asks nothing. Piped and CI runs get the usage error instead.
 
 `schema-name` is optional with a spec written by `openapi-types <spec-url> <schema-name> <out-file>`: that file carries `x-root-schema`, so `diff "$LOCAL" --fixture corrupt.json --out-dir out` reads the name from it. A plain spec still needs the name (`schema name required` otherwise).
 
-| Flag                   | Required           | What it does                                                                                                                              |
-| ---------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `--drop <paths>`       | Yes, for `corrupt` | Comma separated fixture paths to delete, e.g. `id,customer.email,lines[1].sku`.                                                           |
-| `--fixture <file>`     | Yes, for `diff`    | Corrupt JSON fixture to compare against the schema.                                                                                       |
-| `--out-dir <dir>`      | No                 | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`; omitted or Enter writes into `fixtures/missing`.             |
-| `--object-shape <key>` | No                 | Compare the schema against one literal top-level property, e.g. `body`. Blank or omitted compares the whole fixture.                      |
-| `--required-only`      | No                 | Report only fields the schema lists in `required` (schema marks these mandatory). Without it, every optional missing property counts too. |
-| `-h, --help`           | No                 | Print this usage and exit 0.                                                                                                              |
+| Flag                     | Required           | What it does                                                                                                                                                     |
+| ------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--drop <paths>`         | Yes, for `corrupt` | Comma separated fixture paths to delete, e.g. `id,customer.email,lines[1].sku`.                                                                                  |
+| `--fixture <file>`       | Yes, for `diff`    | Corrupt JSON fixture to compare against the schema.                                                                                                              |
+| `--out-dir <dir>`        | No                 | Destination directory for `missing.json`, `missing.d.ts`, `missing.stub.ts`; omitted or Enter writes into `fixtures/missing`.                                    |
+| `--object-shape <key>`   | No                 | Compare the schema against one literal top-level property, e.g. `body`. Blank or omitted compares the whole fixture.                                             |
+| `--required-only`        | No                 | Report only fields the schema lists in `required` (schema marks these mandatory). Without it, every optional missing property counts too.                        |
+| `--replace-placeholders` | No                 | Also list present values that break the schema or equal an openapi-sampler default, and write `baseline.json` without them. Fill and merge onto `baseline.json`. |
+| `-h, --help`             | No                 | Print this usage and exit 0.                                                                                                                                     |
 
 ## Examples
 
@@ -100,6 +102,33 @@ Only `response.body` is compared. Missing paths retain their prefix (for example
 `body.customer.email`), and the generated Missing schema and stub retain the `body`
 wrapper so AI fill and merge use the same shape. The key must exist as an own property;
 it is not a dotted path. Pass the same `--object-shape body` to merge.
+
+**Replace placeholders** — a fixture our own generator wrote is full of sampler defaults. Flag them, then fill and merge onto the baseline:
+
+```bash
+node packages/openapi-fixtures/dist/cli.js "$SPEC" order --required-only order.json
+node packages/openapi-fixture-diff/dist/cli.js diff "$SPEC" order --fixture order.json --out-dir out --required-only --replace-placeholders
+node -p "require('./out/missing.json').replaced"
+```
+
+```
+[ 'created', 'customer.name', 'customer.email', 'lines[0].sku', 'lines[0].source' ]
+```
+
+`id` stays: its `or_1` comes from the schema's `example`, not the sampler. Values from `example`, `examples`,
+`const`, `enum` or `default` are never replaced. `out/baseline.json` is the fixture without the replaced paths:
+
+```text
+{ "id": "or_1", "customer": {}, "lines": [ {} ] }
+```
+
+Feed `baseline.json`, not `order.json`, to the next steps. Merge only fills absent keys, so merging onto the
+original would keep every old placeholder:
+
+```bash
+node packages/openapi-ai-fixtures/dist/cli.js populated.json --fixture out/baseline.json --missing out/missing.json --tool codex
+node packages/openapi-fixture-merge/dist/cli.js out/baseline.json populated.json fixtures --endpoint-url "$ENDPOINT" --spec "$SPEC" --schema order
+```
 
 **Nothing missing** — diff a fixture that already has every field:
 
@@ -146,10 +175,12 @@ const diff = diffFixture({ spec, schemaName: 'order', fixture: corrupt, required
 const files = await writeMissingFiles(diff, 'out');
 ```
 
-- `diffFixture(request: FixtureDiffRequest): FixtureDiff` — compares `request.fixture` against `request.schemaName` in `request.spec` and returns `{ schemaName, dialect, paths, schema, components }`. Optional `request.objectShape` selects a literal top-level payload key; returned paths and schema retain the wrapper.
-- `writeMissingFiles(diff: FixtureDiff, outDir: string): Promise<MissingFiles>` — writes `missing.json`, `missing.d.ts`, `missing.stub.ts` into `outDir` and returns their paths.
+- `diffFixture(request: FixtureDiffRequest): FixtureDiff` — compares `request.fixture` against `request.schemaName` in `request.spec` and returns `{ schemaName, dialect, paths, replaced, schema, components, baseline }`. Optional `request.objectShape` selects a literal top-level payload key; returned paths and schema retain the wrapper. Optional `request.replacePlaceholders` also flags present placeholder and schema-invalid values: they join `paths`, are listed in `replaced`, and are dropped from `baseline`. Off, `replaced` is `[]` and `baseline` is a copy of the fixture.
+- `writeMissingFiles(diff: FixtureDiff, outDir: string): Promise<MissingFiles>` — writes `missing.json` (without `baseline`), `missing.d.ts`, `missing.stub.ts` into `outDir` and returns their paths.
+- `writeBaselineFile(diff: FixtureDiff, outDir: string): Promise<string>` — writes `diff.baseline` as `baseline.json` into `outDir` and returns its path.
 - `dropPaths(fixture: unknown, paths: string[]): unknown` — deep-copies `fixture` with the listed paths removed. Throws (and never mutates the input) on an unknown path.
-- Types: `FixtureDiff`, `FixtureDiffRequest`, `MissingEntry`, `MissingFiles`, `WalkInput`, `SchemaComponents`, `SpecSchema`, `SpecSchemas`.
+- `hasPath(fixture: unknown, path: string): boolean` — whether `path` names a value that exists in `fixture`.
+- Types: `FixtureDiff`, `FixtureDiffRequest`, `MissingEntry`, `MissingFiles`, `ReplaceCandidate`, `ReplaceablePredicate`, `WalkInput`, `SchemaComponents`, `SpecSchema`, `SpecSchemas`.
 
 ## Gotchas
 
@@ -158,7 +189,10 @@ const files = await writeMissingFiles(diff, 'out');
 - **Arrays diff per index.** The `missing.json` schema collapses array items into one `items` shape, but `paths` keeps the exact indices (`lines[0].sku`).
 - **`anyOf`/`oneOf` branch choice is a heuristic.** Each branch resolves first; the branch whose properties overlap the value's keys most wins. Primitives and `null` never report missing fields.
 - **Large hub schemas can blow the 1 MiB AI input limit.** A schema reachable through a hub object (like Stripe's `account`) pulls its whole graph into `components`. Drop leaf fields only, or split hub-reaching fields across multiple `diff` runs, to keep the projection small.
-- **`additionalProperties` and `patternProperties` are ignored.**
+- **`additionalProperties` and `patternProperties` are ignored.** That includes placeholders under them: a sampled `{ "property1": "string" }` map stays.
+- **Replacing a primitive array element replaces the whole array.** Dropping one element would shift the indices merge zips by, so `tags[1]` flags `tags`.
+- **A failing `anyOf`/`oneOf` can flag a value that one member accepts.** AJV reports every failing member; the value is refilled, which only costs one extra AI answer.
+- **Replaced keys move to the end of their object.** Merge appends the keys it fills, so the merged fixture lists a replaced key after the keys that stayed.
 - **Prompts go to stderr.** `openapi-fixture-diff ... > out.json` still prompts on stderr and keeps stdout clean.
 
 ## Develop

@@ -1,10 +1,45 @@
 packages:
+  - 'apps/*'
   - 'packages/*'
 allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
   nx: true
   unrs-resolver: true
 
 catalogs:
+  # Versions mirror E:\askweave, where Angular 22.1.x runs on TypeScript 6.0.
+  frontend:
+    '@angular/cdk': 22.1.5
+    '@angular/common': 22.1.5
+    '@angular/compiler': 22.1.5
+    '@angular/core': 22.1.5
+    '@angular/forms': 22.1.5
+    '@angular/material': 22.1.5
+    '@angular/platform-browser': 22.1.5
+    '@codemirror/lang-javascript': 6.2.5
+    '@codemirror/lang-json': 6.0.2
+    '@codemirror/language': 6.12.4
+    '@codemirror/merge': 6.12.2
+    '@codemirror/state': 6.7.6
+    '@codemirror/view': 6.43.13
+    '@fontsource-variable/schibsted-grotesk': 5.3.0
+    '@fontsource/fragment-mono': 5.3.0
+    '@lezer/highlight': 1.2.3
+    codemirror: 6.0.2
+    rxjs: 7.8.2
+  frontend-dev:
+    '@angular/build': 22.1.7
+    '@angular/cli': 22.1.7
+    '@angular/compiler-cli': 22.1.5
+    jsdom: 30.0.1
+  backend:
+    fastify: 5.12.3
+    fastify-type-provider-zod: 7.0.0
+    pino-http-print: 4.0.0
+    zod: 4.6.5
   dependencies:
     '@types/json-schema': 7.0.15
     ajv-draft-04: 1.0.0
@@ -15,13 +50,15 @@ catalogs:
     '@nx/eslint': 23.2.1
     '@nx/js': 23.2.1
     '@nx/vitest': 23.2.1
+    '@playwright/test': 1.63.0
     '@types/node': 24.13.4
     ajv: 8.20.0
     eslint: 10.10.0
     jiti: 2.7.0
-    lint-suite: 2.1.0
+    lint-suite: 2.1.1
     nx: 23.2.1
     prettier: 3.9.6
+    stylelint: 17.14.1
     # Nx 23.2.1 and typescript-eslint 8.x require the pre-7 compiler API.
     typescript: 6.0.3
     vite: 8.2.2

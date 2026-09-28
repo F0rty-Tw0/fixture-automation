@@ -1,0 +1,43 @@
+{
+  "schemaName": "invoice",
+  "dialect": "openapi-30",
+  "paths": ["id", "customer.email", "lines[0].sku", "lines[1].tax", "lines[2].quantity"],
+  "schema": {
+    "type": "object",
+    "required": ["id", "customer", "lines"],
+    "properties": {
+      "id": { "type": "string" },
+      "customer": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "$ref": "#/components/schemas/email" }
+        }
+      },
+      "lines": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["sku", "tax", "quantity"],
+          "properties": {
+            "sku": { "type": "string" },
+            "tax": { "$ref": "#/components/schemas/tax" },
+            "quantity": { "type": "integer" }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "email": { "type": "string", "format": "email" },
+      "tax": {
+        "type": "object",
+        "properties": {
+          "rate": { "$ref": "#/components/schemas/rate" }
+        }
+      },
+      "rate": { "type": "number" }
+    }
+  }
+}

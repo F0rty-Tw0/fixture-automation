@@ -1,0 +1,34 @@
+:host {
+  display: block;
+
+  // Clears the sticky masthead when a finished generate scrolls the workspace into view.
+  scroll-margin-top: 5rem;
+}
+
+.workspace__error {
+  margin-bottom: var(--fs-space-3);
+}
+
+.workspace__tabs {
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-md);
+}
+
+.workspace__tab-label {
+  display: inline-flex;
+  gap: var(--fs-space-2);
+  align-items: center;
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-sm);
+}
+
+.workspace__panel {
+  padding: 0 var(--fs-space-4) var(--fs-space-4);
+}
+
+.workspace__empty {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--fs-ink-muted);
+}

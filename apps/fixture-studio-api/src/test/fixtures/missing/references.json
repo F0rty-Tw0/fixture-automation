@@ -1,0 +1,45 @@
+{
+  "schemaName": "invoice",
+  "dialect": "openapi-30",
+  "paths": [
+    "customer"
+  ],
+  "schema": {
+    "type": "object",
+    "required": [
+      "customer"
+    ],
+    "properties": {
+      "customer": {
+        "$ref": "#/components/schemas/customer"
+      },
+      "link": {
+        "$ref": "https://example.com/other.json"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "customer": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/address"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/a~1b"
+            }
+          }
+        }
+      },
+      "address": {
+        "type": "string"
+      },
+      "a/b": {
+        "type": "integer"
+      }
+    }
+  }
+}

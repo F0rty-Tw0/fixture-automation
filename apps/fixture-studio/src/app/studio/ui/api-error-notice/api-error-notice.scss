@@ -1,0 +1,25 @@
+:host {
+  display: block;
+  padding: var(--fs-space-3) var(--fs-space-4);
+  background: var(--fs-danger-soft);
+  border-left: 3px solid var(--fs-danger);
+  border-radius: 0 var(--fs-radius-md) var(--fs-radius-md) 0;
+}
+
+.notice__message {
+  margin: 0;
+  font-weight: 600;
+  color: var(--fs-ink);
+}
+
+.notice__fix {
+  margin: var(--fs-space-1) 0 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.notice__fix-label {
+  margin-right: var(--fs-space-1);
+  font-weight: 600;
+  color: var(--fs-danger);
+}

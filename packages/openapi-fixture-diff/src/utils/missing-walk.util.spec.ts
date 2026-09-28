@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { missingEntries } from './missing-walk.util.ts';
-import type { MissingEntry } from '../common/missing.type.ts';
+import type { MissingEntry, ReplaceCandidate } from '../common/missing.type.ts';
 import type { SpecSchema, SpecSchemas } from '../common/schema.type.ts';
 
 const TEXT: SpecSchema = { type: 'string' };
@@ -33,8 +33,16 @@ const PARENT_PATHS = ['parent.id', 'parent.note', 'parent.customer', 'parent.lin
 const FIRST_SOURCE: SpecSchema = { anyOf: [TEXT] };
 const REGIONAL_SOURCE = { region: 'eu' };
 
+const neverReplaceable = (): boolean => false;
+
 const walked = (schema: SpecSchema, value: unknown, requiredOnly: boolean, ancestry: string[] = []): MissingEntry[] => {
-  return missingEntries({ schema, value, path: '', schemas: SCHEMAS, requiredOnly, ancestry });
+  return missingEntries({ schema, value, path: '', schemas: SCHEMAS, requiredOnly, ancestry, isReplaceable: neverReplaceable });
+};
+
+const replacing = (schema: SpecSchema, value: unknown, flagged: string[]): MissingEntry[] => {
+  const isReplaceable = (candidate: ReplaceCandidate): boolean => flagged.includes(candidate.path);
+
+  return missingEntries({ schema, value, path: '', schemas: SCHEMAS, requiredOnly: true, ancestry: [], isReplaceable });
 };
 
 const pathOf = (entry: MissingEntry): string => entry.path;
@@ -136,6 +144,28 @@ describe('FEATURE: missing-field schema walk', (): void => {
       const entries = walked(ORDER, 'or_1', false);
 
       expect(entries).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN a predicate that flags present values for a refill', (): void => {
+    it('WHEN walking THEN a flagged primitive is reported like an absent key', (): void => {
+      const entries = replacing(ORDER, COMPLETE_ORDER, ['id']);
+
+      expect(entries).toStrictEqual([{ path: 'id', schema: TEXT }]);
+    });
+
+    it('WHEN walking THEN a flagged object is reported whole and never entered', (): void => {
+      const value = { ...COMPLETE_ORDER, customer: {} };
+
+      const entries = replacing(ORDER, value, ['customer']);
+
+      expect(entries).toStrictEqual([{ path: 'customer', schema: CUSTOMER_REF }]);
+    });
+
+    it('WHEN walking THEN a flagged property inside an array element keeps its index', (): void => {
+      const entries = replacing(ORDER, COMPLETE_ORDER, ['lines[0].sku']);
+
+      expect(entries.map(pathOf)).toStrictEqual(['lines[0].sku']);
     });
   });
 });

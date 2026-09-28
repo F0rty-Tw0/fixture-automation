@@ -1,0 +1,36 @@
+:host {
+  --verb: var(--fs-verb-other);
+
+  display: inline-block;
+  min-width: 4.25em;
+  padding: 0.1em 0.45em;
+  font-family: var(--fs-font-mono);
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--verb);
+  text-align: center;
+  letter-spacing: 0.02em;
+  background: color-mix(in oklch, var(--verb) 12%, transparent);
+  border-radius: var(--fs-radius-sm);
+}
+
+:host([data-method='GET']) {
+  --verb: var(--fs-verb-get);
+}
+
+:host([data-method='POST']) {
+  --verb: var(--fs-verb-post);
+}
+
+:host([data-method='PUT']) {
+  --verb: var(--fs-verb-put);
+}
+
+:host([data-method='PATCH']) {
+  --verb: var(--fs-verb-patch);
+}
+
+:host([data-method='DELETE']) {
+  --verb: var(--fs-verb-delete);
+}

@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -11,6 +11,7 @@ import { answering, silence } from '@fixture-automation/shared/testing';
 import { runFixtureDiffCli } from './fixture-diff-cli.client.ts';
 import type { DiffProject } from '../test/common/diff-project.type.ts';
 import { diffProject } from '../test/utils/diff-project.spec.util.ts';
+import { nestedOrder } from '../test/utils/nested-spec.spec.util.ts';
 import { dropPaths } from '../utils/drop-path.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
@@ -170,6 +171,57 @@ describe('FEATURE: fixture diff command line', (): void => {
     );
   });
 
+  describe('GIVEN a fixture holding a sampler placeholder', (): void => {
+    const placeholderRun = async (active: DiffProject, flags: string[]): Promise<string[]> => {
+      const order = await nestedOrder();
+      const fixture = { ...order, created: 0 };
+      const outDir = join(active.directory, 'out');
+
+      await writeFile(active.corruptFile, JSON.stringify(fixture));
+      await active.run(['diff', active.specUrl, 'order', '--fixture', active.corruptFile, '--out-dir', outDir, ...flags]);
+
+      return readdir(outDir);
+    };
+
+    const outFile = async (active: DiffProject, name: string): Promise<unknown> => {
+      const value: unknown = JSON.parse(await readFile(join(active.directory, 'out', name), 'utf8'));
+
+      return value;
+    };
+
+    it(
+      'WHEN diffing with --replace-placeholders THEN missing.json lists it and baseline.json drops it',
+      async (): Promise<void> => {
+        const active = await started();
+
+        await placeholderRun(active, ['--required-only', '--replace-placeholders']);
+
+        const missing = await outFile(active, 'missing.json');
+        const baseline = await outFile(active, 'baseline.json');
+
+        expect(missing).toMatchObject({ paths: ['created'], replaced: ['created'] });
+        expect(baseline).not.toHaveProperty('created');
+        expect(baseline).toHaveProperty('id', 'or_1');
+      },
+      TIMEOUT
+    );
+
+    it(
+      'WHEN diffing without the flag THEN nothing is replaced and no baseline.json is written',
+      async (): Promise<void> => {
+        const active = await started();
+
+        const written = await placeholderRun(active, ['--required-only']);
+
+        const missing = await outFile(active, 'missing.json');
+
+        expect(missing).toMatchObject({ paths: [], replaced: [] });
+        expect(written).not.toContain('baseline.json');
+      },
+      TIMEOUT
+    );
+  });
+
   describe('GIVEN a pruned spec carrying x-root-schema', (): void => {
     it(
       'WHEN diffing without a schema name THEN the root schema is used',
@@ -194,23 +246,23 @@ describe('FEATURE: fixture diff command line', (): void => {
       vi.spyOn(console, 'error').mockImplementation(silence);
       const active = await started();
       const specUrl = await prunedUrl(active);
-      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', 'nope'));
+      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', '', 'nope'));
 
       await runFixtureDiffCli(['diff', specUrl], promptedInputs(question));
 
       expect(await missingSchemaName(active)).toMatchObject({ schemaName: 'order' });
-      expect(question).toHaveBeenCalledTimes(4);
+      expect(question).toHaveBeenCalledTimes(5);
     });
 
     it('WHEN diffing a plain spec in a terminal missing --fixture THEN the schema name is asked last', async (): Promise<void> => {
       vi.spyOn(console, 'error').mockImplementation(silence);
       const active = await started();
-      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', 'order'));
+      const question = vi.fn(answering(active.fixtureFile, active.directory, '', 'y', '', 'order'));
 
       await runFixtureDiffCli(['diff', active.specUrl], promptedInputs(question));
 
       expect(await missingSchemaName(active)).toMatchObject({ schemaName: 'order' });
-      expect(question).toHaveBeenCalledTimes(5);
+      expect(question).toHaveBeenCalledTimes(6);
     });
 
     it(

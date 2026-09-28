@@ -1,5 +1,5 @@
 import { defineConfig } from 'eslint/config';
-import { base, boundaries, javascript, json, prettier, typescript, vitest } from 'lint-suite/eslint';
+import { base, boundaries, javascript, json, playwright, prettier, typescript, vitest } from 'lint-suite/eslint';
 
 export default defineConfig([
   ...base,
@@ -7,6 +7,7 @@ export default defineConfig([
   ...typescript,
   ...json,
   ...vitest,
+  ...playwright,
   ...prettier,
   ...boundaries,
   {
@@ -20,6 +21,6 @@ export default defineConfig([
     }
   },
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/out-tsc/**', '.nx/**', '**/coverage/**', '**/tmp/**', '**/test/fixtures/**']
+    ignores: ['**/node_modules/**', '**/dist/**', '**/out-tsc/**', '.nx/**', '.angular/**', '**/coverage/**', '**/tmp/**', '**/test/fixtures/**']
   }
 ]);

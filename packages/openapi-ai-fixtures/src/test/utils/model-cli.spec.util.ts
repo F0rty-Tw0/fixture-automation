@@ -2,11 +2,12 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { SUBPROCESS_TEST_TIMEOUT_MS } from '../common/integration.const.ts';
 import type { CliResult } from '../common/integration.type.ts';
 
 const execute = promisify(execFile);
 const cliFile = fileURLToPath(new URL('../../cli.ts', import.meta.url));
 
 export const runModelCli = async (args: string[]): Promise<CliResult> => {
-  return execute(process.execPath, ['--conditions=@fixture-automation/source', cliFile, '--list-models', ...args], { timeout: 20000 });
+  return execute(process.execPath, ['--conditions=@fixture-automation/source', cliFile, '--list-models', ...args], { timeout: SUBPROCESS_TEST_TIMEOUT_MS });
 };

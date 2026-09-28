@@ -18,6 +18,7 @@ const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'codex-cli' };
 const FILLED = { amount_due: 4200, status: 'open', memo: 'paid by card' };
 const CORRUPT = { id: 'in_1' };
 const COMPLETE = { ...CORRUPT, ...FILLED };
+const PLACEHOLDER = { id: 'in_1', amount_due: 0, status: 'open', memo: 'string' };
 
 const exists = async (file: string): Promise<boolean> => {
   try {
@@ -141,6 +142,27 @@ describe('FEATURE: fixture wizard', (): void => {
         const provenance: unknown = JSON.parse(await readFile(provenanceFile, 'utf8'));
 
         expect(provenance).toMatchObject({ endpointUrl: 'GET,v1/invoices/in_2' });
+      },
+      TIMEOUT
+    );
+  });
+
+  describe('GIVEN an existing fixture holding sampler placeholders, an AI fill and a merge', (): void => {
+    it(
+      'WHEN the merge is accepted THEN the placeholders are replaced by the filled values',
+      async (): Promise<void> => {
+        vi.spyOn(console, 'error').mockImplementation(silence);
+        const placeholderFile = join(directory, 'placeholder.json');
+        const outDir = join(directory, 'placeholder');
+        const mergedFile = join(outDir, 'HiGglABFLx4DXxZ48qyjaogB4bM=.json');
+
+        await writeFile(placeholderFile, JSON.stringify(PLACEHOLDER));
+        await run(SPEC_URL, outDir, 'get', 'v1/invoices/{id}', '1', placeholderFile, '', '', 'y', '2', '1', '', 'y', '');
+
+        const merged: unknown = JSON.parse(await readFile(mergedFile, 'utf8'));
+
+        expect(merged).toStrictEqual(COMPLETE);
+        expect(Object.keys(merged ?? {})).toStrictEqual(Object.keys(PLACEHOLDER));
       },
       TIMEOUT
     );

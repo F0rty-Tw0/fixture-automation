@@ -2,6 +2,12 @@ import type { SchemaMap } from '@fixture-automation/openapi-fixtures';
 
 export type AiTool = 'claude' | 'codex' | 'antigravity' | 'copilot' | 'gemini';
 
+/** Whether a tool's CLI executable was found on `PATH`; found does not mean logged in or working. */
+export type AiToolInstall = {
+  readonly tool: AiTool;
+  readonly installed: boolean;
+};
+
 export type AiFixtureProgress = {
   readonly stream: 'stdout' | 'stderr' | 'status';
   readonly text: string;

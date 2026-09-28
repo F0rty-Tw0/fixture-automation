@@ -23,12 +23,18 @@ type ResolvedTarget = {
 
 const defaultDeps: WizardDeps = { question: terminalQuestion, discover: discoverModels, fill: aiMissingFixture };
 
-const mergeFilled = async (context: WizardContext, populatedFile: string): Promise<string[]> => {
-  const { fixtureFile, inputs, objectShape, outDir, schemaName, specUrl } = context;
+/**
+ * Merges onto `baseline.json`, not the existing fixture: merge only fills absent keys, so replaced values must be gone.
+ * The existing fixture still sets the key order, so a replaced value stays where it was.
+ */
+const mergeFilled = async (context: WizardContext, diffed: DiffResult, populatedFile: string): Promise<string[]> => {
+  const { inputs, objectShape, outDir, schemaName, specUrl } = context;
   const endpointUrl = await endpointUrlInput(inputs, context.endpointUrl, WIZARD_USAGE);
   const subdirectory = await inputs.optional(undefined, WIZARD_INPUTS.subdirectory);
   const spec: MergeSpec = { url: specUrl, schemaName };
-  const input: MergeInput = { corruptFile: fixtureFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory, spec };
+  const corruptFile = diffed.baselineFile;
+  const original = diffed.fixture;
+  const input: MergeInput = { corruptFile, populatedFile, outDir, endpointUrl, objectShape, subdirectory, spec, original };
   const result = await mergeFixture(input);
   const mergedFiles = [result.outFile, result.provenanceFile];
 
@@ -38,7 +44,7 @@ const mergeFilled = async (context: WizardContext, populatedFile: string): Promi
 /** After the diff found missing fields: fill with a harness, then merge, each behind a y/N. */
 const fillAndMerge = async (context: WizardContext, diffed: DiffResult): Promise<string[]> => {
   const { inputs } = context;
-  const missingFiles = [diffed.jsonFile, diffed.typesFile, diffed.stubFile];
+  const missingFiles = [diffed.jsonFile, diffed.typesFile, diffed.stubFile, diffed.baselineFile];
   const wantsAi = await inputs.flag(undefined, WIZARD_INPUTS.fillWithAi);
 
   if (!wantsAi) return missingFiles;
@@ -48,7 +54,7 @@ const fillAndMerge = async (context: WizardContext, diffed: DiffResult): Promise
 
   if (!wantsMerge) return [...missingFiles, populatedFile];
 
-  const mergedFiles = await mergeFilled(context, populatedFile);
+  const mergedFiles = await mergeFilled(context, diffed, populatedFile);
 
   return [...missingFiles, populatedFile, ...mergedFiles];
 };
@@ -65,9 +71,14 @@ const checkExisting = async (context: WizardContext): Promise<string[]> => {
     return [];
   }
 
-  console.error(
-    styleText('yellow', `${diffed.diff.paths.length} missing field(s): ${diffed.diff.paths.join(', ')}`, { stream: process.stderr })
-  );
+  const { paths, replaced } = diffed.diff;
+  const absent = paths.filter((path) => !replaced.includes(path));
+
+  if (absent.length > 0) console.error(styleText('yellow', `${absent.length} missing field(s): ${absent.join(', ')}`, { stream: process.stderr }));
+
+  if (replaced.length > 0) {
+    console.error(styleText('yellow', `${replaced.length} placeholder or invalid value(s) to replace: ${replaced.join(', ')}`, { stream: process.stderr }));
+  }
 
   return fillAndMerge(context, diffed);
 };

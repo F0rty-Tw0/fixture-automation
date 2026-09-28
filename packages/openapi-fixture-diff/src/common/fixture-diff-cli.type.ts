@@ -11,5 +11,7 @@ export type DiffOptions = {
   readonly fixtureFile: string;
   readonly outDir: string;
   readonly requiredOnly: boolean;
+  /** Also refill placeholder and schema-invalid values; writes `baseline.json` for the fill and merge. */
+  readonly replacePlaceholders: boolean;
   readonly objectShape?: string | undefined;
 };

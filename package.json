@@ -8,14 +8,15 @@
   },
   "scripts": {
     "build": "nx run-many -t build",
-    "lint": "eslint . --max-warnings=0",
-    "lint:fix": "eslint . --fix --max-warnings=0",
+    "lint": "eslint . --max-warnings=0 && stylelint \"apps/**/*.{css,scss}\" --allow-empty-input",
+    "lint:fix": "eslint . --fix --max-warnings=0 && stylelint \"apps/**/*.{css,scss}\" --allow-empty-input --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "nx run-many -t test",
     "test:watch": "vitest --watch",
     "typecheck": "tsc --project tsconfig.tools.json && nx run-many -t typecheck",
-    "graph": "nx graph"
+    "graph": "nx graph",
+    "studio": "nx run-many -t serve -p @fixture-automation/fixture-studio @fixture-automation/fixture-studio-api"
   },
   "private": true,
   "devDependencies": {
@@ -28,6 +29,7 @@
     "lint-suite": "catalog:devDependencies",
     "nx": "catalog:devDependencies",
     "prettier": "catalog:devDependencies",
+    "stylelint": "catalog:devDependencies",
     "typescript": "catalog:devDependencies",
     "vite": "catalog:devDependencies",
     "vitest": "catalog:devDependencies"

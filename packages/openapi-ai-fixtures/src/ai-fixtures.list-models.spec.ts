@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { SUBPROCESS_TEST_TIMEOUT_MS } from './test/common/integration.const.ts';
 import { runModelCli } from './test/utils/model-cli.spec.util.ts';
 import { processFixture } from './test/utils/process-fixture.spec.util.ts';
 
 const CODEX = processFixture('model-discovery', 'codex.mjs');
 
-describe('FEATURE: AI model listing command', (): void => {
+describe('FEATURE: AI model listing command', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, (): void => {
   describe('GIVEN a provider executable override with a paginated catalog', (): void => {
     it('WHEN listing without a spec THEN prints current model IDs separately from provenance', async (): Promise<void> => {
       const result = await runModelCli(['--tool', 'codex', '--executable', CODEX]);

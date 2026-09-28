@@ -21,14 +21,14 @@ const chooseHarness = async (context: WizardContext): Promise<AiFixtureOptions> 
   return options;
 };
 
-/** Ask which harness and model to run, fill the diffed fields, and write `populated.json` next to `missing.json`. */
+/** Ask which harness and model to run, fill the diffed fields against the baseline, and write `populated.json` next to `missing.json`. */
 export const fillMissing = async (context: WizardContext, diffed: DiffResult): Promise<string> => {
   const { inputs, deps, schemaName } = context;
   const options = await chooseHarness(context);
   const extraPrompt = await inputs.optional(undefined, WIZARD_INPUTS.extraPrompt);
   const scenario = extraPrompt ?? MISSING_SCENARIO;
   const missing = parseMissingFile(await readTextFile('missing', diffed.jsonFile));
-  const request: AiMissingRequest = { fixture: diffed.fixture, missing, scenario };
+  const request: AiMissingRequest = { fixture: diffed.diff.baseline, missing, scenario };
   const populatedFile = join(dirname(diffed.jsonFile), POPULATED_FILE);
   const onProgress = createAiProgressReporter();
   const recoveryOptions: AiFixtureOptions = { ...options, recoveryFile: populatedFile, onProgress };

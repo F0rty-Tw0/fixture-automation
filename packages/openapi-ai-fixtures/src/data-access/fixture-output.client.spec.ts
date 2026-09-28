@@ -1,5 +1,4 @@
 import { readFile, readdir, symlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -80,10 +79,14 @@ describe('FEATURE: fixture output destination', (): void => {
       expect(output.file).toBe(target);
     });
 
-    it('WHEN its parent is a regular file THEN rethrows the lookup failure', async (): Promise<void> => {
-      const outFile = join(fixtureFile, 'generated.json');
+    it('WHEN it is a symlink loop THEN rethrows the lookup failure', async (): Promise<void> => {
+      const outFile = workspace.file('loop-a.json');
+      const partner = workspace.file('loop-b.json');
 
-      await expect(prepareOutput(cliOptions({ outFile }))).rejects.toThrow(/ENOTDIR/);
+      await symlink(partner, outFile);
+      await symlink(outFile, partner);
+
+      await expect(prepareOutput(cliOptions({ outFile }))).rejects.toThrow(/ELOOP/);
     });
 
     it('WHEN a types file is given THEN resolves a relative import from the output directory', async (): Promise<void> => {

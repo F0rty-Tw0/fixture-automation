@@ -1,0 +1,31 @@
+<mat-tab-group
+  [(selectedIndex)]="selectedTab"
+  animationDuration="0ms"
+  aria-label="Fixture views"
+  class="workbench__tabs"
+  disablePagination
+  mat-stretch-tabs="false">
+  @for (document of view().documents; track document.format) {
+    <mat-tab [label]="document.label">
+      <ng-template matTabContent>
+        <fs-document-view [document]="document" class="workbench__body" />
+      </ng-template>
+    </mat-tab>
+  }
+  <mat-tab label="Compare">
+    <ng-template matTabContent>
+      <fs-compare-panel [view]="view()" class="workbench__body" (fillRequested)="openAiFill()" />
+    </ng-template>
+  </mat-tab>
+  <mat-tab [disabled]="!canFill()" label="AI fill">
+    <ng-template mat-tab-label>
+      AI fill
+      @if (fillHint(); as hint) {
+        <span aria-hidden="true" class="workbench__tab-hint">· {{ hint }}</span>
+      }
+    </ng-template>
+    <ng-template matTabContent>
+      <fs-ai-fill-panel [view]="view()" class="workbench__body" />
+    </ng-template>
+  </mat-tab>
+</mat-tab-group>

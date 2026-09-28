@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { MISSING_SCENARIO } from '@fixture-automation/openapi-ai-fixtures';
-import type { AiMissingFactory, AiMissingRequest, ModelDiscovery } from '@fixture-automation/openapi-ai-fixtures';
+import type { AiMissingFactory, AiMissingRequest, MissingFile, ModelDiscovery } from '@fixture-automation/openapi-ai-fixtures';
 import type { FixtureDiff, SpecSchema } from '@fixture-automation/openapi-fixture-diff';
 import { loadSpec, silentInputs, writeTextFile } from '@fixture-automation/openapi-fixtures';
 import type { Inputs, OpenApiSpec } from '@fixture-automation/openapi-fixtures';
@@ -16,7 +16,8 @@ import type { DiffResult, WizardContext, WizardDeps } from '../common/wizard.typ
 
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;
 const DISCOVERY: ModelDiscovery = { models: ['m1'], source: 'codex-cli' };
-const CORRUPT = { id: 'in_1' };
+const CORRUPT = { id: 'in_1', memo: 'string' };
+const BASELINE = { id: 'in_1' };
 const FILLED = { status: 'open' };
 const STATUS_SCHEMA: SpecSchema = { type: 'string' };
 const MISSING_PROPERTIES = { status: STATUS_SCHEMA };
@@ -25,7 +26,16 @@ const NO_COMPONENTS = { schemas: {} };
 const DIFF: FixtureDiff = {
   schemaName: 'invoice',
   dialect: 'openapi-30',
-  paths: ['status'],
+  paths: ['status', 'memo'],
+  replaced: ['memo'],
+  schema: MISSING_SCHEMA,
+  components: NO_COMPONENTS,
+  baseline: BASELINE
+};
+const MISSING: MissingFile = {
+  schemaName: 'invoice',
+  dialect: 'openapi-30',
+  paths: DIFF.paths,
   schema: MISSING_SCHEMA,
   components: NO_COMPONENTS
 };
@@ -70,7 +80,8 @@ describe('FEATURE: missing field fill', (): void => {
       diff: DIFF,
       jsonFile,
       typesFile: join(directory, 'missing', 'missing.d.ts'),
-      stubFile: join(directory, 'missing', 'missing.stub.ts')
+      stubFile: join(directory, 'missing', 'missing.stub.ts'),
+      baselineFile: join(directory, 'missing', 'baseline.json')
     };
   });
 
@@ -95,10 +106,10 @@ describe('FEATURE: missing field fill', (): void => {
       await expect(readFile(populatedFile, 'utf8')).resolves.toBe(`${JSON.stringify(FILLED, null, 2)}\n`);
     });
 
-    it('WHEN filled THEN sends the fixture, the parsed missing file and the default scenario', async (): Promise<void> => {
+    it('WHEN filled THEN sends the baseline, the parsed missing file and the default scenario', async (): Promise<void> => {
       vi.spyOn(console, 'error').mockImplementation(silence);
       enrich.mockResolvedValue(FILLED);
-      const request: AiMissingRequest = { fixture: CORRUPT, missing: DIFF, scenario: MISSING_SCENARIO };
+      const request: AiMissingRequest = { fixture: BASELINE, missing: MISSING, scenario: MISSING_SCENARIO };
 
       await fillMissing(context(undefined), diffed);
 

@@ -1,0 +1,8 @@
+<header class="step__head">
+  <span aria-hidden="true" class="step__node"></span>
+  <h2 [id]="headingId()" class="step__title">{{ heading() }}</h2>
+  <p class="step__status">{{ status() }}</p>
+</header>
+<div class="step__body">
+  <ng-content />
+</div>

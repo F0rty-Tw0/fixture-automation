@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { answering, silence } from '@fixture-automation/shared/testing';
 
 import { runAiFixturesCli } from './ai-fixtures-cli.client.ts';
+import { SUBPROCESS_TEST_TIMEOUT_MS } from '../test/common/integration.const.ts';
 import type { IntegrationProject } from '../test/common/integration.type.ts';
 import { integrationArgs } from '../test/utils/integration-cli.spec.util.ts';
 import { integrationProject } from '../test/utils/integration-project.spec.util.ts';
@@ -38,7 +39,7 @@ const writtenFixture = async (project: IntegrationProject): Promise<unknown> => 
   return fixture;
 };
 
-describe('FEATURE: AI fixture command', (): void => {
+describe('FEATURE: AI fixture command', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, (): void => {
   describe('GIVEN local inputs and a controlled external tool', (): void => {
     let project: IntegrationProject;
 

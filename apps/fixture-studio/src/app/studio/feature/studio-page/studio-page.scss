@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: var(--fs-space-3);
+  align-items: center;
+  padding: var(--fs-space-3) var(--fs-space-6);
+  background: color-mix(in oklch, var(--fs-canvas) 92%, transparent);
+  border-bottom: 1px solid var(--fs-line);
+  backdrop-filter: saturate(1.4) blur(8px);
+}
+
+.masthead__mark {
+  width: 0.625rem;
+  height: 0.625rem;
+  background: var(--fs-accent);
+  transform: rotate(45deg);
+}
+
+.masthead__name {
+  margin: 0;
+  font-size: var(--fs-text-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.masthead__spec {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+  white-space: nowrap;
+}
+
+.masthead__version {
+  font-family: var(--fs-font-mono);
+}
+
+.rail {
+  max-width: 88rem;
+  padding: var(--fs-space-7) var(--fs-space-6) var(--fs-space-4);
+  margin: 0 auto;
+}
+
+.rail__waiting {
+  margin: 0;
+  color: var(--fs-ink-faint);
+}
+
+@media (width < 48rem) {
+  .masthead,
+  .rail {
+    padding-inline: var(--fs-space-4);
+  }
+}

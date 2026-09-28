@@ -14,7 +14,7 @@ const missingPaths = (directory: string): MissingFiles => {
   return files;
 };
 
-/** Write `missing.json`, `missing.d.ts` and `missing.stub.ts` into `outDir`. */
+/** Write `missing.json`, `missing.d.ts` and `missing.stub.ts` into `outDir`; `missing.json` leaves the baseline out. */
 export const writeMissingFiles = async (diff: FixtureDiff, outDir: string): Promise<MissingFiles> => {
   const directory = resolve(outDir);
 
@@ -25,9 +25,23 @@ export const writeMissingFiles = async (diff: FixtureDiff, outDir: string): Prom
   const types = await missingTypes(document);
   const stub = missingStub(diff, document, files.stubFile, files.typesFile);
 
-  await writeFile(files.jsonFile, `${JSON.stringify(diff, null, 2)}\n`);
+  const { schemaName, dialect, paths, replaced, schema, components } = diff;
+  const missingFile = { schemaName, dialect, paths, replaced, schema, components };
+
+  await writeFile(files.jsonFile, `${JSON.stringify(missingFile, null, 2)}\n`);
   await writeFile(files.typesFile, types);
   await writeFile(files.stubFile, stub);
 
   return files;
+};
+
+/** Write the diff's baseline, the fixture without its replaced values, as `baseline.json` into `outDir`. */
+export const writeBaselineFile = async (diff: FixtureDiff, outDir: string): Promise<string> => {
+  const directory = resolve(outDir);
+  const baselineFile = join(directory, 'baseline.json');
+
+  await mkdir(directory, { recursive: true });
+  await writeFile(baselineFile, `${JSON.stringify(diff.baseline, null, 2)}\n`);
+
+  return baselineFile;
 };

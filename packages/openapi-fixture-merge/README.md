@@ -133,7 +133,7 @@ The sidecar has two fields:
 
 | Field         | Meaning                                                                                                        |
 | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `endpointUrl` | The canonical endpoint identity after normalizing a method prefix and applying any subdirectory.             |
+| `endpointUrl` | The canonical endpoint identity after normalizing a method prefix and applying any subdirectory.               |
 | `sha256`      | Lowercase, 64-character hexadecimal SHA-256 of the exact merged JSON UTF-8 bytes, including the final newline. |
 
 The fixture stays plain two-space JSON; metadata never changes its schema.
@@ -251,8 +251,10 @@ console.log(`filled ${result.filled.length} path(s)`);
 console.log(result.outFile, result.provenanceFile, result.provenance.sha256);
 ```
 
-- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Optional `objectShape` selects the same literal top-level payload key in both inputs; optional `subdirectory` prefixes the endpoint path before hashing. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
+- `mergeFixture(input: MergeInput): Promise<MergeResult>` — fills the corrupt fixture from the populated file, validates when `input.spec` is given, and writes the endpoint-named merged JSON and its SHA-256 provenance sidecar. Optional `objectShape` selects the same literal top-level payload key in both inputs; optional `subdirectory` prefixes the endpoint path before hashing; optional `original` (the fixture the corrupt one was cut from) sets the written key order. Returns `value`, `filled`, `outFile`, `provenanceFile`, and `provenance`. Skips validation when `input.spec` is omitted.
 - `deepFill(base: unknown, fill: unknown): FillResult` — copies values from `fill` into keys `base` does not already have, recursing into objects and zipping arrays by index. Also replaces a baseline value when JSON types differ (neither null) or two strings differ only in casing. Returns `{ value, filled }` (`filled` is the list of paths it supplied or replaced).
+- `fillObjectShape(corrupt: unknown, populated: unknown, objectShape: string | undefined): FillResult` — `deepFill` as `mergeFixture` runs it: with an `objectShape`, only inside that top-level property of both inputs, keeping the corrupt envelope's other keys and prefixing `filled` paths with the property name. Throws `fixture has no own property "<key>" for object-shape` when either input lacks it.
+- `orderLike(value: unknown, reference: unknown): unknown` — `value` with each object's keys in `reference` order: shared keys first, then keys `reference` lacks in their current order. Arrays recurse by index; any other pairing returns `value`. Keeps a refilled key where the original fixture had it.
 - `loadPopulated(file: string): Promise<unknown>` — reads a `.json` file, or `import()`s a `.ts`/`.mts`/`.js`/`.mjs` module and returns its single export.
 - Types: `FillResult`, `MergeInput`, `MergeProvenance`, `MergeResult`, `MergeSpec`.
 

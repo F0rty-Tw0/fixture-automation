@@ -20,6 +20,10 @@ const GEMINI_SETTINGS_CONTENT = `{
   "hooksConfig": {
     "enabled": false
   },
+  "tools": {
+    "core": [],
+    "discoveryCommand": ""
+  },
   "admin": {
     "mcp": {
       "enabled": false

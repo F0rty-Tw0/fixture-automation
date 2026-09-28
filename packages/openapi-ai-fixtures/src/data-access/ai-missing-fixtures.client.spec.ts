@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runAgent } from './agent-process.client.ts';
 import { aiMissingFixture } from './ai-missing-fixtures.client.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
-import type { AiMissingRequest, MissingFile } from '../common/missing.type.ts';
+import type { AiMissingRequest, MissingFile, MissingValidator, MissingVerdict } from '../common/missing.type.ts';
 import { agentResponse } from '../test/utils/agent-response.spec.util.ts';
 import { integrationFile } from '../test/utils/integration-project.spec.util.ts';
 import { missingDocument } from '../utils/missing-document.util.ts';
@@ -19,6 +19,9 @@ const CORRUPT = { id: 'in_base', amount_due: 0 };
 const FILLED = { status: 'open' };
 const UNLISTED = { status: 'paid' };
 const OVERSIZED_SCHEMA = { type: 'string', description: 'x'.repeat(1024 * 1024) };
+const UNCOMPILABLE_SCHEMA = { type: 'string', pattern: '(' };
+const VALID: MissingVerdict = { valid: true, details: '' };
+const INVALID: MissingVerdict = { valid: false, details: '/status: must be paid' };
 
 const agentPrompt = (): Record<string, unknown> => {
   const [call] = vi.mocked(runAgent).mock.calls;
@@ -108,6 +111,64 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       const enrich = aiMissingFixture(options);
 
       await expect(enrich('invoice', request)).rejects.toThrow(/generated missing fields violate schema "missing"/);
+    });
+
+    it('WHEN the projection cannot compile THEN rejects before invoking the harness', async (): Promise<void> => {
+      const uncompilable: MissingFile = { ...missing, schema: UNCOMPILABLE_SCHEMA };
+      const broken: AiMissingRequest = { ...request, missing: uncompilable };
+      const enrich = aiMissingFixture(options);
+
+      const filling = enrich('invoice', broken);
+
+      await expect(filling).rejects.toThrow(/Invalid regular expression/);
+      expect(vi.mocked(runAgent)).not.toHaveBeenCalled();
+    });
+
+    describe('WHEN a validator is injected', (): void => {
+      it('THEN it judges the missing file and the fill instead of the in-process schema', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(UNLISTED)));
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.resolve(VALID));
+        const injected: AiMissingRequest = { ...request, validate };
+        const enrich = aiMissingFixture(options);
+
+        const result = await enrich('invoice', injected);
+
+        expect(validate).toHaveBeenCalledWith(missing, UNLISTED);
+        expect(result).toStrictEqual(UNLISTED);
+      });
+
+      it('THEN its invalid verdict rejects with its details', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.resolve(INVALID));
+        const injected: AiMissingRequest = { ...request, validate };
+        const enrich = aiMissingFixture(options);
+
+        const filling = enrich('invoice', injected);
+
+        await expect(filling).rejects.toThrow('generated missing fields violate schema "missing": /status: must be paid');
+      });
+
+      it('THEN a valid verdict on a non-object fill still rejects', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', '[]'));
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.resolve(VALID));
+        const injected: AiMissingRequest = { ...request, validate };
+        const enrich = aiMissingFixture(options);
+
+        const filling = enrich('invoice', injected);
+
+        await expect(filling).rejects.toThrow(/generated missing fields violate schema "missing"/);
+      });
+
+      it('THEN its rejection propagates unchanged', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.reject(new Error('validation timed out')));
+        const injected: AiMissingRequest = { ...request, validate };
+        const enrich = aiMissingFixture(options);
+
+        const filling = enrich('invoice', injected);
+
+        await expect(filling).rejects.toThrow('validation timed out');
+      });
     });
 
     it('WHEN the scenario is blank THEN rejects before invoking the harness', async (): Promise<void> => {

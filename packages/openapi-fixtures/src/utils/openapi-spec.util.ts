@@ -1,6 +1,7 @@
 import { isRecord } from '@fixture-automation/shared';
 
 import { errorMessage } from './error-message.util.ts';
+import { refuseSwagger } from './swagger-document.util.ts';
 import { FixtureError } from '../common/fixture.error.ts';
 import type { OpenApiSpec } from '../common/openapi.type.ts';
 
@@ -44,6 +45,8 @@ const parseJson = (text: string, url: string, isYamlPath: boolean): unknown => {
 export const parseSpec = (text: string, specUrl: string | URL): OpenApiSpec => {
   const url = specUrl.toString();
   const parsed = parseJson(text, url, isYamlLocation(specUrl));
+
+  refuseSwagger(parsed, `spec at ${url}`);
 
   if (!isOpenApiSpec(parsed)) {
     throw new FixtureError(`spec at ${url} has no components.schemas`, 'pass the OpenAPI document, not a fixture');

@@ -1,2 +1,6 @@
 package-lock.json
 pnpm-lock.yaml
+# Deliberately broken JSON: the e2e rejects it in the browser.
+apps/fixture-studio/e2e/test/fixtures/not-json.json
+# Vendored, minified trim of the Stripe OpenAPI spec (MIT, github.com/stripe/openapi): the invoice schema and its direct references, ~110 kB; see LICENSE beside it.
+apps/fixture-studio-api/src/test/fixtures/stripe-invoice/spec.json

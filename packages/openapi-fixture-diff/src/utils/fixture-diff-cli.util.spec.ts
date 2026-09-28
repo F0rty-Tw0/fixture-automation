@@ -63,7 +63,7 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
   describe('GIVEN the out file is omitted in a silent, non-interactive run', (): void => {
     it.each([
       ['invoice.json', 'invoice.corrupt.json'],
-      ['dir/invoice.fixture.json', 'dir/invoice.fixture.corrupt.json'],
+      ['dir/invoice.fixture.json', join('dir', 'invoice.fixture.corrupt.json')],
       ['invoice', 'invoice.corrupt.json'],
       ['invoice.corrupt.json', 'invoice.corrupt.corrupt.json']
     ])(
@@ -108,21 +108,23 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
         fixtureFile: 'corrupt.json',
         outDir: 'out',
         objectShape: 'body',
-        requiredOnly: false
+        requiredOnly: false,
+        replacePlaceholders: false
       });
       expect(question).not.toHaveBeenCalled();
     });
   });
 
-  describe('GIVEN diff args with a schema name, --required-only and a padded --object-shape', (): void => {
-    it('WHEN parsing diff args THEN the schema name, flag and trimmed shape are returned', async (): Promise<void> => {
-      const args = ['file:///spec.json', 'order', ...DIFF_FLAGS, '--required-only', '--object-shape', ' body '];
+  describe('GIVEN diff args with a schema name, both flags and a padded --object-shape', (): void => {
+    it('WHEN parsing diff args THEN the schema name, flags and trimmed shape are returned', async (): Promise<void> => {
+      const args = ['file:///spec.json', 'order', ...DIFF_FLAGS, '--required-only', '--replace-placeholders', '--object-shape', ' body '];
       const expected = {
         specUrl: 'file:///spec.json',
         schemaName: 'order',
         fixtureFile: 'corrupt.json',
         outDir: 'out',
         requiredOnly: true,
+        replacePlaceholders: true,
         objectShape: 'body'
       };
 
@@ -182,10 +184,10 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
   });
 
   describe('GIVEN a terminal missing spec-url, --fixture and --out-dir', (): void => {
-    describe('WHEN object-shape is skipped and required-only is confirmed', (): void => {
+    describe('WHEN object-shape is skipped and both flags are confirmed', (): void => {
       it('THEN resolves the rest and leaves schema-name to the caller', async (): Promise<void> => {
         vi.spyOn(console, 'error').mockImplementation(silence);
-        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', 'out', '', 'y', 'order'));
+        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', 'out', '', 'y', 'y', 'order'));
 
         const parsed = await parseDiffArgs([], promptedInputs(question));
 
@@ -195,19 +197,20 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
           outDir: 'out',
           schemaName: undefined,
           objectShape: undefined,
-          requiredOnly: true
+          requiredOnly: true,
+          replacePlaceholders: true
         });
-        expect(question).toHaveBeenCalledTimes(5);
+        expect(question).toHaveBeenCalledTimes(6);
       });
 
       it('THEN Enter on --out-dir defaults to fixtures/missing', async (): Promise<void> => {
         vi.spyOn(console, 'error').mockImplementation(silence);
-        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', '', '', 'y'));
+        const question = vi.fn(answering('file:///spec.json', 'corrupt.json', '', '', 'y', ''));
 
         const parsed = await parseDiffArgs([], promptedInputs(question));
 
         expect(parsed?.outDir).toBe(join('fixtures', 'missing'));
-        expect(question).toHaveBeenCalledTimes(5);
+        expect(question).toHaveBeenCalledTimes(6);
       });
     });
   });

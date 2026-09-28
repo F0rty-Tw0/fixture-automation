@@ -1,9 +1,9 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 import { describe, expect, it } from 'vitest';
 
-import { chooseAiProvider, cliFillBody, fitsOnDevice, onDeviceState } from './ai-provider.util.ts';
+import { chooseAiProvider, cliFillBody, isOfferedOnDevice, onDeviceState } from './ai-provider.util.ts';
 import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../common/ai-fill.const.ts';
-import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
+import type { AiAvailability, AiFillContext, AiProviderId, DiffPromptSize, OnDeviceState } from '../common/ai-fill.type.ts';
 import { MISSING_FILE_STUB } from '../test/stubs/studio.stub.ts';
 
 const FIXTURE = { id: 'in_1' };
@@ -30,11 +30,15 @@ describe('FEATURE: AI provider choice', (): void => {
     expect(chooseAiProvider(isOptedIn, availability)).toBe(expected);
   });
 
-  it.each<[string, number, boolean]>([
-    ['a prompt at the limit', ON_DEVICE_PROMPT_BYTE_LIMIT, true],
-    ['a prompt past the limit', ON_DEVICE_PROMPT_BYTE_LIMIT + 1, false]
-  ])('GIVEN %s WHEN sized for the on-device model THEN fits is %s', (_label, promptBytes, expected): void => {
-    expect(fitsOnDevice(promptBytes)).toBe(expected);
+  it.each<[string, DiffPromptSize, boolean | undefined, boolean]>([
+    ['no diff and no earlier answer', undefined, undefined, true],
+    ['a settled diff that fits', ON_DEVICE_PROMPT_BYTE_LIMIT, false, true],
+    ['a settled diff too large', ON_DEVICE_PROMPT_BYTE_LIMIT + 1, true, false],
+    ['a diff loading after a too-large one', 'loading', false, false],
+    ['a diff loading after one that fit', 'loading', true, true],
+    ['the first diff loading', 'loading', undefined, true]
+  ])('GIVEN %s WHEN the on-device offer is decided THEN it is kept or recomputed', (_label, size, wasOffered, expected): void => {
+    expect(isOfferedOnDevice(size, wasOffered)).toBe(expected);
   });
 
   it('GIVEN a fill context WHEN sent to the local CLI THEN becomes the ai-fill body, without the spec id', (): void => {

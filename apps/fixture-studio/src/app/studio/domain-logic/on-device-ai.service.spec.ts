@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { DiffBody } from '@fixture-automation/fixture-studio-api/contract';
+import type { DiffBody, DiffResult } from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { provideFixtureWorkbench } from './fixture-workbench.provider.ts';
@@ -133,6 +133,20 @@ describe('FEATURE: on-device AI', (): void => {
       expect(onDevice.isOffered()).toBe(false);
       expect(onDevice.provider()).toBe('cli');
       expect(onDevice.isChromeOptedIn()).toBe(true);
+    });
+
+    it('WHEN the fixture is compared again THEN the model stays hidden while the new diff loads', async (): Promise<void> => {
+      const onDevice = await setUp('available');
+      const again: DiffRequest = { ...DIFF_REQUEST };
+      const wasOffered = onDevice.isOffered();
+
+      vi.mocked(TestBed.inject(STUDIO_ENGINE).diff).mockReturnValue(new Promise<DiffResult>((): undefined => undefined));
+      TestBed.inject(ComparisonStore).compare(again);
+      TestBed.tick();
+
+      expect(wasOffered).toBe(false);
+      expect(onDevice.isOffered()).toBe(false);
+      expect(onDevice.provider()).toBe('cli');
     });
 
     it('WHEN Chrome has not answered yet THEN nothing waits for it', (): void => {

@@ -1,7 +1,7 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ApiErrorBody, DiffBody, DiffResult, MergeBody, MergeResult } from './contract/common/studio-api.type.ts';
+import type { ApiErrorBody, BrokenValue, DiffBody, DiffResult, MergeBody, MergeResult } from './contract/common/studio-api.type.ts';
 import { MOCK_AI } from './data-access/ai-mock.client.ts';
 import { backtrackingDocument, fanOutDocument } from './test/utils/hostile-spec.spec.util.ts';
 import { loadDocumentSpec, loadStudioSpec, studioServer } from './test/utils/studio-spec.spec.util.ts';
@@ -17,6 +17,10 @@ const DIFF_BODY: DiffBody = { endpointId: ENDPOINT_ID, fixture: PARTIAL_INVOICE,
 const TOO_EXPENSIVE = 'spec too expensive to sample/validate';
 const BACKTRACKING_NAME = `${'a'.repeat(34)}!`;
 const LARGE_INVOICE = { ...PARTIAL_INVOICE, memo: 'm'.repeat(5 * 1024 * 1024) };
+const AMOUNT_PLACEHOLDER: BrokenValue = { path: 'amount_due', value: 0, reason: 'openapi-sampler placeholder' };
+const MEMO_PLACEHOLDER: BrokenValue = { path: 'memo', value: 'string', reason: 'openapi-sampler placeholder' };
+const PLACEHOLDERS_BROKEN = [AMOUNT_PLACEHOLDER, MEMO_PLACEHOLDER];
+const AMOUNT_BROKEN: BrokenValue = { path: 'data.amount_due', value: 'five', reason: 'must be integer' };
 
 describe('FEATURE: fixture routes', (): void => {
   let fastify: FastifyInstance;
@@ -93,6 +97,14 @@ describe('FEATURE: fixture routes', (): void => {
 
         expect(response.json<DiffResult>()).toMatchObject({ replacedPaths: [], baseline: PLACEHOLDER_INVOICE });
       });
+
+      it('WHEN diffed with replacePlaceholders false THEN the placeholders are still reported broken', async (): Promise<void> => {
+        const body: DiffBody = { ...DIFF_BODY, fixture: PLACEHOLDER_INVOICE, replacePlaceholders: false };
+
+        const response = await post('diff', body);
+
+        expect(response.json<DiffResult>().broken).toStrictEqual(PLACEHOLDERS_BROKEN);
+      });
     });
 
     describe('GIVEN a fixture over 4 MiB', (): void => {
@@ -103,6 +115,18 @@ describe('FEATURE: fixture routes', (): void => {
 
         expect(response.statusCode).toBe(200);
         expect(response.json<DiffResult>().missingPaths).toStrictEqual(['status', 'customer']);
+      });
+    });
+
+    describe('GIVEN an enveloped fixture holding a schema-invalid value', (): void => {
+      it('WHEN diffed THEN the broken value is reported under the envelope with the AJV message', async (): Promise<void> => {
+        const payload = { ...PARTIAL_INVOICE, amount_due: 'five' };
+        const fixture = { data: payload };
+        const body: DiffBody = { ...DIFF_BODY, fixture, objectShape: 'data' };
+
+        const response = await post('diff', body);
+
+        expect(response.json<DiffResult>().broken).toStrictEqual([AMOUNT_BROKEN]);
       });
     });
 

@@ -40,6 +40,7 @@ export const DIFF_RESULT_STUB: DiffResult = {
   missing: MISSING_FILE_STUB,
   missingPaths: MISSING_FILE_STUB.paths,
   replacedPaths: [],
+  broken: [],
   baseline: PARTIAL_INVOICE_STUB,
   completeJson:
     '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open",\n  "memo": "string",\n' +
@@ -52,6 +53,7 @@ export const COMPLETE_DIFF_RESULT_STUB: DiffResult = {
   missing: NOTHING_MISSING_FILE_STUB,
   missingPaths: [],
   replacedPaths: [],
+  broken: [],
   baseline: PARTIAL_INVOICE_STUB,
   completeJson: '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open"\n}\n'
 };

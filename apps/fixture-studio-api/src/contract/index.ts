@@ -32,6 +32,7 @@ export type {
   AiToolsResult,
   AiToolStatus,
   ApiErrorBody,
+  BrokenValue,
   DiffBody,
   DiffResult,
   Endpoint,

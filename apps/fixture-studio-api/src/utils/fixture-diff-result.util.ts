@@ -4,6 +4,7 @@ import { orderLike } from '@fixture-automation/openapi-fixture-merge';
 import { fixtures } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 
+import { trimmedPromptBytes } from './ai-prompt.util.ts';
 import { assertEnvelope, fixtureJson, mergeFixtureValue, shapeKey } from './fixture-merge.util.ts';
 import type { DiffBody, DiffResult, MissingFile } from '../contract/common/studio-api.type.ts';
 
@@ -36,7 +37,8 @@ export const fixtureDiffResult = (spec: OpenApiSpec, schemaName: string, body: D
   const completed = mergeFixtureValue(baseline, populated, objectShape);
   const ordered = orderLike(completed.value, fixture);
   const completeJson = fixtureJson(ordered);
-  const result: DiffResult = { missing, missingPaths: paths, replacedPaths: replaced, broken, baseline, completeJson };
+  const promptBytes = trimmedPromptBytes(baseline, missing);
+  const result: DiffResult = { missing, missingPaths: paths, replacedPaths: replaced, broken, baseline, completeJson, promptBytes };
 
   return result;
 };

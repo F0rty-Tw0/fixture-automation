@@ -55,7 +55,8 @@ export const DIFF_RESULT_STUB: DiffResult = {
   replacedPaths: [],
   broken: [],
   baseline: DIFF_BASELINE,
-  completeJson: '{\n  "id": "in_1",\n  "status": "draft"\n}'
+  completeJson: '{\n  "id": "in_1",\n  "status": "draft"\n}',
+  promptBytes: 900
 };
 
 export const MERGE_RESULT_STUB: MergeResult = {

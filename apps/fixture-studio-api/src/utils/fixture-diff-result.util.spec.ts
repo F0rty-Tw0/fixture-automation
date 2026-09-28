@@ -1,6 +1,7 @@
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { trimmedPromptBytes } from './ai-prompt.util.ts';
 import { fixtureDiffResult } from './fixture-diff-result.util.ts';
 import { fixtureJson } from './fixture-merge.util.ts';
 import type { DiffBody } from '../contract/common/studio-api.type.ts';
@@ -12,6 +13,7 @@ const CUSTOMER = { id: 'cus_9' };
 const NESTED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open', memo: 'm', customer: CUSTOMER };
 const PLACEHOLDER_INVOICE = { id: 'in_9', amount_due: 0, status: 'open', memo: 'string' };
 const PLACEHOLDER_BASELINE = { id: 'in_9', status: 'open' };
+const REQUIRED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open' };
 
 const diffBody = (fixture: unknown, requiredOnly: boolean, objectShape?: string, replacePlaceholders?: boolean): DiffBody => {
   const body: DiffBody = { endpointId: 'GET /v1/invoices/{id}', fixture, requiredOnly, replacePlaceholders };
@@ -48,6 +50,14 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(complete).toStrictEqual({ id: 'in_9', amount_due: 5, status: 'draft' });
     });
 
+    it('WHEN diffed THEN promptBytes sizes the prompt trimmed to every missing path', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(PARTIAL_INVOICE, false));
+
+      const bytes = trimmedPromptBytes(result.baseline, result.missing);
+
+      expect(result.promptBytes).toBe(bytes);
+    });
+
     it('WHEN completed THEN keeps the existing values first and in order', (): void => {
       const result = fixtureDiffResult(spec, 'invoice', diffBody(PARTIAL_INVOICE, false));
 
@@ -64,6 +74,15 @@ describe('FEATURE: fixture diff result', (): void => {
 
       expect(isInsertionOnly(before, result.completeJson)).toBe(true);
       expect(result.completeJson.length).toBeGreaterThan(before.length);
+    });
+  });
+
+  describe('GIVEN an invoice with every required field', (): void => {
+    it('WHEN diffed with requiredOnly THEN nothing is missing and promptBytes is 0', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(REQUIRED_INVOICE, true));
+
+      expect(result.missingPaths).toStrictEqual([]);
+      expect(result.promptBytes).toBe(0);
     });
   });
 

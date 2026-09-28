@@ -106,6 +106,8 @@ export type DiffResult = {
   readonly baseline: unknown;
   /** The baseline with every missing value filled from the sampler; existing keys keep their order, new keys follow them. */
   readonly completeJson: string;
+  /** UTF-8 size of the browser-model prompt trimmed to every missing path, without a scenario; 0 when nothing is missing. */
+  readonly promptBytes: number;
 };
 
 export type EnvelopeBody = z.infer<typeof envelopeBodySchema>;

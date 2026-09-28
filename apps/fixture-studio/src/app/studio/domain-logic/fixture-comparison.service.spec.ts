@@ -244,5 +244,16 @@ describe('FEATURE: fixture comparison', (): void => {
       expect(comparison.form().objectShape).toBe('');
       expect(comparison.envelopes()).toStrictEqual([]);
     });
+
+    it('GIVEN a compared fixture WHEN broken values are kept THEN diffs again without refilling them', async (): Promise<void> => {
+      vi.mocked(engine.envelope).mockResolvedValue(NO_ENVELOPE);
+      await comparison.compareFile(new File(['{"id":1}'], 'a.json'), ENDPOINT_ID);
+      await settle();
+
+      comparison.setReplacePlaceholders(ENDPOINT_ID, false);
+      await settle();
+
+      expect(engine.diff).toHaveBeenLastCalledWith('spec-1', expect.objectContaining({ replacePlaceholders: false }), expect.anything());
+    });
   });
 });

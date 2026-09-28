@@ -59,6 +59,18 @@ export class FixtureComparison {
     await this.detectAndCompare(endpointId);
   }
 
+  /** Keeping broken values diffs again without refilling them; fixing them (the default) lets AI fill rewrite them. */
+  public setReplacePlaceholders(endpointId: string, replacePlaceholders: boolean): void {
+    const withChoice = (form: CompareForm): CompareForm => {
+      const chosen: CompareForm = { ...form, replacePlaceholders };
+
+      return chosen;
+    };
+
+    this.form.update(withChoice);
+    this.compare(endpointId);
+  }
+
   /**
    * Diffs the existing fixture against the endpoint's schema; `requiredOnly` follows the generate options, `replacePlaceholders` the form.
    * Asking again while that exact diff is shown or loading does nothing; a failed diff can always be retried.

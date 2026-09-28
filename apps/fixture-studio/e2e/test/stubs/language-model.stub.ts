@@ -1,5 +1,5 @@
 import { POPULATED_STUB } from './workbench.stub.ts';
-import type { LanguageModelStubConfig } from '../common/playwright.type.ts';
+import type { LanguageModelCreateCall, LanguageModelStubConfig } from '../common/playwright.type.ts';
 
 const ANSWER = JSON.stringify(POPULATED_STUB);
 
@@ -24,3 +24,9 @@ export const DOWNLOADING_MODEL_STUB: LanguageModelStubConfig = { ...AVAILABLE_MO
 export const UNAVAILABLE_MODEL_STUB: LanguageModelStubConfig = { ...AVAILABLE_MODEL_STUB, availability: 'unavailable' };
 
 export const TOO_SMALL_MODEL_STUB: LanguageModelStubConfig = { ...AVAILABLE_MODEL_STUB, failure: 'quota' };
+
+/** "Download model": a `create` with a progress monitor and no system prompt, dropped once the model is there. */
+export const DOWNLOAD_CREATE_STUB: LanguageModelCreateCall = { hasMonitor: true, hasSystemPrompt: false };
+
+/** A fill's session: created with the system prompt. */
+export const SESSION_CREATE_STUB: LanguageModelCreateCall = { hasMonitor: true, hasSystemPrompt: true };

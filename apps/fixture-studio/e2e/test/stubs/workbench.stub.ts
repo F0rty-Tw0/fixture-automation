@@ -8,7 +8,9 @@ import type {
   AiToolStatus,
   AiToolsResult,
   ApiErrorBody,
+  BrokenValue,
   DiffResult,
+  EnvelopeResult,
   MergeResult,
   MissingFile
 } from '@fixture-automation/fixture-studio-api/contract';
@@ -46,6 +48,28 @@ export const DIFF_RESULT_STUB: DiffResult = {
     '{\n  "id": "in_123",\n  "amount_due": 4200,\n  "status": "open",\n  "memo": "string",\n' +
     '  "customer": {\n    "id": "cus_1",\n    "address": {\n      "city": "Oslo"\n    }\n  }\n}\n'
 };
+
+/** `amount_due` held the sampler's placeholder `0`; the diff replaced it, so AI fill rewrites it with the missing values. */
+export const BROKEN_AMOUNT_STUB: BrokenValue = { path: 'amount_due', value: 0, reason: 'openapi-sampler placeholder' };
+
+export const BROKEN_DIFF_RESULT_STUB: DiffResult = {
+  ...DIFF_RESULT_STUB,
+  missingPaths: [...MISSING_FILE_STUB.paths, BROKEN_AMOUNT_STUB.path],
+  replacedPaths: [BROKEN_AMOUNT_STUB.path],
+  broken: [BROKEN_AMOUNT_STUB]
+};
+
+/** The API found no key that holds the payload: the fixture is compared as it is. */
+export const NO_ENVELOPE_STUB: EnvelopeResult = { candidates: [], detected: undefined };
+
+/**
+ * The real API's answer for a fixture whose only nested key fits the schema no better than the root: `detected` is
+ * `undefined`, so the JSON body is `{"candidates":["meta"]}` with no `detected` key at all.
+ */
+export const META_CANDIDATE_ENVELOPE_STUB: EnvelopeResult = { candidates: ['meta'], detected: undefined };
+
+/** The API names `data` as the payload's key and offers `meta` too. */
+export const DATA_ENVELOPE_STUB: EnvelopeResult = { candidates: ['data', 'meta'], detected: 'data' };
 
 const NOTHING_MISSING_FILE_STUB: MissingFile = { ...MISSING_FILE_STUB, paths: [] };
 

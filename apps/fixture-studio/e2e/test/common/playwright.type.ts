@@ -1,3 +1,4 @@
+import type { DiffResult } from '@fixture-automation/fixture-studio-api/contract';
 import type { Locator, Route } from '@playwright/test';
 
 /** Where an element sits on the page, or `null` when it is not rendered; Playwright does not export the type. */
@@ -10,6 +11,15 @@ export type RecordingRoute = {
   readonly handler: RouteHandler;
   readonly bodies: unknown[];
 };
+
+/** A scenario route: the URL pattern it answers and its handler. */
+export type ApiRoute = {
+  readonly pattern: string;
+  readonly handler: RouteHandler;
+};
+
+/** The diff each endpoint's compare answers with, keyed by endpoint id. */
+export type DiffByEndpoint = Readonly<Record<string, DiffResult>>;
 
 type Viewport = {
   readonly width: number;
@@ -42,8 +52,14 @@ export type LanguageModelStubConfig = {
   readonly chunks: string[];
   /** `quota` makes the answer stream fail with a `QuotaExceededError`. */
   readonly failure: 'none' | 'quota';
-  /** `create` reports half the model downloaded, then waits for `releaseModelDownload`. */
+  /** `create` reports half the model downloaded, then waits for `releaseModelDownload`; once it resolves, the model is `available`. */
   readonly holdsDownload: boolean;
+};
+
+/** What the app asked the stubbed `LanguageModel.create` for: a system prompt means a session, none means a download. */
+export type LanguageModelCreateCall = {
+  readonly hasMonitor: boolean;
+  readonly hasSystemPrompt: boolean;
 };
 
 /** The partial invoice the compare fixtures hold: the schema's required fields only. */

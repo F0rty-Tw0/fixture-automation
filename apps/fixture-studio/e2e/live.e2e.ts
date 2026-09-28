@@ -1,9 +1,10 @@
 import { test } from './studio.fixture.ts';
 import { SAMPLE_PARTIAL_INVOICE_TS_PATH } from './test/common/fixture-file.const.ts';
 import { SAMPLE_SPEC_PATH } from './test/common/playwright.const.ts';
-import { expectLogLine, expectValidMerge, fillMissingValues, openAiFillTab } from './test/pages/ai-fill-panel.page.ts';
-import { expectMissingPaths, openCompareTab, pickExistingFixture } from './test/pages/compare-panel.page.ts';
+import { expectLogLine, expectValidMerge, fillMissingValues } from './test/pages/ai-fill-panel.page.ts';
+import { pickExistingFixture } from './test/pages/compare-panel.page.ts';
 import { generate, toggleEndpoint } from './test/pages/endpoints-step.page.ts';
+import { continueToAiFill, expectMissingPaths } from './test/pages/missing-values-step.page.ts';
 import { expectSpecLoaded, loadSpecFromFile, openStudio } from './test/pages/spec-step.page.ts';
 import { generateSampleInvoice } from './test/pages/workbench.page.ts';
 import { expectCode, expectEndpointTabs } from './test/pages/workspace-step.page.ts';
@@ -38,14 +39,12 @@ test.describe('FEATURE: live studio', () => {
     test('SCENARIO: a partial .ts fixture is compared, filled by the mock CLI and merged valid', async ({ page }): Promise<void> => {
       await test.step('GIVEN the sample invoice fixture is generated', async (): Promise<void> => generateSampleInvoice(page));
 
-      await test.step('WHEN the Compare tab is opened', async (): Promise<void> => openCompareTab(page));
-
-      await test.step('AND the partial invoice .ts is picked', async (): Promise<void> =>
+      await test.step('WHEN the partial invoice .ts is picked', async (): Promise<void> =>
         pickExistingFixture(page, SAMPLE_PARTIAL_INVOICE_TS_PATH));
 
       await test.step('THEN the API lists the missing paths', async (): Promise<void> => expectMissingPaths(page, LIVE_MISSING_PATHS));
 
-      await test.step('AND the AI fill tab is opened', async (): Promise<void> => openAiFillTab(page));
+      await test.step('AND the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
 
       await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
 

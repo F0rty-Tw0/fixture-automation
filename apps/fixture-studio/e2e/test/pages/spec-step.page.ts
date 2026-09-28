@@ -17,13 +17,27 @@ export const submitSpecUrl = async (page: Page): Promise<void> => {
   await specRegion(page).getByRole('button', { name: 'Load spec' }).click();
 };
 
+/** Whether every animation that ends has ended; an endless one (a spinner) never does, so it is left out. */
+const isSettled = (): boolean => {
+  const isStillMoving = (animation: Animation): boolean => {
+    const isEndless = animation.effect?.getTiming().iterations === Infinity;
+
+    return animation.playState === 'running' && !isEndless;
+  };
+
+  return !document.getAnimations().some(isStillMoving);
+};
+
 /**
  * Boxes of the drop zone and the Endpoints step, to prove a validation message moves neither. The file input inside the
- * drop zone is a 1px stand-in, so the zone is measured by its host element.
+ * drop zone is a 1px stand-in, so the zone is measured by its host element. The steps slide in on first render, and a box
+ * measured mid-slide is off by a fraction of a pixel, so the slide must end first.
  */
 export const sourceLayout = async (page: Page): Promise<ElementBox[]> => {
   const drop = specRegion(page).locator('fs-file-drop');
   const endpoints = page.getByRole('region', { name: 'Endpoints' });
+
+  await page.waitForFunction(isSettled);
 
   return Promise.all([drop.boundingBox(), endpoints.boundingBox()]);
 };

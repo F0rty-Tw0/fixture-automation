@@ -11,6 +11,7 @@ import type {
   MergeResult
 } from '@fixture-automation/fixture-studio-api/contract';
 
+import { FillProgress } from './fill-progress.service.ts';
 import { OnDeviceAi } from './on-device-ai.service.ts';
 import { CLI_TOOLS } from '../common/ai-fill.const.ts';
 import type { AiFillContext, AiFillForm, AiProviderId, AiRunRequest } from '../common/ai-fill.type.ts';
@@ -40,6 +41,7 @@ export class FixtureAiFill {
   private readonly cliModels = inject(CliModelsStore);
   private readonly cliTools = inject(CliToolsStore);
   private readonly onDevice = inject(OnDeviceAi);
+  private readonly progress = inject(FillProgress);
 
   public readonly form: WritableSignal<AiFillForm> = this.store.form;
   public readonly log: Signal<AiFillProgressEvent[]> = this.store.log.asReadonly();
@@ -116,7 +118,7 @@ export class FixtureAiFill {
 
   public readonly modelsError: Signal<ApiErrorBody | undefined> = computed(() => toApiError(this.models.error()));
 
-  public readonly isRunning: Signal<boolean> = this.store.run.isLoading;
+  public readonly isRunning: Signal<boolean> = this.progress.isRunning;
   public readonly runError: Signal<ApiErrorBody | undefined> = computed(() => toApiError(this.store.run.error()));
   public readonly isMerging: Signal<boolean> = this.store.merge.isLoading;
   public readonly mergeError: Signal<ApiErrorBody | undefined> = computed(() => toApiError(this.store.merge.error()));
@@ -127,11 +129,7 @@ export class FixtureAiFill {
     return prettyJson(this.store.run.value());
   });
 
-  public readonly mergeResult: Signal<MergeResult | undefined> = computed(() => {
-    if (!this.store.merge.hasValue()) return undefined;
-
-    return this.store.merge.value();
-  });
+  public readonly mergeResult: Signal<MergeResult | undefined> = this.progress.mergeResult;
 
   /** A fill needs a diff with at least one missing or replaced path, and a settled provider. */
   public readonly canRun: Signal<boolean> = computed(() => {

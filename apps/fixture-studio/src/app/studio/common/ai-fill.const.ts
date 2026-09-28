@@ -11,7 +11,7 @@ export const AI_LOG_BLOCK_LIMIT = 64 * 1024;
 /**
  * Largest trimmed prompt the on-device model is offered for: about 4 prompts at 75% of Nano's 9,216-token window,
  * ~3.7 characters per token (README "Chrome AI limits"). Past it a fill needs many slow chunks. Only the total is
- * gated: a fixture whose every chunk is too large on its own still fails in the fill.
+ * gated: a fixture with any one missing path too large on its own still fails in the fill.
  */
 export const ON_DEVICE_PROMPT_BYTE_LIMIT = 100_000;
 

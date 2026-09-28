@@ -12,8 +12,7 @@ type ChunkScope = {
   readonly scenario: string;
 };
 
-// ponytail: one fixed 256 KiB prompt budget for every CLI; big answers make models reply in prose instead of JSON.
-// Make it per tool when one model needs smaller chunks.
+/** One prompt budget for every CLI: past it, models tend to answer in prose instead of JSON. */
 const CHUNK_BUDGET_BYTES = 256 * 1024;
 /** Most paths one chunk asks for, so each answer stays small whatever the prompt size. */
 const CHUNK_MAX_PATHS = 150;

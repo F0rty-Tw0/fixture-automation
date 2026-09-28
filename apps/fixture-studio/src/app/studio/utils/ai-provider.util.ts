@@ -1,5 +1,6 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../common/ai-fill.const.ts';
 import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
 
 /** On-device AI is usable unless Chrome says it can't run here; a download starts on first use. */
@@ -13,6 +14,9 @@ export const chooseAiProvider = (isOptedIn: boolean, availability: AiAvailabilit
 
   return isOptedIn && isUsable ? 'chrome' : 'cli';
 };
+
+/** Whether a diff's trimmed prompt is small enough to offer the on-device model. */
+export const fitsOnDevice = (promptBytes: number): boolean => promptBytes <= ON_DEVICE_PROMPT_BYTE_LIMIT;
 
 /** The on-device model's state: a download the user started wins over what Chrome last reported. */
 export const onDeviceState = (availability: AiAvailability | undefined, isDownloading: boolean): OnDeviceState => {

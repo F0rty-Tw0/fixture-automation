@@ -1,7 +1,8 @@
 import type { AiFillBody } from '@fixture-automation/fixture-studio-api/contract';
 import { describe, expect, it } from 'vitest';
 
-import { chooseAiProvider, cliFillBody, onDeviceState } from './ai-provider.util.ts';
+import { chooseAiProvider, cliFillBody, fitsOnDevice, onDeviceState } from './ai-provider.util.ts';
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../common/ai-fill.const.ts';
 import type { AiAvailability, AiFillContext, AiProviderId, OnDeviceState } from '../common/ai-fill.type.ts';
 import { MISSING_FILE_STUB } from '../test/stubs/studio.stub.ts';
 
@@ -27,6 +28,13 @@ describe('FEATURE: AI provider choice', (): void => {
     [false, undefined, 'cli']
   ])('GIVEN opted in %s and Chrome %s WHEN choosing THEN picks %s', (isOptedIn, availability, expected): void => {
     expect(chooseAiProvider(isOptedIn, availability)).toBe(expected);
+  });
+
+  it.each<[string, number, boolean]>([
+    ['a prompt at the limit', ON_DEVICE_PROMPT_BYTE_LIMIT, true],
+    ['a prompt past the limit', ON_DEVICE_PROMPT_BYTE_LIMIT + 1, false]
+  ])('GIVEN %s WHEN sized for the on-device model THEN fits is %s', (_label, promptBytes, expected): void => {
+    expect(fitsOnDevice(promptBytes)).toBe(expected);
   });
 
   it('GIVEN a fill context WHEN sent to the local CLI THEN becomes the ai-fill body, without the spec id', (): void => {

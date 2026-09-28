@@ -50,14 +50,6 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(complete).toStrictEqual({ id: 'in_9', amount_due: 5, status: 'draft' });
     });
 
-    it('WHEN diffed THEN promptBytes sizes the prompt trimmed to every missing path', (): void => {
-      const result = fixtureDiffResult(spec, 'invoice', diffBody(PARTIAL_INVOICE, false));
-
-      const bytes = trimmedPromptBytes(result.baseline, result.missing);
-
-      expect(result.promptBytes).toBe(bytes);
-    });
-
     it('WHEN completed THEN keeps the existing values first and in order', (): void => {
       const result = fixtureDiffResult(spec, 'invoice', diffBody(PARTIAL_INVOICE, false));
 
@@ -105,6 +97,16 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(result.replacedPaths).toStrictEqual(['amount_due', 'memo']);
       expect(result.missingPaths).toStrictEqual(['amount_due', 'memo', 'customer']);
       expect(result.baseline).toStrictEqual(PLACEHOLDER_BASELINE);
+    });
+
+    it('WHEN diffed THEN promptBytes sizes the baseline without them, not the fixture', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(PLACEHOLDER_INVOICE, false));
+
+      const fromBaseline = trimmedPromptBytes(PLACEHOLDER_BASELINE, result.missing);
+      const fromFixture = trimmedPromptBytes(PLACEHOLDER_INVOICE, result.missing);
+
+      expect(result.promptBytes).toBe(fromBaseline);
+      expect(result.promptBytes).not.toBe(fromFixture);
     });
 
     it('WHEN completed THEN each replaced key keeps its place from the original fixture', (): void => {

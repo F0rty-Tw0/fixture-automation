@@ -2,7 +2,7 @@ import { MISSING_PROMPT_LIMIT_BYTES, MISSING_SCENARIO } from '@fixture-automatio
 import { isRecord } from '@fixture-automation/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { aiPrompt, missingScenario, trimmedPromptBytes } from './ai-prompt.util.ts';
+import { aiPrompt, missingScenario, promptBytes, trimmedPromptBytes } from './ai-prompt.util.ts';
 import type { MissingFile } from '../contract/common/studio-api.type.ts';
 import { missingFixture } from '../test/utils/studio-spec.spec.util.ts';
 
@@ -123,12 +123,32 @@ describe('FEATURE: AI prompt', (): void => {
   });
 
   describe('SCENARIO: trimmed prompt size', (): void => {
-    it('GIVEN missing paths WHEN measured THEN counts the prompt trimmed to all of them', (): void => {
-      const trimmed = aiPrompt(FIXTURE, missing, undefined, missing.paths);
+    describe('GIVEN a large subtree off every missing path', (): void => {
+      it('WHEN measured THEN counts the prompt trimmed to all of them', (): void => {
+        const trimmed = aiPrompt(LINES_FIXTURE, missing, undefined, missing.paths);
+        const expected = Buffer.byteLength(trimmed.prompt, 'utf8');
 
-      const bytes = trimmedPromptBytes(FIXTURE, missing);
+        const bytes = trimmedPromptBytes(LINES_FIXTURE, missing);
 
-      expect(bytes).toBe(trimmed.prompt.length);
+        expect(bytes).toBe(expected);
+      });
+
+      it('WHEN measured THEN is a fraction of the whole-fixture prompt', (): void => {
+        const whole = promptBytes(LINES_FIXTURE, missing, undefined);
+
+        const bytes = trimmedPromptBytes(LINES_FIXTURE, missing);
+
+        expect(bytes).toBeLessThan(whole / 4);
+      });
+    });
+
+    it('GIVEN a scenario WHEN the whole prompt is measured THEN counts the prompt built with it', (): void => {
+      const built = aiPrompt(LINES_FIXTURE, missing, 'an overdue invoice');
+      const expected = Buffer.byteLength(built.prompt, 'utf8');
+
+      const bytes = promptBytes(LINES_FIXTURE, missing, 'an overdue invoice');
+
+      expect(bytes).toBe(expected);
     });
 
     it('GIVEN nothing missing WHEN measured THEN is 0', (): void => {

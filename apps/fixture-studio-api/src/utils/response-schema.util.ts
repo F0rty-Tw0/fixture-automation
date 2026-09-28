@@ -8,7 +8,17 @@ const JSON_SCHEMA_2020 = 'https://json-schema.org/draft/2020-12/schema';
 const COMPONENT_POINTER = '#/components/schemas/';
 const DEFS_POINTER = '#/$defs/';
 /** OpenAPI-only or annotation-only keywords; `nullable` is already folded into `type` by `normalizeSchema`. */
-const DROPPED_KEYWORDS = ['$schema', 'discriminator', 'example', 'examples', 'externalDocs', 'nullable', 'readOnly', 'writeOnly', 'xml'];
+const DROPPED_KEYWORDS = [
+  '$schema',
+  'discriminator',
+  'example',
+  'examples',
+  'externalDocs',
+  'nullable',
+  'readOnly',
+  'writeOnly',
+  'xml'
+];
 /**
  * The string formats Chrome 153's `responseConstraint` accepts (probed live); any other `format` on a string makes the
  * whole prompt fail with `NotSupportedError`, and on other types it is ignored, so every other value is dropped.

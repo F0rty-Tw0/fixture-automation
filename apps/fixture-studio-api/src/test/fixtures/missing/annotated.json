@@ -1,20 +1,10 @@
 {
   "schemaName": "invoice",
   "dialect": "openapi-30",
-  "paths": [
-    "customer",
-    "total",
-    "example",
-    "x-rate"
-  ],
+  "paths": ["customer", "total", "example", "x-rate"],
   "schema": {
     "type": "object",
-    "required": [
-      "customer",
-      "total",
-      "example",
-      "x-rate"
-    ],
+    "required": ["customer", "total", "example", "x-rate"],
     "x-internal": true,
     "properties": {
       "customer": {
@@ -32,9 +22,7 @@
       "example": {
         "type": "string",
         "nullable": true,
-        "examples": [
-          "a"
-        ],
+        "examples": ["a"],
         "xml": {
           "name": "ex"
         }
@@ -55,15 +43,11 @@
         "externalDocs": {
           "url": "https://x.dev"
         },
-        "required": [
-          "kind"
-        ],
+        "required": ["kind"],
         "properties": {
           "kind": {
             "type": "string",
-            "enum": [
-              "person"
-            ]
+            "enum": ["person"]
           },
           "address": {
             "$ref": "#/components/schemas/address"

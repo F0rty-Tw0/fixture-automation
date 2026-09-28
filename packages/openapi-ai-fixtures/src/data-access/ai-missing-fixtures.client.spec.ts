@@ -161,7 +161,9 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
 
       it('THEN its rejection propagates unchanged', async (): Promise<void> => {
         vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
-        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.reject(new Error('validation timed out')));
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> =>
+          Promise.reject(new Error('validation timed out'))
+        );
         const injected: AiMissingRequest = { ...request, validate };
         const enrich = aiMissingFixture(options);
 

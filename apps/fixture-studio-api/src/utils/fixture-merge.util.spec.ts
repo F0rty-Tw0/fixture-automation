@@ -92,7 +92,11 @@ describe('FEATURE: fixture merge', (): void => {
         ['the populated value lacks it', { data: {} }, {}]
       ])('WHEN %s THEN fails with a FixtureError carrying the fix', (_label: string, fixture: unknown, populated: unknown): void => {
         expect((): unknown => mergeFixtureValue(fixture, populated, 'data')).toThrow(
-          expect.objectContaining({ name: 'FixtureError', message: 'fixture has no own property "data" for object-shape', fix: SHAPE_FIX })
+          expect.objectContaining({
+            name: 'FixtureError',
+            message: 'fixture has no own property "data" for object-shape',
+            fix: SHAPE_FIX
+          })
         );
       });
     });

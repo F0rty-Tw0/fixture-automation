@@ -41,7 +41,14 @@ export const missingFixture = async (name: string): Promise<MissingFile> => {
 export const studioServer = async (ai: StudioAi, computeTimeoutMs = 15_000): Promise<FastifyInstance> => {
   const origins = allowedOrigins(undefined);
   const hosts = allowedHosts(80, origins);
-  const fastify = buildServer({ allowedOrigins: origins, allowedHosts: hosts, logger: false, ai, computeTimeoutMs, warmSpecWorker: false });
+  const fastify = buildServer({
+    allowedOrigins: origins,
+    allowedHosts: hosts,
+    logger: false,
+    ai,
+    computeTimeoutMs,
+    warmSpecWorker: false
+  });
 
   await fastify.ready();
 

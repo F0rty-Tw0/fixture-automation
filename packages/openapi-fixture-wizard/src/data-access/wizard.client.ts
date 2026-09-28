@@ -74,10 +74,15 @@ const checkExisting = async (context: WizardContext): Promise<string[]> => {
   const { paths, replaced } = diffed.diff;
   const absent = paths.filter((path) => !replaced.includes(path));
 
-  if (absent.length > 0) console.error(styleText('yellow', `${absent.length} missing field(s): ${absent.join(', ')}`, { stream: process.stderr }));
+  if (absent.length > 0)
+    console.error(styleText('yellow', `${absent.length} missing field(s): ${absent.join(', ')}`, { stream: process.stderr }));
 
   if (replaced.length > 0) {
-    console.error(styleText('yellow', `${replaced.length} placeholder or invalid value(s) to replace: ${replaced.join(', ')}`, { stream: process.stderr }));
+    console.error(
+      styleText('yellow', `${replaced.length} placeholder or invalid value(s) to replace: ${replaced.join(', ')}`, {
+        stream: process.stderr
+      })
+    );
   }
 
   return fillAndMerge(context, diffed);

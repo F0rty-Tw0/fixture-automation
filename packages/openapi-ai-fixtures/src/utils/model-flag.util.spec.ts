@@ -33,7 +33,10 @@ describe('FEATURE: selected model flag', (): void => {
       const options: AiFixtureOptions = { ...OPTIONS, model };
 
       expect((): string | undefined => selectedModel(options)).toThrow(
-        expect.objectContaining({ message: `model "${model}" must not start with "-"`, fix: 'pass the model slug itself, e.g. --model gpt-5' })
+        expect.objectContaining({
+          message: `model "${model}" must not start with "-"`,
+          fix: 'pass the model slug itself, e.g. --model gpt-5'
+        })
       );
     });
   });

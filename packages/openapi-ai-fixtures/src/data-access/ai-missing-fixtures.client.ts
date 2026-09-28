@@ -3,7 +3,14 @@ import { generateFixture } from './fixture-agent.client.ts';
 import type { AgentRequest } from '../common/agent.type.ts';
 import type { AiFixtureOptions } from '../common/ai-fixtures.type.ts';
 import { MISSING_SCHEMA_NAME } from '../common/missing.const.ts';
-import type { AiMissingFactory, AiMissingRequest, MissingFile, MissingPromptInput, MissingValidator, MissingVerdict } from '../common/missing.type.ts';
+import type {
+  AiMissingFactory,
+  AiMissingRequest,
+  MissingFile,
+  MissingPromptInput,
+  MissingValidator,
+  MissingVerdict
+} from '../common/missing.type.ts';
 import { parseAiTool } from '../utils/ai-tool.util.ts';
 import { missingPrompt } from '../utils/fixture-prompt.util.ts';
 import { missingCheck } from '../utils/missing-check.util.ts';

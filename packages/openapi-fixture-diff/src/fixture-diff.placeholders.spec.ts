@@ -156,7 +156,15 @@ describe('FEATURE: placeholder and invalid value replacement', (): void => {
     it('WHEN diffed with replacePlaceholders THEN each invalid value is replaced at its property path', async (): Promise<void> => {
       const account = await realAccount();
       const line = { sku: 'sku_1', quantity: 3, price_id: 9 };
-      const invalid = { ...account, has_more: null, object: 'string', metadata: 'string', nickname: 5, labels: ['new', 5], lines: [line] };
+      const invalid = {
+        ...account,
+        has_more: null,
+        object: 'string',
+        metadata: 'string',
+        nickname: 5,
+        labels: ['new', 5],
+        lines: [line]
+      };
 
       const diff = diffFixture(request(invalid, true));
 

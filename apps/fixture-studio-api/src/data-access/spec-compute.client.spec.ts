@@ -68,7 +68,9 @@ describe('FEATURE: spec compute worker', (): void => {
 
       const computation = computeInWorker(task, computeOptions());
 
-      await expect(computation).rejects.toThrow(expect.objectContaining({ name: 'Error', message: 'OpenAPI 3.0 schema type must be a string' }));
+      await expect(computation).rejects.toThrow(
+        expect.objectContaining({ name: 'Error', message: 'OpenAPI 3.0 schema type must be a string' })
+      );
     });
   });
 
@@ -112,7 +114,9 @@ describe('FEATURE: spec compute worker', (): void => {
 
   describe('GIVEN a time budget the timer cannot take', (): void => {
     it('WHEN a task runs THEN rejects and still terminates the worker it took', async (): Promise<void> => {
-      const idle = new Worker("setInterval(() => {}, 1000); require('node:worker_threads').parentPort.postMessage('ready');", { eval: true });
+      const idle = new Worker("setInterval(() => {}, 1000); require('node:worker_threads').parentPort.postMessage('ready');", {
+        eval: true
+      });
       const exited = once(idle, 'exit');
       const idleWorkers = { take: async (): Promise<Worker> => Promise.resolve(idle) };
       const body = { endpointIds: ['GET /v1/invoices/{id}'], formats: ['json' as const], requiredOnly: false };
@@ -129,7 +133,8 @@ describe('FEATURE: spec compute worker', (): void => {
 
   describe('GIVEN a worker file from another version of the protocol', (): void => {
     it('WHEN it answers with something other than an outcome THEN rejects with a 500 telling to restart', async (): Promise<void> => {
-      const source = "require('node:worker_threads').parentPort.once('message', (task) => require('node:worker_threads').parentPort.postMessage('ready'));";
+      const source =
+        "require('node:worker_threads').parentPort.once('message', (task) => require('node:worker_threads').parentPort.postMessage('ready'));";
       const staleWorkers = { take: async (): Promise<Worker> => Promise.resolve(new Worker(source, { eval: true })) };
       const body = { endpointIds: ['GET /v1/invoices/{id}'], formats: ['json' as const], requiredOnly: false };
       const task: GenerateTask = { name: 'generate', spec, body };

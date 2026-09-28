@@ -117,7 +117,15 @@ describe('FEATURE: fixture diff command line argument parsing', (): void => {
 
   describe('GIVEN diff args with a schema name, both flags and a padded --object-shape', (): void => {
     it('WHEN parsing diff args THEN the schema name, flags and trimmed shape are returned', async (): Promise<void> => {
-      const args = ['file:///spec.json', 'order', ...DIFF_FLAGS, '--required-only', '--replace-placeholders', '--object-shape', ' body '];
+      const args = [
+        'file:///spec.json',
+        'order',
+        ...DIFF_FLAGS,
+        '--required-only',
+        '--replace-placeholders',
+        '--object-shape',
+        ' body '
+      ];
       const expected = {
         specUrl: 'file:///spec.json',
         schemaName: 'order',

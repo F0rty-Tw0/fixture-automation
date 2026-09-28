@@ -30,9 +30,23 @@ export { normalizeSchema } from './utils/schema-normalization.util.ts';
 
 export { compileFixtureSchema } from './utils/schema-validator.util.ts';
 
-export type { AiFixtureFactory, AiFixtureOptions, AiFixtureProgress, AiFixtureRequest, AiTool, AiToolInstall } from './common/ai-fixtures.type.ts';
+export type {
+  AiFixtureFactory,
+  AiFixtureOptions,
+  AiFixtureProgress,
+  AiFixtureRequest,
+  AiTool,
+  AiToolInstall
+} from './common/ai-fixtures.type.ts';
 
-export type { AiMissingFactory, AiMissingRequest, MissingFile, MissingPromptInput, MissingValidator, MissingVerdict } from './common/missing.type.ts';
+export type {
+  AiMissingFactory,
+  AiMissingRequest,
+  MissingFile,
+  MissingPromptInput,
+  MissingValidator,
+  MissingVerdict
+} from './common/missing.type.ts';
 
 export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './common/model.type.ts';
 

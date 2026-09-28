@@ -22,7 +22,8 @@ export const missingScenario = (scenario: string | undefined): string => {
 const promptResult = (baseline: unknown, missing: MissingFile, scenario: string | undefined): AiPromptResult => {
   const fixtureJson: unknown = JSON.stringify(baseline);
 
-  if (typeof fixtureJson !== 'string') throw new FixtureError('the fixture is not JSON-serializable', 'send the parsed fixture object');
+  if (typeof fixtureJson !== 'string')
+    throw new FixtureError('the fixture is not JSON-serializable', 'send the parsed fixture object');
 
   const document = missingDocument(missing);
   const input: MissingPromptInput = { fixtureJson, missing: document, scenario: missingScenario(scenario) };

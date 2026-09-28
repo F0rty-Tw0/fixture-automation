@@ -1,22 +1,14 @@
 {
   "schemaName": "invoice",
   "dialect": "openapi-30",
-  "paths": [
-    "status",
-    "customer"
-  ],
+  "paths": ["status", "customer"],
   "schema": {
     "type": "object",
-    "required": [
-      "status",
-      "customer"
-    ],
+    "required": ["status", "customer"],
     "properties": {
       "status": {
         "type": "string",
-        "enum": [
-          "draft"
-        ]
+        "enum": ["draft"]
       },
       "customer": {
         "$ref": "#/components/schemas/customer"
@@ -27,9 +19,7 @@
     "schemas": {
       "customer": {
         "type": "object",
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "properties": {
           "id": {
             "type": "string",

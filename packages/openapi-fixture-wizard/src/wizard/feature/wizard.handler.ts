@@ -7,12 +7,12 @@ import type { MergeInput, MergeSpec } from '@fixture-automation/openapi-fixture-
 import { DEFAULT_OUT_DIR, FixtureError, MISSING_DIR, loadSpec, terminalQuestion } from '@fixture-automation/openapi-fixtures';
 import type { Inputs, OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 
-import { choose } from './choose.client.ts';
-import { diffExisting } from './diff.client.ts';
-import { fillMissing } from './fill.client.ts';
-import { generateFiles } from './generate.client.ts';
+import { choose } from './choice-prompt.ts';
+import { fillMissing } from './missing-fill.ts';
 import { FORMATS, WIZARD_INPUTS, WIZARD_USAGE } from '../common/wizard.const.ts';
 import type { DiffResult, WizardContext, WizardDeps } from '../common/wizard.type.ts';
+import { diffExisting } from '../domain-logic/existing-diff.ts';
+import { generateFiles } from '../domain-logic/generated-files.ts';
 import { resolveTarget } from '../utils/route-schema.util.ts';
 
 /** Which schema the run samples and, when a route named it, the `METHOD,path` the merge reuses as its endpoint. */

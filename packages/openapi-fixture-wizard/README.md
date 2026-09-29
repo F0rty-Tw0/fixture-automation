@@ -209,9 +209,9 @@ pnpm exec nx run @fixture-automation/openapi-fixture-wizard:build
 pnpm run lint
 ```
 
-- `src/data-access/wizard.client.ts` sequences the prompts and steps.
-- `src/data-access/generate.client.ts`, `diff.client.ts`, `fill.client.ts` own one step each.
-- `src/data-access/choose.client.ts` is the numbered-list prompt; `src/utils/choice.util.ts` parses the answer.
-- `src/utils/route-schema.util.ts` maps a `method` + `target-url` answer to its response schema, or checks a `schema-name`.
-- `src/common/wizard.const.ts` holds every prompt text; `src/common/wizard.type.ts` the types.
+- `src/wizard/feature/wizard.handler.ts` sequences the prompts and steps.
+- `src/wizard/domain-logic/generated-files.ts`, `existing-diff.ts` and `src/wizard/feature/missing-fill.ts` own one step each.
+- `src/wizard/feature/choice-prompt.ts` is the numbered-list prompt; `src/wizard/utils/choice.util.ts` parses the answer.
+- `src/wizard/utils/route-schema.util.ts` maps a `method` + `target-url` answer to its response schema, or checks a `schema-name`.
+- `src/wizard/common/wizard.const.ts` holds every prompt text; `src/wizard/common/wizard.type.ts` the types.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

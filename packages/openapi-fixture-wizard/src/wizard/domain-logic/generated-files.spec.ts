@@ -6,7 +6,7 @@ import { loadSpec } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { generateFiles } from './generate.client.ts';
+import { generateFiles } from './generated-files.ts';
 import type { GenerateRequest, WizardFormat } from '../common/wizard.type.ts';
 
 const TIMEOUT = 30000;

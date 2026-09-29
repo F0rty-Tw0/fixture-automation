@@ -1,5 +1,5 @@
-export { runWizard } from './data-access/wizard.client.ts';
+export { runWizard } from './wizard/feature/wizard.handler.ts';
 
-export { resolveTarget } from './utils/route-schema.util.ts';
+export { resolveTarget } from './wizard/utils/route-schema.util.ts';
 
-export type { WizardDeps, WizardFormat } from './common/wizard.type.ts';
+export type { WizardDeps, WizardFormat } from './wizard/common/wizard.type.ts';

@@ -6,7 +6,7 @@ import { loadSpec } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { diffExisting } from './diff.client.ts';
+import { diffExisting } from './existing-diff.ts';
 import type { DiffRequest } from '../common/wizard.type.ts';
 
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;

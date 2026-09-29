@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { FixtureError, printHelp, promptedInputs, runCli } from '@fixture-automation/openapi-fixtures';
 
-import { WIZARD_HELP } from './common/wizard.const.ts';
-import { runWizard } from './data-access/wizard.client.ts';
+import { WIZARD_HELP } from './wizard/common/wizard.const.ts';
+import { runWizard } from './wizard/feature/wizard.handler.ts';
 
 const run = async (): Promise<void> => {
   const [firstArg] = process.argv.slice(2);

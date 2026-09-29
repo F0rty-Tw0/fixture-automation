@@ -4,7 +4,7 @@ import { MISSING_SCENARIO, createAiProgressReporter, parseMissingFile, selectMod
 import type { AiFixtureOptions, AiMissingRequest, ModelSelection } from '@fixture-automation/openapi-ai-fixtures';
 import { readTextFile, writeTextFile } from '@fixture-automation/openapi-fixtures';
 
-import { choose } from './choose.client.ts';
+import { choose } from './choice-prompt.ts';
 import { TOOLS, WIZARD_INPUTS } from '../common/wizard.const.ts';
 import type { DiffResult, WizardContext } from '../common/wizard.type.ts';
 

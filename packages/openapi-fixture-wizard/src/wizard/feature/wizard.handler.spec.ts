@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { runWizard } from './wizard.client.ts';
+import { runWizard } from './wizard.handler.ts';
 import type { WizardDeps } from '../common/wizard.type.ts';
 
 const TIMEOUT = 30000;

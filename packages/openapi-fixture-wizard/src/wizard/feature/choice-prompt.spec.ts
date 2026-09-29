@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { choose } from './choose.client.ts';
+import { choose } from './choice-prompt.ts';
 import { WIZARD_INPUTS } from '../common/wizard.const.ts';
 
 const OPTIONS = ['json', 'ts', 'both'];

@@ -11,7 +11,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { fillMissing } from './fill.client.ts';
+import { fillMissing } from './missing-fill.ts';
 import type { DiffResult, WizardContext, WizardDeps } from '../common/wizard.type.ts';
 
 const SPEC_URL = new URL('../test/fixtures/invoice/spec.json', import.meta.url).href;

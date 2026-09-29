@@ -72,6 +72,60 @@ describe('FEATURE: fixture JSON recovery', (): void => {
     });
   });
 
+  describe('GIVEN a check rejects the first parsed answer', (): void => {
+    const check = async (value: unknown): Promise<string | undefined> => {
+      const isRecovered = JSON.stringify(value) === '{"id":"recovered"}';
+      const problem = isRecovered ? undefined : '/id: must be recovered';
+
+      return Promise.resolve(problem);
+    };
+
+    it('WHEN the correction passes THEN returns it after one repair that names the problem', async (): Promise<void> => {
+      const first = '{"id":"wrong"}';
+      const corrected = '{"id":"recovered"}';
+
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', first));
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', corrected));
+
+      const result = await generateFixture(modelRequest('claude'), check);
+      const [, repairCall] = vi.mocked(runAgent).mock.calls;
+
+      const recovered = { id: 'recovered' };
+
+      expect(result).toStrictEqual({ value: recovered, response: corrected, attempt: 2, problem: undefined });
+      expect(repairCall?.[0].input).toContain('/id: must be recovered');
+      expect(saveFailedResponse).toHaveBeenCalledWith({ tool: 'claude' }, first, 1);
+    });
+
+    it('WHEN the repair prompt would exceed the input limit THEN returns the first answer with its problem', async (): Promise<void> => {
+      const first = '{"id":"wrong"}';
+      const base = modelRequest('claude');
+      const request: AgentRequest = { ...base, prompt: 'x'.repeat(1024 * 1024 - 64) };
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', first));
+
+      const result = await generateFixture(request, check);
+
+      expect(result.attempt).toBe(1);
+      expect(result.response).toBe(first);
+      expect(result.problem).toBe('/id: must be recovered');
+      expect(runAgent).toHaveBeenCalledTimes(1);
+      expect(saveFailedResponse).not.toHaveBeenCalled();
+    });
+
+    it('WHEN the correction fails the check too THEN returns it with the problem and no third attempt', async (): Promise<void> => {
+      const wrong = '{"id":"wrong"}';
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', wrong));
+
+      const result = await generateFixture(modelRequest('claude'), check);
+
+      expect(result.attempt).toBe(2);
+      expect(result.problem).toBe('/id: must be recovered');
+      expect(runAgent).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('GIVEN failed-response persistence fails', (): void => {
     it('WHEN the initial response is malformed THEN preserves the persistence failure without retrying', async (): Promise<void> => {
       const failure = new Error('failed response could not be saved');

@@ -223,9 +223,10 @@ const invoice = await enrich('invoice', {
 ### Validation and failure behavior
 
 - Invalid model JSON triggers **one repair attempt** using the exact failed response, its parser error, and the original request with the same tool/model: at most two processes per call. No fallback tool or result cache.
+- In missing-field mode, a first response that parses but fails the missing projection gets that same single repair, with the validation errors in place of the parser error.
 - Malformed transport envelopes, provider errors, process failures, timeouts, cancellation, and schema-validation failures are **not retried**. A second invalid model response fails with an error reporting both attempts.
 - Before repair, the CLI saves the failed response verbatim to `<output>.failed-attempt-1.txt` and prints its path on stderr. Without an output file, the `--fixture` path is the base. Existing sidecars are never overwritten: a collision gets a UUID suffix.
-- If repair produces invalid JSON or fails schema validation, its response is saved as `<output>.failed-attempt-2.txt`. A schema-invalid first response is also saved, without retrying. Recovery files remain even when repair succeeds.
+- If repair produces invalid JSON or fails schema validation, its response is saved as `<output>.failed-attempt-2.txt`. In full-fixture mode a schema-invalid first response is also saved, without retrying. Recovery files remain even when repair succeeds.
 - If saving fails, generation stops before repair. If the complete repair prompt exceeds the input limit, the saved response remains available for manual correction.
 - Recovery files can contain sensitive fixture data. Inspect them before sharing or committing.
 - Each attempt has its own configured `timeoutMs`; a corrective attempt can incur another generation charge.

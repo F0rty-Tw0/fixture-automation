@@ -17,6 +17,8 @@ import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
 import { missingPrompt } from '../utils/fixture-prompt.util.ts';
 
+const NOT_OBJECT = 'the fill must be one JSON object';
+
 /** Compiles before the CLI runs, so a projection AJV cannot compile fails without spending a generation. */
 const inProcessValidator = (missing: MissingFile): MissingValidator => {
   const check = missingCheck(missing);
@@ -50,19 +52,26 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
 
     const document = missingDocument(missing);
     const validate = request.validate ?? inProcessValidator(missing);
+    const check = async (value: unknown): Promise<string | undefined> => {
+      const verdict = await validate(missing, value);
+      const isValidFill = verdict.valid && isSchemaRecord(value);
+
+      if (isValidFill) return undefined;
+
+      return verdict.details || NOT_OBJECT;
+    };
     const input: MissingPromptInput = { fixtureJson, missing: document, scenario };
     const prompt = missingPrompt(input);
     const agentRequest: AgentRequest = { prompt, options };
-    const generated = await generateFixture(agentRequest);
+    const generated = await generateFixture(agentRequest, check);
     const result = generated.value;
-    const verdict = await validate(missing, result);
-    const isValidFill = verdict.valid && isSchemaRecord(result);
+    const isValidFill = generated.problem === undefined && isSchemaRecord(result);
 
     if (isValidFill) return result;
 
     await saveFailedResponse(options, generated.response, generated.attempt);
 
-    throw new Error(`generated missing fields violate schema "${MISSING_SCHEMA_NAME}": ${verdict.details}`);
+    throw new Error(`generated missing fields violate schema "${MISSING_SCHEMA_NAME}": ${generated.problem ?? NOT_OBJECT}`);
   };
 
   return enrich;

@@ -244,8 +244,15 @@ pnpm exec nx run @fixture-automation/openapi-fixtures:build
 pnpm run lint
 ```
 
-- `src/common/` — shared types and sampler options; no runtime behavior.
-- `src/utils/` — JSON parsing, import-path calculation, TypeScript stub rendering.
-- `src/data-access/` — spec loading and the sampler wrapper (the sampler resets shared caches and can warn, so it's not a pure utility).
-- `src/test/` — fixture data, test-only types, and harness utilities.
-- `src/index.ts` — the public entry point.
+Each feature slice under `src/` holds only the layer folders it needs (`common/`, `utils/`, `data-access/`, `domain-logic/`, `feature/`, `test/`):
+
+- `src/spec-loading/` — URL parsing, file and http(s) reads with size and time limits, JSON / Swagger checks.
+- `src/schema/` — `$ref` reachability, pruning, reference decoding, `did you mean` suggestions.
+- `src/fixture-sampling/` — the sampler wrapper (the sampler resets shared caches and can warn, so it lives in `data-access/`, not `utils/`).
+- `src/typescript-stub/` — import-path calculation and typed `.ts` stub rendering.
+- `src/prompt/` — terminal prompts and the silent inputs a pipe or CI run gets.
+- `src/text-file/` — UTF-8 / JSON file reads and writes with file-named errors.
+- `src/cli/` — the `openapi-fixtures` command, the shared `runCli` / `printHelp` wrappers, and schema-name positional resolution.
+- `src/shared/` — `FixtureError`, `errorMessage`, and the `OpenApiSpec` type every slice uses.
+- `src/test/` — the invoice fixture spec and its URL helper, shared across slices.
+- `src/index.ts` — the public entry point; `src/cli.ts` — the bin.

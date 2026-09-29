@@ -1,37 +1,43 @@
-export { loadSpec, parseSpecUrl } from './data-access/openapi-spec.client.ts';
+export { loadSpec, parseSpecUrl } from './spec-loading/domain-logic/openapi-spec.ts';
 
-export { fixtures } from './data-access/fixtures.client.ts';
+export { fixtures } from './fixture-sampling/data-access/fixtures.client.ts';
 
-export { printHelp } from './data-access/cli-help.client.ts';
+export { printHelp } from './cli/feature/cli-help.handler.ts';
 
-export { runCli } from './data-access/cli-runner.client.ts';
+export { runCli } from './cli/feature/cli-runner.handler.ts';
 
-export { cliInputs, promptedInputs, terminalQuestion } from './data-access/input-prompt.client.ts';
+export { cliInputs, promptedInputs } from './prompt/domain-logic/prompted-inputs.ts';
 
-export { silentInputs } from './utils/silent-inputs.util.ts';
+export { terminalQuestion } from './prompt/data-access/terminal-question.client.ts';
 
-export { readJsonFile, readTextFile, writeTextFile } from './data-access/json-file.client.ts';
+export { silentInputs } from './prompt/utils/silent-inputs.util.ts';
 
-export { schemaSuggestion } from './utils/schema-suggestion.util.ts';
+export { readJsonFile, readTextFile, writeTextFile } from './text-file/data-access/json-file.client.ts';
 
-export { pruneSpec } from './utils/prune-spec.util.ts';
+export { schemaSuggestion } from './schema/utils/schema-suggestion.util.ts';
 
-export { reachableSchemas } from './utils/reachable-schemas.util.ts';
+export { pruneSpec } from './schema/utils/prune-spec.util.ts';
 
-export { referenceName } from './utils/schema-reference.util.ts';
+export { reachableSchemas } from './schema/utils/reachable-schemas.util.ts';
 
-export { askSchemaName, resolveSchemaName, schemaTarget } from './utils/schema-name.util.ts';
+export { referenceName } from './schema/utils/schema-reference.util.ts';
 
-export { typescriptImport } from './utils/typescript-import.util.ts';
+export { askSchemaName, resolveSchemaName, schemaTarget } from './cli/utils/schema-name.util.ts';
 
-export { typescriptStub } from './utils/typescript-stub.util.ts';
+export { typescriptImport } from './typescript-stub/utils/typescript-import.util.ts';
 
-export { refuseSwagger } from './utils/swagger-document.util.ts';
+export { typescriptStub } from './typescript-stub/utils/typescript-stub.util.ts';
 
-export { FixtureError } from './common/fixture.error.ts';
+export { refuseSwagger } from './spec-loading/utils/swagger-document.util.ts';
 
-export { DEFAULT_OUT_DIR, MISSING_DIR } from './common/output-paths.const.ts';
+export { FixtureError } from './shared/fixture-error/common/fixture.error.ts';
 
-export type { InputSpec, Inputs, Question } from './common/input.type.ts';
+export { DEFAULT_OUT_DIR, MISSING_DIR } from './cli/common/output-paths.const.ts';
 
-export type { OpenApiSpec, SampleOptions, SchemaMap, SchemaTarget } from './common/openapi.type.ts';
+export type { InputSpec, Inputs, Question } from './prompt/common/input.type.ts';
+
+export type { OpenApiSpec } from './shared/openapi-document/common/openapi.type.ts';
+
+export type { SampleOptions, SchemaMap } from './fixture-sampling/common/fixture-sampling.type.ts';
+
+export type { SchemaTarget } from './cli/common/schema-target.type.ts';

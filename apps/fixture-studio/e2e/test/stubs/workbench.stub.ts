@@ -15,7 +15,7 @@ import type {
   MissingFile
 } from '@fixture-automation/fixture-studio-api/contract';
 
-import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../../../src/app/studio/common/ai-fill.const.ts';
+import { ON_DEVICE_PROMPT_BYTE_LIMIT } from '../../../src/app/workbench/common/ai-fill.const.ts';
 import type { PartialInvoice } from '../common/playwright.type.ts';
 
 /** The value of `test/fixtures/partial-invoice.json` and `partial-invoice.fixture.ts`: no `memo`, no `customer`. */

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-import { AI_OPT_IN_STORAGE_KEY } from '../../../src/app/studio/common/ai-fill.const.ts';
+import { AI_OPT_IN_STORAGE_KEY } from '../../../src/app/workbench/common/ai-fill.const.ts';
 
 /** Runs in the page before the app: the stored answer of a user who ticked "Use on-device Chrome AI" on an earlier visit. */
 const storeOptIn = (key: string): void => {

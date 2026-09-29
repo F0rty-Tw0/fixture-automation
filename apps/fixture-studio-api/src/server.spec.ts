@@ -1,12 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import type { ApiErrorBody } from './contract/common/studio-api.type.ts';
-import { MOCK_AI } from './data-access/ai-mock.client.ts';
 import { buildServer } from './server.ts';
+import { allowedHosts, allowedOrigins } from './studio-server/utils/allowed-origins.util.ts';
 import { studioAiMock } from './test/mocks/studio-ai.mock.ts';
 import { studioServer } from './test/utils/studio-spec.spec.util.ts';
-import { allowedHosts, allowedOrigins } from './utils/allowed-origins.util.ts';
 
 const MISSING_SPEC_URL = '/api/specs/missing/generate';
 const MODELS_URL = '/api/ai/cli/models?tool=claude';

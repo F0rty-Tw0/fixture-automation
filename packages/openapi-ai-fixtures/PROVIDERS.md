@@ -26,9 +26,9 @@ Argument-vector rows describe ordered values passed directly to the process, not
 lines. Claude's `""` denotes an actual empty argument. Codex's `web_search="disabled"` includes
 literal double-quote characters inside that argument; do not remove them as if they were shell quoting.
 
-Implementation: [workspace staging](./src/data-access/agent-process-workspace.client.ts),
-[executable resolution](./src/data-access/agent-executable.client.ts), and
-[bounded process execution](./src/data-access/agent-process.client.ts).
+Implementation: [workspace staging](./src/agent-process/data-access/agent-process-workspace.client.ts),
+[executable resolution](./src/agent-process/data-access/agent-executable.client.ts), and
+[bounded process execution](./src/agent-process/data-access/agent-process.client.ts).
 
 The optional `onProgress` callback receives decoded stdout/stderr and lifecycle status while the child
 runs; it does not replace bounded capture or final validation. CLI and wizard calls enable a reporter
@@ -107,7 +107,7 @@ launcher, and the Gemini installation pointed to a missing package entry point.
 
 ## Claude Code
 
-Implementation: [Claude adapter](./src/data-access/claude.client.ts).
+Implementation: [Claude adapter](./src/agent-provider/domain-logic/claude-generation.ts).
 
 ### Invocation and capabilities
 
@@ -131,7 +131,7 @@ The adapter contract above comes from the implementation. Earlier implementation
 
 ## Codex CLI
 
-Implementation: [Codex adapter](./src/data-access/codex.client.ts).
+Implementation: [Codex adapter](./src/agent-provider/domain-logic/codex-generation.ts).
 
 ### Invocation and capabilities
 
@@ -155,8 +155,8 @@ The adapter contract above comes from the implementation. Earlier implementation
 
 ## Antigravity
 
-Implementation: [Antigravity adapter](./src/data-access/antigravity.client.ts) and
-[stream result parser](./src/utils/antigravity-result.util.ts).
+Implementation: [Antigravity adapter](./src/agent-provider/domain-logic/antigravity-generation.ts) and
+[stream result parser](./src/agent-provider/utils/antigravity-result.util.ts).
 
 Primary sources: [CLI overview](https://antigravity.google/docs/cli/overview/), [headless stream protocol](https://antigravity.google/docs/cli/headless/), [custom-agent discovery and frontmatter](https://antigravity.google/docs/subagents/), [hooks](https://antigravity.google/docs/hooks/), [MCP](https://antigravity.google/docs/mcp/), [plugins](https://antigravity.google/docs/cli/plugins/), and [sandbox behavior](https://antigravity.google/docs/cli/sandbox/).
 
@@ -226,7 +226,7 @@ ordinary model tool calls. No per-run suppression of all these sources was estab
 
 ## GitHub Copilot CLI
 
-Implementation: [Copilot adapter](./src/data-access/copilot.client.ts).
+Implementation: [Copilot adapter](./src/agent-provider/domain-logic/copilot-generation.ts).
 
 Primary sources: [programmatic use](https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically), [command options](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#command-line-options), [custom agents](https://docs.github.com/en/copilot/reference/custom-agents-configuration), [configuration](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference), [extensions](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-extensions), and [authentication](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli).
 
@@ -292,7 +292,7 @@ servers; no reviewed all-server wildcard was established for `--disable-mcp-serv
 
 ## Gemini CLI
 
-Implementation: [Gemini adapter](./src/data-access/gemini.client.ts).
+Implementation: [Gemini adapter](./src/agent-provider/domain-logic/gemini-generation.ts).
 
 Primary sources: [headless mode](https://geminicli.com/docs/cli/headless/), [configuration](https://geminicli.com/docs/reference/configuration/), [policy engine](https://geminicli.com/docs/reference/policy-engine/), [authentication](https://geminicli.com/docs/get-started/authentication/), [v0.59.0 settings loader](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/cli/src/config/settings.ts), [v0.59.0 MCP manager](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.59.0/packages/core/src/tools/mcp-client-manager.ts), and [pinned unreleased main settings loader](https://raw.githubusercontent.com/google-gemini/gemini-cli/9c1b0a610534d6f8120964cf2672c07807d8fc90/packages/cli/src/config/settings.ts).
 

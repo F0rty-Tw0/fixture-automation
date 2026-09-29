@@ -79,7 +79,7 @@ All routes live under `/api`. Errors answer `{ "message": "...", "fix": "..." }`
 | `GET /api/ai/cli/models?tool=<tool>` | Ask an installed CLI for its model IDs.                                                                                                                                                                                                                                                             | —          |
 | `GET /api/ai/cli/tools`              | Which CLIs are on the API's `PATH` (`tools[].installed`), and `mock` for `STUDIO_AI_MOCK=1`. Reads files only; starts no CLI.                                                                                                                                                                       | —          |
 
-**AI tools** (`tool`): `claude`, `codex`, `antigravity`, `copilot`, `gemini` (`AI_TOOLS` in [`src/contract/studio-api.schema.ts`](./src/contract/studio-api.schema.ts)).
+**AI tools** (`tool`): `claude`, `codex`, `antigravity`, `copilot`, `gemini` (`AI_TOOLS` in [`src/contract/common/studio-api.schema.ts`](./src/contract/common/studio-api.schema.ts)).
 
 **Paid.** Without `STUDIO_AI_MOCK=1`, `ai-fill` and `ai/cli/models` launch the real CLI with your existing login. That can cost money. `ai/cli/tools` never launches one. Provider details: [`openapi-ai-fixtures/PROVIDERS.md`](../../packages/openapi-ai-fixtures/PROVIDERS.md).
 
@@ -149,18 +149,18 @@ curl -s $API/ai/cli/tools
 
 The API can launch paid AI CLIs, so it only answers the local Fixture Studio.
 
-| Guard                  | What it does                                                                                                                                                    | Where                                     |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Loopback bind          | Listens on `127.0.0.1` only. Not reachable from the network.                                                                                                    | `src/main.ts`                             |
-| `Host` check           | Unknown `Host` → `403 host not allowed`. Stops DNS rebinding (a hostile site pointing its domain at `127.0.0.1`).                                               | `src/utils/request-guard.util.ts`         |
-| `Origin` check         | An `Origin` header must be an allowed origin → otherwise `403 origin not allowed`.                                                                              | `src/utils/request-guard.util.ts`         |
-| `Sec-Fetch-Site` check | No `Origin`: the browser's `Sec-Fetch-Site` must be `same-origin` or `none` → otherwise `403 cross-site request refused`. curl sends neither header and passes. | `src/utils/request-guard.util.ts`         |
-| CLI run cap            | At most 2 AI CLI runs at once (fills and model lookups together) → otherwise `429`.                                                                             | `src/data-access/cli-run-slots.store.ts`  |
-| Spec size              | Spec download or document body: 20 MB max. Download also stops after 30 s.                                                                                      | `src/specs.routes.ts`, `openapi-fixtures` |
-| Compute budget         | Each spec task runs in a fresh worker: 15 s (`STUDIO_COMPUTE_TIMEOUT_MS`) and 512 MB heap. Over → `422`, worker killed.                                         | `src/data-access/spec-compute.client.ts`  |
-| AI output validation   | The CLI's answer is validated in a worker too. A backtracking `pattern` ends in `422`, not a frozen API.                                                        | `src/ai.routes.ts`                        |
-| Schema compile first   | The missing schema is compiled in a worker before the CLI starts. A broken schema fails before any paid run.                                                    | `src/ai.routes.ts`                        |
-| No local file reads    | `file://` spec URLs are refused (`400 body/url Invalid URL`). Fixtures arrive as parsed JSON from the browser.                                                  | `src/contract/studio-api.schema.ts`       |
+| Guard                  | What it does                                                                                                                                                    | Where                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Loopback bind          | Listens on `127.0.0.1` only. Not reachable from the network.                                                                                                    | `src/main.ts`                                   |
+| `Host` check           | Unknown `Host` → `403 host not allowed`. Stops DNS rebinding (a hostile site pointing its domain at `127.0.0.1`).                                               | `src/studio-server/utils/request-guard.util.ts` |
+| `Origin` check         | An `Origin` header must be an allowed origin → otherwise `403 origin not allowed`.                                                                              | `src/studio-server/utils/request-guard.util.ts` |
+| `Sec-Fetch-Site` check | No `Origin`: the browser's `Sec-Fetch-Site` must be `same-origin` or `none` → otherwise `403 cross-site request refused`. curl sends neither header and passes. | `src/studio-server/utils/request-guard.util.ts` |
+| CLI run cap            | At most 2 AI CLI runs at once (fills and model lookups together) → otherwise `429`.                                                                             | `src/ai/data-access/cli-run-slots.store.ts`     |
+| Spec size              | Spec download or document body: 20 MB max. Download also stops after 30 s.                                                                                      | `src/specs/routes.ts`, `openapi-fixtures`       |
+| Compute budget         | Each spec task runs in a fresh worker: 15 s (`STUDIO_COMPUTE_TIMEOUT_MS`) and 512 MB heap. Over → `422`, worker killed.                                         | `src/spec-compute/domain-logic/spec-compute.ts` |
+| AI output validation   | The CLI's answer is validated in a worker too. A backtracking `pattern` ends in `422`, not a frozen API.                                                        | `src/ai/domain-logic/ai-fill-job.ts`            |
+| Schema compile first   | The missing schema is compiled in a worker before the CLI starts. A broken schema fails before any paid run.                                                    | `src/ai/domain-logic/ai-fill-job.ts`            |
+| No local file reads    | `file://` spec URLs are refused (`400 body/url Invalid URL`). Fixtures arrive as parsed JSON from the browser.                                                  | `src/contract/common/studio-api.schema.ts`      |
 
 Real `403` from a foreign origin:
 
@@ -238,9 +238,14 @@ pnpm lint
 ```
 
 - `src/main.ts` reads the environment and starts the server; `src/server.ts` builds it (tests use `inject`, no port).
-- `src/*.routes.ts` hold the routes; `src/contract/` holds the zod schemas and types the UI imports.
-- `src/data-access/` holds the worker pool, spec cache, CLI slots, and the mock AI.
-- `src/utils/` holds pure helpers: request guard, env parsing, prompt and response-schema building.
+- `src/contract/` holds the zod schemas and types the UI imports (package export `./contract`).
+- One folder per feature slice, each with only the layers it needs (`common/`, `config/`, `utils/`, `data-access/`, `domain-logic/`, `feature/`, `test/`):
+  - `src/specs/` loads and caches specs, lists endpoints, and generates fixtures (`routes.ts` wires its handlers).
+  - `src/fixture/` diffs, finds the envelope of, and merges fixtures (`routes.ts`).
+  - `src/ai/` builds prompts, runs the CLI fill stream in chunks, discovers models and tools, and holds the mock AI (`routes.ts`).
+  - `src/spec-compute/` runs spec tasks in worker threads: the worker pool, the task runner, and the worker entry.
+  - `src/studio-server/` holds the access guard, error and not-found handlers, and env parsing (`config/`).
+  - `src/shared/http/` holds what several slices use: the body limit, `statusError`, and disconnect aborts.
 
 **Test fixtures:**
 

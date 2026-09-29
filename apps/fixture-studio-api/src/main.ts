@@ -1,10 +1,11 @@
 import { aiMissingFixture, detectAiTools, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-import type { StudioAi, StudioEnv } from './common/studio-server.type.ts';
-import { MOCK_AI } from './data-access/ai-mock.client.ts';
+import type { StudioAi } from './ai/common/ai.type.ts';
+import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import { buildServer } from './server.ts';
-import { studioEnv } from './utils/studio-env.util.ts';
+import type { StudioEnv } from './studio-server/common/studio-server.type.ts';
+import { studioEnv } from './studio-server/config/studio-env.schema.ts';
 
 const HOST = '127.0.0.1';
 const CLI_AI: StudioAi = { fill: aiMissingFixture, discover: discoverModels, detect: detectAiTools, isMock: false };

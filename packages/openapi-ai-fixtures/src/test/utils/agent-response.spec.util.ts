@@ -1,4 +1,4 @@
-import type { AiTool } from '../../common/ai-fixtures.type.ts';
+import type { AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 
 const geminiStreamResponse = (text: string): string => {
   const init = {

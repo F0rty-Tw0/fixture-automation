@@ -170,12 +170,24 @@ pnpm lint                                              # eslint + stylelint
 - All three start their own UI on `http://127.0.0.1:4300`, so a running `pnpm studio` never answers a test.
 - Reports land in `dist/.playwright/fixture-studio/`.
 
-**Layout** (`src/app/studio/`):
+**Layout** (`src/app/`): one folder per feature slice, each split into the layers it needs
+(`common/`, `utils/`, `data-access/`, `domain-logic/`, `feature/`, `ui/`, `test/`). Imports flow
+`feature → domain-logic → data-access → utils → common`, enforced by the ESLint `boundaries` rules.
 
-- `feature/` — the steps and panels (spec, endpoints, workspace, compare, AI fill).
-- `ui/` — presentational pieces (code view, endpoint list, file drop, progress log).
-- `data-access/` — stores, the HTTP engine, the Chrome AI provider.
-- `domain-logic/` — services that tie stores to the engine.
-- `utils/` — pure helpers, including the `.ts` literal reader.
+| Slice             | Holds                                                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec/`           | The loaded spec, endpoint filter and selection, and generation: their stores and services.                                              |
+| `workbench/`      | One generated endpoint's compare, missing-values and AI fill state: stores, the Chrome AI provider, services, the `.ts` literal reader. |
+| `spec-loading/`   | Step 1, the spec URL or file.                                                                                                           |
+| `endpoints/`      | Step 2, the endpoint browser.                                                                                                           |
+| `workspace/`      | Step 3, the generated fixtures.                                                                                                         |
+| `comparison/`     | Step 4, the compare panel.                                                                                                              |
+| `missing-values/` | Step 5, missing and broken values.                                                                                                      |
+| `ai-fill/`        | Step 6, the AI fill panel and its progress log.                                                                                         |
+| `studio-page/`    | The page, its step rail, and the per-endpoint steps host.                                                                               |
+| `shared/`         | Code two or more slices use: `studio-engine`, `api-error`, `document-view`, `file-drop`, `method-badge`, `json`.                        |
+| `test/`           | Stubs, mocks and spec utils several slices' specs share.                                                                                |
+
+`app.ts`, `app.config.ts` and `main.ts` only wire slices together.
 
 The UI calls the API only through the `StudioEngine` port (`STUDIO_ENGINE` token). `HttpStudioEngine` is today's implementation.

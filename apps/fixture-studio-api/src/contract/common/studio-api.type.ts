@@ -14,7 +14,7 @@ import type {
   generateBodySchema,
   loadSpecBodySchema,
   mergeBodySchema
-} from '../studio-api.schema.ts';
+} from './studio-api.schema.ts';
 
 export type LoadSpecBody = z.infer<typeof loadSpecBodySchema>;
 

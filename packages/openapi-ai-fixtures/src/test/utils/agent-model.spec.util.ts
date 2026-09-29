@@ -1,5 +1,6 @@
-import type { AgentCommand, AgentRequest } from '../../common/agent.type.ts';
-import type { AiFixtureOptions, AiTool } from '../../common/ai-fixtures.type.ts';
+import type { AgentCommand } from '../../agent-process/common/agent-process.type.ts';
+import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import type { AiFixtureOptions, AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 
 const MODEL_PROMPT = 'Return a fixture.';
 

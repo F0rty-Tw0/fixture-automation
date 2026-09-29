@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import type { StudioAi } from '../../common/studio-server.type.ts';
+import type { StudioAi } from '../../ai/common/ai.type.ts';
 
 /** Fresh spies for every AI entry point of a real (not mocked) CLI setup; each case sets their behavior. */
 export const studioAiMock = (): StudioAi => {

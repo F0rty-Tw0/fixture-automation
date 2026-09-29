@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { runAgent } from '../../../data-access/agent-process.client.ts';
+import { runAgent } from '../../../agent-process/data-access/agent-process.client.ts';
 
 const executable = process.execPath;
 const child = fileURLToPath(new URL('process-child.mjs', import.meta.url));

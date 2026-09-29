@@ -1,34 +1,34 @@
-export { aiFixtures } from './data-access/ai-fixtures.client.ts';
+export { aiFixtures } from './fixture-enrichment/domain-logic/ai-fixtures.ts';
 
-export { aiMissingFixture } from './data-access/ai-missing-fixtures.client.ts';
+export { aiMissingFixture } from './fixture-enrichment/domain-logic/ai-missing-fixtures.ts';
 
-export { createAiProgressReporter } from './data-access/ai-progress.client.ts';
+export { createAiProgressReporter } from './ai-fixtures-cli/data-access/ai-progress.client.ts';
 
-export { parseMissingFile } from './utils/missing-file.util.ts';
+export { parseMissingFile } from './missing-values/utils/missing-file.util.ts';
 
-export { missingDocument } from './utils/missing-document.util.ts';
+export { missingDocument } from './missing-values/utils/missing-document.util.ts';
 
-export { missingPrompt, missingPromptBytes } from './utils/fixture-prompt.util.ts';
+export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
 
-export { missingCheck } from './utils/missing-check.util.ts';
+export { missingCheck } from './missing-values/utils/missing-check.util.ts';
 
-export { discoverModels } from './data-access/model-discovery.client.ts';
+export { discoverModels } from './model-discovery/domain-logic/model-discovery.ts';
 
-export { detectAiTools } from './data-access/ai-tool-install.client.ts';
+export { detectAiTools } from './tool-install/data-access/ai-tool-install.client.ts';
 
-export { selectModel } from './data-access/model-select.client.ts';
+export { selectModel } from './model-discovery/domain-logic/model-select.ts';
 
-export { MISSING_SCENARIO } from './common/ai-fixtures-cli.const.ts';
+export { MISSING_SCENARIO } from './ai-fixtures-cli/common/ai-fixtures-cli.const.ts';
 
-export { MISSING_PROMPT_LIMIT_BYTES } from './common/missing.const.ts';
+export { MISSING_PROMPT_LIMIT_BYTES } from './missing-values/common/missing.const.ts';
 
-export { prepareSchema } from './utils/schema-context.util.ts';
+export { prepareSchema } from './schema/utils/schema-context.util.ts';
 
-export { schemaDialect } from './utils/schema-dialect.util.ts';
+export { schemaDialect } from './schema/utils/schema-dialect.util.ts';
 
-export { normalizeSchema } from './utils/schema-normalization.util.ts';
+export { normalizeSchema } from './schema/utils/schema-normalization.util.ts';
 
-export { compileFixtureSchema } from './utils/schema-validator.util.ts';
+export { compileFixtureSchema } from './schema/utils/schema-validator.util.ts';
 
 export type {
   AiFixtureFactory,
@@ -37,7 +37,7 @@ export type {
   AiFixtureRequest,
   AiTool,
   AiToolInstall
-} from './common/ai-fixtures.type.ts';
+} from './shared/ai-tool/common/ai-fixtures.type.ts';
 
 export type {
   AiMissingFactory,
@@ -46,8 +46,8 @@ export type {
   MissingPromptInput,
   MissingValidator,
   MissingVerdict
-} from './common/missing.type.ts';
+} from './missing-values/common/missing.type.ts';
 
-export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './common/model.type.ts';
+export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './model-discovery/common/model.type.ts';
 
-export type { PreparedSchema, SchemaDialect } from './common/schema.type.ts';
+export type { PreparedSchema, SchemaDialect } from './schema/common/schema.type.ts';

@@ -1,4 +1,4 @@
-export { API_PREFIX, API_ROUTES } from './studio-api.const.ts';
+export { API_PREFIX, API_ROUTES } from './common/studio-api.const.ts';
 
 export {
   AI_PROGRESS_STREAMS,
@@ -16,7 +16,7 @@ export {
   missingFileSchema,
   SCHEMA_DIALECTS,
   specParamsSchema
-} from './studio-api.schema.ts';
+} from './common/studio-api.schema.ts';
 
 export type {
   AiFillBody,

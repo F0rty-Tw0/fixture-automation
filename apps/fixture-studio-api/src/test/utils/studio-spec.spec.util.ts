@@ -6,10 +6,10 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 import type { FastifyInstance } from 'fastify';
 
-import type { StudioAi } from '../../common/studio-server.type.ts';
+import type { StudioAi } from '../../ai/common/ai.type.ts';
 import type { DiffBody, DiffResult, LoadedSpec, MissingFile } from '../../contract/common/studio-api.type.ts';
 import { buildServer } from '../../server.ts';
-import { allowedHosts, allowedOrigins } from '../../utils/allowed-origins.util.ts';
+import { allowedHosts, allowedOrigins } from '../../studio-server/utils/allowed-origins.util.ts';
 
 /** The sample spec: named, array-items, inline and non-JSON responses under unsorted paths. */
 export const studioSpec = async (): Promise<OpenApiSpec> => {

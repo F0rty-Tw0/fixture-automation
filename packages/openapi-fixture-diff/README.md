@@ -203,8 +203,10 @@ pnpm exec nx run @fixture-automation/openapi-fixture-diff:build
 pnpm run lint
 ```
 
-- `src/data-access/fixture-diff.client.ts` owns the diff algorithm.
-- `src/data-access/missing-files.client.ts` owns writing the three output files.
-- `src/utils/drop-path.util.ts` owns path parsing and corruption.
-- `src/common/` owns the public types.
+- `src/fixture-diff/domain-logic/fixture-diff.ts` owns the diff algorithm.
+- `src/fixture-diff/domain-logic/missing-files.ts` owns building the three output files; `src/fixture-diff/data-access/missing-files.store.ts` writes them.
+- `src/fixture-diff-cli/feature/` owns the `corrupt` and `diff` command lines.
+- `src/schema/` owns schema lookup and `$ref` resolution.
+- `src/shared/fixture-path/` owns path parsing and corruption.
+- Each slice's `common/` owns its types.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

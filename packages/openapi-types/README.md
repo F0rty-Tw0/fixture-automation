@@ -164,6 +164,8 @@ pnpm exec nx run @fixture-automation/openapi-types:build
 pnpm run lint
 ```
 
-- `src/data-access/openapi-types.client.ts` — spec loading and declaration generation.
+- `src/type-generation/data-access/openapi-types.client.ts` — spec loading and declaration generation.
+- `src/type-generation/domain-logic/types-output.ts` — stdout / file output and the pruned-spec flow behind the CLI.
+- `src/type-generation/feature/openapi-types-cli.handler.ts` — argument parsing and prompts for `cli.ts`.
 - `src/test/` — fixture spec and the file-URL test helper.
 - `src/index.ts` — public entry point (`generateTypes`).

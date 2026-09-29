@@ -1,7 +1,7 @@
 import type { SchemaDialect } from '@fixture-automation/openapi-ai-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 
-import type { SchemaComponents, SpecSchema, SpecSchemas } from './schema.type.ts';
+import type { SchemaComponents, SpecSchema, SpecSchemas } from '../../schema/common/schema.type.ts';
 
 export type MissingEntry = {
   readonly path: string;

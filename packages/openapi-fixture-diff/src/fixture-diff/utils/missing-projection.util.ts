@@ -1,8 +1,8 @@
-import { parsePath } from './drop-path.util.ts';
+import type { SpecSchema } from '../../schema/common/schema.type.ts';
+import type { PathToken } from '../../shared/fixture-path/common/path.type.ts';
+import { parsePath } from '../../shared/fixture-path/utils/drop-path.util.ts';
 import type { MissingEntry } from '../common/missing.type.ts';
-import type { PathToken } from '../common/path.type.ts';
 import type { ProjectionNode } from '../common/projection.type.ts';
-import type { SpecSchema } from '../common/schema.type.ts';
 
 const newNode = (): ProjectionNode => {
   const node: ProjectionNode = { leaf: undefined, items: undefined, properties: new Map() };

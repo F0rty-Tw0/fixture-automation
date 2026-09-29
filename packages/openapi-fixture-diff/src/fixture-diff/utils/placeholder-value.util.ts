@@ -1,10 +1,10 @@
 import { isRecord } from '@fixture-automation/shared';
 import { sample } from 'openapi-sampler';
 
-import { isSchema } from './schema-record.util.ts';
-import { resolveSchema } from './schema-resolve.util.ts';
+import type { SpecSchema, SpecSchemas } from '../../schema/common/schema.type.ts';
+import { isSchema } from '../../schema/utils/schema-record.util.ts';
+import { resolveSchema } from '../../schema/utils/schema-resolve.util.ts';
 import type { ReplaceCandidate } from '../common/missing.type.ts';
-import type { SpecSchema, SpecSchemas } from '../common/schema.type.ts';
 
 type Primitive = string | number | boolean;
 

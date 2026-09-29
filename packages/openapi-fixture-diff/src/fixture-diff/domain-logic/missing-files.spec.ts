@@ -4,12 +4,12 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { diffFixture } from './fixture-diff.client.ts';
-import { writeBaselineFile, writeMissingFiles } from './missing-files.client.ts';
+import { diffFixture } from './fixture-diff.ts';
+import { writeBaselineFile, writeMissingFiles } from './missing-files.ts';
+import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
+import { nestedOrder, nestedSpec } from '../../test/utils/nested-spec.spec.util.ts';
 import type { MissingFiles } from '../common/missing.type.ts';
 import { compiledMissing } from '../test/utils/compiled-missing.spec.util.ts';
-import { nestedOrder, nestedSpec } from '../test/utils/nested-spec.spec.util.ts';
-import { dropPaths } from '../utils/drop-path.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const STUB_CUSTOMER = { email: 'string' };

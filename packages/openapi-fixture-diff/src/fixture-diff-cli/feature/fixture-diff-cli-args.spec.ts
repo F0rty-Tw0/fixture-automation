@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { parseCorruptArgs, parseDiffArgs } from './fixture-diff-cli.util.ts';
+import { parseCorruptArgs, parseDiffArgs } from './fixture-diff-cli-args.ts';
 import { CORRUPT_USAGE, DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
 
 const DROP_FIX = 'example: --drop id,customer.email,lines[1].sku';

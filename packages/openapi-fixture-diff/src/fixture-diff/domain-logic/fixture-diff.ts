@@ -3,6 +3,9 @@ import type { PreparedSchema } from '@fixture-automation/openapi-ai-fixtures';
 import { reachableSchemas } from '@fixture-automation/openapi-fixtures';
 import { selectFixtureShape } from '@fixture-automation/shared';
 
+import type { SchemaComponents, SpecSchema, SpecSchemas } from '../../schema/common/schema.type.ts';
+import { contextComponents } from '../../schema/utils/prepared-context.util.ts';
+import { dropPaths, hasPath } from '../../shared/fixture-path/utils/drop-path.util.ts';
 import type {
   BrokenEntry,
   FixtureDiff,
@@ -11,13 +14,10 @@ import type {
   ReplaceCandidate,
   ReplaceablePredicate
 } from '../common/missing.type.ts';
-import type { SchemaComponents, SpecSchema, SpecSchemas } from '../common/schema.type.ts';
-import { dropPaths, hasPath } from '../utils/drop-path.util.ts';
 import { invalidPaths } from '../utils/invalid-path.util.ts';
 import { missingProjection } from '../utils/missing-projection.util.ts';
 import { missingEntries } from '../utils/missing-walk.util.ts';
 import { isPlaceholderValue } from '../utils/placeholder-value.util.ts';
-import { contextComponents } from '../utils/prepared-context.util.ts';
 
 type PathEntry = BrokenEntry | MissingEntry;
 

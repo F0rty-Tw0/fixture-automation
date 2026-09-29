@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { dropPaths, hasPath } from './drop-path.util.ts';
-import { nestedOrder } from '../test/utils/nested-spec.spec.util.ts';
+import { nestedOrder } from '../../../test/utils/nested-spec.spec.util.ts';
 
 const CORRUPT_CUSTOMER = { name: 'Ada', country: 'NL', vat: 'NL01' };
 const CORRUPT_SOURCE = { supplierId: 'sup_1' };

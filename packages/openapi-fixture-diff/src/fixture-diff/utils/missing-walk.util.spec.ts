@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { missingEntries } from './missing-walk.util.ts';
+import type { SpecSchema, SpecSchemas } from '../../schema/common/schema.type.ts';
 import type { MissingEntry, ReplaceCandidate } from '../common/missing.type.ts';
-import type { SpecSchema, SpecSchemas } from '../common/schema.type.ts';
 
 const TEXT: SpecSchema = { type: 'string' };
 const PARTY_REF: SpecSchema = { $ref: '#/components/schemas/party' };

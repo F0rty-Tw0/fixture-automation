@@ -12,11 +12,11 @@ import {
 } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { diffFixture } from './fixture-diff.client.ts';
-import { writeBaselineFile, writeMissingFiles } from './missing-files.client.ts';
+import { parseCorruptArgs, parseDiffArgs } from './fixture-diff-cli-args.ts';
+import { diffFixture } from '../../fixture-diff/domain-logic/fixture-diff.ts';
+import { writeBaselineFile, writeMissingFiles } from '../../fixture-diff/domain-logic/missing-files.ts';
+import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
 import { DIFF_INPUTS, FIXTURE_DIFF_HELP, FIXTURE_DIFF_USAGE } from '../common/fixture-diff-cli.const.ts';
-import { dropPaths } from '../utils/drop-path.util.ts';
-import { parseCorruptArgs, parseDiffArgs } from '../utils/fixture-diff-cli.util.ts';
 
 const runCorrupt = async (args: string[], inputs: Inputs): Promise<void> => {
   const parsed = await parseCorruptArgs(args, inputs);

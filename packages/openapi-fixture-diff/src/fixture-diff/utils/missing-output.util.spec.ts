@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { missingDocument, missingStub, missingTypes } from './missing-output.util.ts';
+import type { SpecSchema } from '../../schema/common/schema.type.ts';
 import type { FixtureDiff } from '../common/missing.type.ts';
-import type { SpecSchema } from '../common/schema.type.ts';
 
 const TEXT_SCHEMA: SpecSchema = { type: 'string' };
 const CUSTOMER_REF: SpecSchema = { $ref: '#/components/schemas/customer' };

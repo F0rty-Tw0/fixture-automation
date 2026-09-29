@@ -4,9 +4,9 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { isPlaceholderValue } from './placeholder-value.util.ts';
-import { isSchema } from './schema-record.util.ts';
+import type { SpecSchemas } from '../../schema/common/schema.type.ts';
+import { isSchema } from '../../schema/utils/schema-record.util.ts';
 import type { ReplaceCandidate } from '../common/missing.type.ts';
-import type { SpecSchemas } from '../common/schema.type.ts';
 import { generatedAccount, placeholderSpec } from '../test/utils/placeholder-spec.spec.util.ts';
 
 const OBJECT_ITEMS = [{ sku: 'string' }];

@@ -1,4 +1,4 @@
-import type { SpecSchema } from './schema.type.ts';
+import type { SpecSchema } from '../../schema/common/schema.type.ts';
 
 export type ProjectionNode = {
   leaf: SpecSchema | undefined;

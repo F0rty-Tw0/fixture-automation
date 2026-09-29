@@ -8,11 +8,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { runFixtureDiffCli } from './fixture-diff-cli.client.ts';
+import { runFixtureDiffCli } from './fixture-diff-cli.handler.ts';
+import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
+import { nestedOrder } from '../../test/utils/nested-spec.spec.util.ts';
 import type { DiffProject } from '../test/common/diff-project.type.ts';
 import { diffProject } from '../test/utils/diff-project.spec.util.ts';
-import { nestedOrder } from '../test/utils/nested-spec.spec.util.ts';
-import { dropPaths } from '../utils/drop-path.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const TIMEOUT = 60000;

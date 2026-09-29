@@ -2,11 +2,11 @@ import { strict as assert } from 'node:assert';
 
 import { describe, expect, it } from 'vitest';
 
-import { diffFixture } from './fixture-diff.client.ts';
-import type { SpecSchema } from '../common/schema.type.ts';
-import { cyclicOrder, nestedOrder, nestedSpec } from '../test/utils/nested-spec.spec.util.ts';
-import { dropPaths } from '../utils/drop-path.util.ts';
-import { isSchema } from '../utils/schema-record.util.ts';
+import { diffFixture } from './fixture-diff.ts';
+import type { SpecSchema } from '../../schema/common/schema.type.ts';
+import { isSchema } from '../../schema/utils/schema-record.util.ts';
+import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
+import { cyclicOrder, nestedOrder, nestedSpec } from '../../test/utils/nested-spec.spec.util.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const CYCLE_PATHS = ['parent.id', 'parent.created', 'parent.note', 'parent.customer', 'parent.lines'];

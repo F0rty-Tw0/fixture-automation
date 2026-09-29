@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
-import { nestedFile } from './nested-spec.spec.util.ts';
+import { nestedFile } from '../../../test/utils/nested-spec.spec.util.ts';
 import type { CliResult, DiffProject } from '../common/diff-project.type.ts';
 
 const execute = promisify(execFile);
@@ -17,7 +17,7 @@ export const diffProject = async (): Promise<DiffProject> => {
   };
 
   try {
-    const cliUrl = new URL('../../cli.ts', import.meta.url);
+    const cliUrl = new URL('../../../cli.ts', import.meta.url);
     const cliFile = fileURLToPath(cliUrl);
     const specUrl = pathToFileURL(join(directory, 'spec.json')).href;
     const fixtureFile = join(directory, 'order.json');

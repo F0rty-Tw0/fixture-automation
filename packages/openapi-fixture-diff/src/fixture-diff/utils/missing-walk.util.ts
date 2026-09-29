@@ -1,9 +1,9 @@
 import { isRecord } from '@fixture-automation/shared';
 
-import { isSchema } from './schema-record.util.ts';
-import { firstBranch, pickBranch, referencedNames, resolveSchema } from './schema-resolve.util.ts';
+import type { SpecSchema } from '../../schema/common/schema.type.ts';
+import { isSchema } from '../../schema/utils/schema-record.util.ts';
+import { firstBranch, pickBranch, referencedNames, resolveSchema } from '../../schema/utils/schema-resolve.util.ts';
 import type { MissingEntry, ReplaceCandidate, WalkFunction, WalkInput } from '../common/missing.type.ts';
-import type { SpecSchema } from '../common/schema.type.ts';
 
 const childPath = (path: string, key: string): string => {
   if (!path) return key;

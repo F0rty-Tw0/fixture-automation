@@ -275,8 +275,9 @@ pnpm exec nx run @fixture-automation/openapi-fixture-merge:build
 pnpm run lint
 ```
 
-- `src/data-access/fixture-merge.client.ts` owns merge orchestration and validation.
-- `src/data-access/load-populated.client.ts` owns JSON and module loading.
-- `src/utils/deep-fill.util.ts` owns the recursive fill algorithm.
-- `src/common/` owns the public types.
+- `src/fixture-merge/domain-logic/fixture-merge.ts` owns merge orchestration and validation.
+- `src/fixture-merge/data-access/populated.store.ts` owns JSON and module loading.
+- `src/fixture-merge/feature/` owns the command line and the endpoint prompt.
+- `src/fixture-fill/utils/deep-fill.util.ts` owns the recursive fill algorithm.
+- Each slice's `common/` owns its types.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

@@ -2,7 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { mergeFixture } from './fixture-merge.client.ts';
+import { mergeFixture } from './fixture-merge.ts';
 import type { MergeInput, MergeResult, MergeSpec } from '../common/fixture-merge.type.ts';
 import type { MergeProject } from '../test/common/merge-project.type.ts';
 import { mergeProject } from '../test/utils/merge-project.spec.util.ts';

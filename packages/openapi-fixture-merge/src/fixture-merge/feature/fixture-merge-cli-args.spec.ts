@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { answering } from '@fixture-automation/shared/testing';
 
-import { parseMergeArgs } from './fixture-merge-cli.util.ts';
+import { parseMergeArgs } from './fixture-merge-cli-args.ts';
 
 const ENDPOINT_URL = 'https://api.example.com/v1/invoices/in_2';
 

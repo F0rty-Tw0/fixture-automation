@@ -14,7 +14,7 @@ const POPULATED_FIXTURE = '{ "status": "open" }\n';
 
 /** `file://` URL of the invoice spec shared with `@fixture-automation/openapi-fixtures`. */
 export const invoiceSpecUrl = (): string => {
-  const url = new URL('../../../../openapi-fixtures/src/test/fixtures/invoice/spec.json', import.meta.url);
+  const url = new URL('../../../../../openapi-fixtures/src/test/fixtures/invoice/spec.json', import.meta.url);
 
   return url.href;
 };
@@ -34,7 +34,7 @@ export const mergeProject = async (): Promise<MergeProject> => {
       return file;
     };
     const run = async (args: string[]): Promise<CliResult> => {
-      const cliFile = fileURLToPath(new URL('../../cli.ts', import.meta.url));
+      const cliFile = fileURLToPath(new URL('../../../cli.ts', import.meta.url));
       const commandArgs = ['--conditions=@fixture-automation/source', cliFile, ...args];
       const result = await execute(process.execPath, commandArgs, { cwd: directory, timeout: 30000 });
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { loadPopulated } from './load-populated.client.ts';
+import { loadPopulated } from './populated.store.ts';
 import type { PopulatedModuleProject } from '../test/common/populated-module.type.ts';
 import { populatedModuleProject } from '../test/utils/populated-module.spec.util.ts';
 

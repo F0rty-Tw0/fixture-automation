@@ -1,7 +1,7 @@
 import { isRecord, selectFixtureShape } from '@fixture-automation/shared';
 
 import { deepFill } from './deep-fill.util.ts';
-import type { FillResult } from '../common/fixture-merge.type.ts';
+import type { FillResult } from '../common/fixture-fill.type.ts';
 
 const prefixedFilledPaths = (filled: string[], objectShape: string): string[] => {
   const prefixPath = (path: string): string => {

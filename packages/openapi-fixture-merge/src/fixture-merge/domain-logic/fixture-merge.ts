@@ -5,11 +5,12 @@ import { prepareSchema } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError, loadSpec, readJsonFile, resolveSchemaName, writeTextFile } from '@fixture-automation/openapi-fixtures';
 import { selectFixtureShape } from '@fixture-automation/shared';
 
-import { loadPopulated } from './load-populated.client.ts';
-import type { FillResult, MergeInput, MergeProvenance, MergeResult, MergeSpec } from '../common/fixture-merge.type.ts';
-import { orderLike } from '../utils/key-order.util.ts';
+import type { FillResult } from '../../fixture-fill/common/fixture-fill.type.ts';
+import { orderLike } from '../../fixture-fill/utils/key-order.util.ts';
+import { fillObjectShape } from '../../fixture-fill/utils/object-shape-fill.util.ts';
+import type { MergeInput, MergeProvenance, MergeResult, MergeSpec } from '../common/fixture-merge.type.ts';
+import { loadPopulated } from '../data-access/populated.store.ts';
 import { endpointArtifactFileName, endpointIdentity, sha256Content } from '../utils/merge-artifact-hashing.util.ts';
-import { fillObjectShape } from '../utils/object-shape-fill.util.ts';
 
 const assertValid = async (spec: MergeSpec, value: unknown): Promise<void> => {
   const document = await loadSpec(spec.url);

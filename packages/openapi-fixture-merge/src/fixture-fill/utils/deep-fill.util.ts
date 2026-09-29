@@ -1,6 +1,6 @@
 import { isRecord } from '@fixture-automation/shared';
 
-import type { FillResult } from '../common/fixture-merge.type.ts';
+import type { FillResult } from '../common/fixture-fill.type.ts';
 
 const childPath = (path: string, key: string): string => {
   if (!path) return key;

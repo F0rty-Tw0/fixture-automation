@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 import { DEFAULT_OUT_DIR, FixtureError, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { endpointUrlInput } from './endpoint-prompt.util.ts';
+import { endpointUrlInput } from './endpoint-prompt.ts';
 import { MERGE_INPUTS, MERGE_USAGE } from '../common/fixture-merge-cli.const.ts';
 import type { MergeInput, MergeSpec } from '../common/fixture-merge.type.ts';
 

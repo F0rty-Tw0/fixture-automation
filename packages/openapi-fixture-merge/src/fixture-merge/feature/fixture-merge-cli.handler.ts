@@ -3,9 +3,9 @@ import { styleText } from 'node:util';
 import { printHelp, silentInputs } from '@fixture-automation/openapi-fixtures';
 import type { Inputs } from '@fixture-automation/openapi-fixtures';
 
-import { mergeFixture } from './fixture-merge.client.ts';
+import { parseMergeArgs } from './fixture-merge-cli-args.ts';
 import { MERGE_HELP } from '../common/fixture-merge-cli.const.ts';
-import { parseMergeArgs } from '../utils/fixture-merge-cli.util.ts';
+import { mergeFixture } from '../domain-logic/fixture-merge.ts';
 
 export const runFixtureMergeCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
   const input = await parseMergeArgs(args, inputs);

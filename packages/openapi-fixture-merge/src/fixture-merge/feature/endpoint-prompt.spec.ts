@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { answering } from '@fixture-automation/shared/testing';
 
-import { endpointUrlInput } from './endpoint-prompt.util.ts';
+import { endpointUrlInput } from './endpoint-prompt.ts';
 
 const USAGE = 'usage: test';
 

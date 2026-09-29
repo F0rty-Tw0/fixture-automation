@@ -8,7 +8,7 @@
     "rewriteRelativeImportExtensions": false,
     "tsBuildInfoFile": "out-tsc/testing/tsconfig.testing.tsbuildinfo"
   },
-  "include": ["src/test/**/*.ts"],
+  "include": ["src/**/test/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"],
   "references": [{ "path": "./tsconfig.lib.json" }]
 }

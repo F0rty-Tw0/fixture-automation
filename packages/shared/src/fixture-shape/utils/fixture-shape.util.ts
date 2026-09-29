@@ -1,4 +1,4 @@
-import { isRecord } from './record.util.ts';
+import { isRecord } from '../../record/utils/record.util.ts';
 
 /** Select one own envelope property, or the whole fixture when the shape is blank. */
 export const selectFixtureShape = (fixture: unknown, objectShape: string | undefined): unknown => {

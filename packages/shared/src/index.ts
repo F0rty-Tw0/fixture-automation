@@ -1,9 +1,9 @@
-export { isRecord } from './utils/record.util.ts';
+export { isRecord } from './record/utils/record.util.ts';
 
-export { isMissingFile } from './utils/missing-file.util.ts';
+export { isMissingFile } from './file-error/utils/missing-file.util.ts';
 
-export { fileLabel } from './utils/file-label.util.ts';
+export { fileLabel } from './file-error/utils/file-label.util.ts';
 
-export { selectFixtureShape } from './utils/fixture-shape.util.ts';
+export { selectFixtureShape } from './fixture-shape/utils/fixture-shape.util.ts';
 
-export type { Question } from './common/question.type.ts';
+export type { Question } from './question/common/question.type.ts';

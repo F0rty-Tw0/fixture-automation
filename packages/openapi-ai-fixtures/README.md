@@ -269,9 +269,15 @@ pnpm exec nx run @fixture-automation/openapi-ai-fixtures:build
 pnpm run lint
 ```
 
-- `src/data-access/ai-fixtures.client.ts` owns the public factory and final validation.
-- `src/data-access/ai-missing-fixtures.client.ts` owns missing-field filling and projection validation.
-- `src/utils/schema-*.util.ts` owns dialect selection, dependency traversal, and AJV compilation.
-- `src/data-access/*client.ts` (the rest) owns provider adapters, process lifecycle, and CLI file output.
-- `src/common/` owns public types and shared contracts.
+Code is split into feature slices under `src/`, each with only the layer folders it needs (`common/`, `utils/`, `data-access/`, `domain-logic/`, `feature/`, `test/`):
+
+- `src/fixture-enrichment/` owns the public factories (`ai-fixtures.ts`, `ai-missing-fixtures.ts`), final validation, the agent retry-and-repair loop, and prompt building.
+- `src/agent-provider/` owns the per-provider adapters: `<tool>-generation.ts` for fixture generation and `<tool>-models.ts` for model listing.
+- `src/agent-process/` owns the process lifecycle: executable resolution, scratch-directory staging, bounded execution, and tree termination.
+- `src/model-discovery/` owns model discovery and interactive model selection.
+- `src/schema/` owns dialect selection, dependency traversal, and AJV compilation.
+- `src/missing-values/` owns the `missing.json` contract, its schema document, and projection checks.
+- `src/ai-fixtures-cli/` owns argument parsing, the CLI handler, progress output, and CLI file output.
+- `src/tool-install/` owns installed-tool detection.
+- `src/shared/ai-tool/` owns the public option types and tool-name parsing that several slices use.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

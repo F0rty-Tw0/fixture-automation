@@ -7,8 +7,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { answering, silence } from '@fixture-automation/shared/testing';
 
-import { runTypesCli } from './openapi-types-cli.client.ts';
-import { specUrl } from '../test/utils/spec-url.spec.util.ts';
+import { runTypesCli } from './openapi-types-cli.handler.ts';
+import { specUrl } from '../../test/utils/spec-url.spec.util.ts';
 
 const SPEC_URL = specUrl().href;
 

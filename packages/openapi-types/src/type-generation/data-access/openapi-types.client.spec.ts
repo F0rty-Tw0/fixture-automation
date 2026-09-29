@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { generateTypes } from '@fixture-automation/openapi-types';
 
-import { specUrl } from '../test/utils/spec-url.spec.util.ts';
+import { specUrl } from '../../test/utils/spec-url.spec.util.ts';
 
 describe('FEATURE: OpenAPI type generation', (): void => {
   describe('GIVEN an invoice endpoint and schema in a JSON spec file', (): void => {

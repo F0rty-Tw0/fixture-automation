@@ -1,19 +1,15 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { parseArgs, styleText } from 'node:util';
+import { styleText } from 'node:util';
 
-import { FixtureError, loadSpec, printHelp, pruneSpec, silentInputs, writeTextFile } from '@fixture-automation/openapi-fixtures';
-import type { Inputs } from '@fixture-automation/openapi-fixtures';
+import { FixtureError, loadSpec, pruneSpec, writeTextFile } from '@fixture-automation/openapi-fixtures';
 
-import { generateTypes } from './openapi-types.client.ts';
-import { OPENAPI_TYPES_HELP, OPENAPI_TYPES_USAGE, TYPES_INPUTS } from '../common/openapi-types-cli.const.ts';
 import type { OutputFiles } from '../common/openapi-types-cli.type.ts';
+import { generateTypes } from '../data-access/openapi-types.client.ts';
 
 const TYPES_SUFFIX = '.d.ts';
 const SPEC_SUFFIX = '.spec.json';
 const YAML_SUFFIXES = ['.yaml', '.yml'];
-const helpOption = { type: 'boolean', short: 'h' } as const;
-const cliOptions = { help: helpOption };
 
 const errorCode = (error: unknown): string => {
   if (!(error instanceof Error)) return '';
@@ -58,7 +54,7 @@ const loadFailure = (error: unknown, specUrl: string): FixtureError => {
   return new FixtureError(message);
 };
 
-const generate = async (specUrl: string, outFile: string | undefined): Promise<void> => {
+export const generate = async (specUrl: string, outFile: string | undefined): Promise<void> => {
   let types: string;
 
   try {
@@ -87,7 +83,7 @@ const outputFiles = (outFile: string): OutputFiles => {
 };
 
 /** Prune the spec to one schema, write it next to the types, and generate the types from the pruned copy. */
-const generatePruned = async (specUrl: string, schemaName: string, outFile: string): Promise<void> => {
+export const generatePruned = async (specUrl: string, schemaName: string, outFile: string): Promise<void> => {
   const lowered = specUrl.toLowerCase();
   const isYaml = YAML_SUFFIXES.some((suffix: string): boolean => lowered.endsWith(suffix));
 
@@ -107,30 +103,4 @@ const generatePruned = async (specUrl: string, schemaName: string, outFile: stri
   });
 
   process.stderr.write(success);
-};
-
-export const runTypesCli = async (args: string[], inputs: Inputs = silentInputs): Promise<void> => {
-  const { positionals, values } = parseArgs({ args, options: cliOptions, allowPositionals: true });
-
-  if (values.help === true) {
-    printHelp(OPENAPI_TYPES_HELP);
-
-    return;
-  }
-
-  if (positionals.length > 3) throw new FixtureError(OPENAPI_TYPES_USAGE);
-
-  const specUrl = await inputs.required(positionals[0], TYPES_INPUTS.specUrl, OPENAPI_TYPES_USAGE);
-  const schemaName = await inputs.optional(positionals[1], TYPES_INPUTS.schemaName);
-  const outFile = await inputs.optional(positionals[2], TYPES_INPUTS.outFile);
-
-  if (schemaName !== undefined && outFile !== undefined) return generatePruned(specUrl, schemaName, outFile);
-
-  // A bare 2-positional run puts the out-file in positionals[1], the `schemaName` slot;
-  // only a prompt-answered schema name (positionals[1] unset) still needs an out-file.
-  const schemaWasPrompted = positionals[1] === undefined && schemaName !== undefined;
-
-  if (schemaWasPrompted) throw new FixtureError('schema-name needs an out-file', 'answer out-file, e.g. invoice.d.ts');
-
-  await generate(specUrl, outFile ?? schemaName);
 };

@@ -55,10 +55,41 @@ const assertStreamEvent = (event: Record<string, unknown>, initialized: boolean,
   if (!isSupported) throw new Error(`Gemini CLI emitted an unsupported ${type} stream event.`);
 };
 
-/** Extracts assistant text only after Gemini's stream-json protocol completes successfully. */
+const TOOL_EVENT_TYPES: Record<string, true> = {
+  tool_use: true,
+  tool_result: true
+};
+
+/**
+ * Collects assistant text per turn: a tool event closes the current turn. Narration can put a topic call before the
+ * answer or a recap call after it, so the answer is the last turn that has text.
+ */
+const collectTurn = (event: Record<string, unknown>, turn: string[], turns: string[]): void => {
+  const type = requireString(event, 'type');
+  const isToolEvent = TOOL_EVENT_TYPES[type] === true;
+
+  if (isToolEvent) {
+    const text = turn.join('');
+
+    if (text.length > 0) turns.push(text);
+
+    turn.length = 0;
+
+    return;
+  }
+
+  if (type !== 'message') return;
+
+  const messageContent = assistantContent(event);
+
+  if (messageContent !== undefined) turn.push(messageContent);
+};
+
+/** Extracts the last assistant turn with text only after Gemini's stream-json protocol completes successfully. */
 export const parseGeminiStream = (output: string): string => {
   const lines = output.split(/\r?\n/);
-  const content: string[] = [];
+  const turn: string[] = [];
+  const turns: string[] = [];
   let didInitialize = false;
   let didComplete = false;
 
@@ -75,11 +106,7 @@ export const parseGeminiStream = (output: string): string => {
 
     if (type === 'init') didInitialize = true;
 
-    if (type === 'message') {
-      const messageContent = assistantContent(event);
-
-      if (messageContent !== undefined) content.push(messageContent);
-    }
+    collectTurn(event, turn, turns);
 
     if (type === 'result') {
       const status = resultStatus(event);
@@ -92,7 +119,11 @@ export const parseGeminiStream = (output: string): string => {
 
   if (!didComplete) throw new Error('Gemini CLI stream ended without a terminal result.');
 
-  const response = content.join('');
+  const lastTurn = turn.join('');
+
+  if (lastTurn.length > 0) turns.push(lastTurn);
+
+  const response = turns.at(-1) ?? '';
 
   if (response.length === 0) throw new Error('Gemini CLI completed without assistant response text.');
 

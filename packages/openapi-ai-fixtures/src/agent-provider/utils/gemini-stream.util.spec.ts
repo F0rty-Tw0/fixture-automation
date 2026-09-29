@@ -53,6 +53,63 @@ describe('FEATURE: Gemini stream parsing', (): void => {
     });
   });
 
+  describe('GIVEN the model narrates and calls a tool before answering', (): void => {
+    it('WHEN parsing THEN returns only the assistant text after the last tool result', (): void => {
+      const narration = JSON.stringify({
+        content: 'Filling the fixture.',
+        delta: true,
+        role: 'assistant',
+        timestamp: '2026-09-16T00:00:01.000Z',
+        type: 'message'
+      });
+      const toolUse = JSON.stringify({
+        parameters: {},
+        timestamp: '2026-09-16T00:00:01.100Z',
+        tool_id: 'tool-1',
+        tool_name: 'update_topic',
+        type: 'tool_use'
+      });
+      const toolResult = JSON.stringify({
+        output: 'Current topic: "Fixture"',
+        status: 'success',
+        timestamp: '2026-09-16T00:00:01.200Z',
+        tool_id: 'tool-1',
+        type: 'tool_result'
+      });
+      const answer = agentResponse('gemini', '{"id":"fixture-1"}').replace(`${init}\n`, '');
+      const output = `${init}\n${narration}\n${toolUse}\n${toolResult}\n${answer}`;
+
+      const response = parseGeminiStream(output);
+
+      expect(response).toBe('{"id":"fixture-1"}');
+    });
+  });
+
+  describe('GIVEN the model answers and then calls a tool to recap', (): void => {
+    it('WHEN parsing THEN returns the answer turn', (): void => {
+      const toolUse = JSON.stringify({
+        parameters: {},
+        timestamp: '2026-09-16T00:00:01.100Z',
+        tool_id: 'tool-2',
+        tool_name: 'update_topic',
+        type: 'tool_use'
+      });
+      const toolResult = JSON.stringify({
+        output: 'Current topic: "Recap"',
+        status: 'success',
+        timestamp: '2026-09-16T00:00:01.200Z',
+        tool_id: 'tool-2',
+        type: 'tool_result'
+      });
+      const result = JSON.stringify({ stats: {}, status: 'success', timestamp: '2026-09-16T00:00:02.000Z', type: 'result' });
+      const output = `${init}\n${assistantMessage}\n${toolUse}\n${toolResult}\n${result}\n`;
+
+      const response = parseGeminiStream(output);
+
+      expect(response).toBe('{"id":"fixture-1"}');
+    });
+  });
+
   describe('GIVEN a successful result has no assistant content', (): void => {
     it('WHEN parsing THEN rejects instead of returning an empty fixture', (): void => {
       const result = JSON.stringify({

@@ -341,7 +341,8 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 ```json
 {
   "general": {
-    "enableAutoUpdate": false
+    "enableAutoUpdate": false,
+    "topicUpdateNarration": true
   },
   "ide": {
     "enabled": false,
@@ -375,7 +376,6 @@ The staged system settings file, `.gemini/system-settings.json`, is:
       "tracker_list_tasks",
       "tracker_update_task",
       "tracker_visualize",
-      "update_topic",
       "web_fetch",
       "write_file",
       "write_todos"
@@ -396,13 +396,13 @@ The staged system settings file, `.gemini/system-settings.json`, is:
 }
 ```
 
-`tools.exclude` lists every built-in tool name of the released v0.57.0 and v0.59.0 bundles (`ALL_BUILTIN_TOOL_NAMES`, `list_background_processes`, `read_background_output`, `take_snapshot`). An empty `tools.core` list disabled them too, but v0.57 then sends an empty tool entry and the API rejects every request with `400 tools[0].tool_type: required one_of 'tool_type' must have one initialized field`; a tool added by a later release stays enabled until it is added to the list. Model discovery stages the same `tools` block.
+`tools.exclude` lists every built-in tool name of the released v0.57.0 to v0.62.0 bundles (`ALL_BUILTIN_TOOL_NAMES`, `list_background_processes`, `read_background_output`, `take_snapshot`) except `update_topic`. Excluding every tool, like an empty `tools.core` list, leaves no declaration, yet the CLI still sends `tools: [{ functionDeclarations: [] }]` and the API rejects the request with `400 tools[0].tool_type: required one_of 'tool_type' must have one initialized field`. `update_topic` only sets an in-memory topic label, so it stays declared, and `general.topicUpdateNarration: true` keeps it active (the released default, pinned against a user setting); a tool added by a later release stays enabled until it is added to the list. Model discovery stages the same `tools` block.
 
 Released v0.59.0 source supports the command identity, stdin-plus-prompt composition, extensions sentinel `none`, tool exclusion list, empty discovery command, skill switch, hook switch, and IDE settings. The streaming event contract is documented in headless mode and implemented in the [v0.60.0 non-interactive runner](https://raw.githubusercontent.com/google-gemini/gemini-cli/v0.60.0/packages/cli/src/nonInteractiveCli.ts). `--approval-mode default` is not a deny-all control by itself. The settings path is relative to the scratch cwd in the released loader.
 
 ### Result and failure framing
 
-The adapter parses newline-delimited events, requires an initial `init`, concatenates `message` content only for assistant deltas, and requires one terminal `result` with `status: "success"`. It rejects unknown event types, duplicate initialization, events after completion, incomplete streams, failed results, and empty assistant output. User messages and tool events do not become fixture text. Streamed text is still parsed strictly as fixture JSON: `--output-format stream-json` guarantees the event framing, not JSON inside assistant content. Nonzero exits fail before this parser runs.
+The adapter parses newline-delimited events, requires an initial `init`, concatenates `message` content only for assistant deltas, splits it into turns at each `tool_use` or `tool_result` event, and returns the last turn with text (`update_topic` narration can add a topic call before the answer or a recap call after it), and requires one terminal `result` with `status: "success"`. It rejects unknown event types, duplicate initialization, events after completion, incomplete streams, failed results, and empty assistant output. User messages and tool events do not become fixture text. Streamed text is still parsed strictly as fixture JSON: `--output-format stream-json` guarantees the event framing, not JSON inside assistant content. Nonzero exits fail before this parser runs.
 
 The shared JSON parser accepts one complete outer `json` or unlabelled code fence in assistant text, on either the initial response or a repair. The underlying value still undergoes strict JSON and schema validation. A controlled Gemini subprocess verified that a valid fenced response avoids repair, a fenced correction succeeds, and a fenced schema-invalid response leaves the destination unchanged.
 

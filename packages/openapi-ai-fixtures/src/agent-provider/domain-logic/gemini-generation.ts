@@ -8,7 +8,7 @@ import { parseGeminiStream } from '../utils/gemini-stream.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const GEMINI_PROMPT = 'Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value.';
-const general = { enableAutoUpdate: false };
+const general = { enableAutoUpdate: false, topicUpdateNarration: true };
 const ide = { enabled: false, hasSeenNudge: true };
 const skills = { enabled: false };
 const hooksConfig = { enabled: false };

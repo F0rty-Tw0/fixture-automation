@@ -49,3 +49,13 @@ export const agentCommand = (calls: (readonly [AgentCommand, AiFixtureOptions])[
 
   return call[0];
 };
+
+/** The content of the file a command stages at `path`. */
+export const stagedContent = (command: AgentCommand, path: string): string => {
+  const files = command.files ?? [];
+  const file = files.find((staged: AgentFile): boolean => staged.path === path);
+
+  if (file === undefined) throw new Error(`no file was staged at ${path}`);
+
+  return file.content;
+};

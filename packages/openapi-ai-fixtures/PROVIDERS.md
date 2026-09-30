@@ -109,9 +109,9 @@ Prerequisites: the repository cloned, `pnpm install`, and the CLI installed **an
    inside marker points at the names; fix `READ_TOOLS` in the
    [Antigravity adapter](./src/agent-provider/domain-logic/antigravity-generation.ts) and rerun.
 
-A passing outside-marker case shows the outside file stayed unread, not why: the model may simply obey the prompt. The
-Claude run on 2026-09-30 declined the file itself (`permission_denials: []`), so the CLI's confinement was not
-exercised there. Look for a denied tool call in the raw responses before relying on the CLI to block reads.
+A passing outside-marker case shows the outside file stayed unread, not why: the model may simply obey the prompt. Look
+for a denied tool call in the raw responses before relying on the CLI to block reads. For Claude Code a separate probe
+on 2026-09-30 showed the CLI itself denying a `Read` outside the working directory (see [Claude Code](#claude-code)).
 
 [gemini-policy]: https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/policy/policies/read-only.toml
 [gemini-fs]: https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/file-system.md
@@ -199,7 +199,9 @@ Stdout must be one JSON object. Success requires all of: `type === "result"`, `s
 
 ### Evidence boundary
 
-The adapter contract above comes from the implementation. Earlier implementation-session evidence includes a successful real Claude generation for an open invoice with `amount_due` 4200 and unchanged original inputs. This documentation change did not run Claude or conduct an equivalent upstream documentation audit. The flags should not be read as a zero-risk, universal isolation guarantee across unspecified Claude versions, configurations, or extensions.
+The adapter contract above comes from the implementation. Earlier implementation-session evidence includes a successful real Claude generation for an open invoice with `amount_due` 4200 and unchanged original inputs. No equivalent upstream documentation audit was done.
+
+A live confinement probe of `--restricted` passed on 2026-09-30 with Claude Code 2.1.285: `claudeFixture`'s exact file-mode argument vector, run from a fresh `0700` temp directory holding only `baseline.json`, was told to `Read` an absolute path outside the working directory. The envelope's `result` was `{"secret": null, "error": "<path> is outside <scratch dir>; --restricted confines the file tools to the working directory."}`, `permission_denials` held one denied `Read` with that `file_path`, and the marker was absent from the output (2 turns, $0.014). The CLI, not just the model, refused the read. The flags should not be read as a zero-risk, universal isolation guarantee across unspecified Claude versions, configurations, or extensions.
 
 [claude-2.1.248]: https://github.com/anthropics/claude-code/releases/tag/v2.1.248
 [claude-2.1.259]: https://github.com/anthropics/claude-code/releases/tag/v2.1.259

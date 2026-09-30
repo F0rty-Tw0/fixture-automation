@@ -7,12 +7,49 @@ import { SUBPROCESS_TEST_TIMEOUT_MS } from './test/common/integration.const.ts';
 import type { IntegrationProject } from './test/common/integration.type.ts';
 import { missingArgs } from './test/utils/integration-cli.spec.util.ts';
 import { integrationProject } from './test/utils/integration-project.spec.util.ts';
+import { runModelCli } from './test/utils/model-cli.spec.util.ts';
+import { processFixture } from './test/utils/process-fixture.spec.util.ts';
 
 const SCENARIO = 'missing-mode: fill the absent invoice status.';
 const INVALID_SCENARIO = 'missing-mode invalid: return a status outside the enum.';
+const CODEX = processFixture('model-discovery', 'codex.mjs');
 
-describe('FEATURE: AI fixture command in missing-field mode', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, (): void => {
-  describe('GIVEN a corrupt invoice, a diff projection, and a controlled external tool', (): void => {
+describe('FEATURE: AI fixtures CLI', { timeout: SUBPROCESS_TEST_TIMEOUT_MS }, (): void => {
+  describe('GIVEN a model listing with a provider executable override and a paginated catalog', (): void => {
+    it('WHEN listing without a spec THEN prints current model IDs separately from provenance', async (): Promise<void> => {
+      const result = await runModelCli(['--tool', 'codex', '--executable', CODEX]);
+
+      expect(result.stdout).toBe('new-model-a\nnew-model-b\n');
+      expect(result.stderr).toContain('source: codex-cli');
+    });
+  });
+
+  describe('GIVEN a model listing with an unavailable provider executable', (): void => {
+    it('WHEN listing THEN fails without printing stale model names', async (): Promise<void> => {
+      const executable = processFixture('model-discovery', 'not-installed.exe');
+      const listing = runModelCli(['--tool', 'claude', '--executable', executable]);
+
+      await expect(listing).rejects.toMatchObject({ code: 1, stdout: '' });
+    });
+  });
+
+  describe('GIVEN a model listing without a provider', (): void => {
+    it('WHEN listing THEN rejects rather than choosing a provider', async (): Promise<void> => {
+      const listing = runModelCli([]);
+
+      await expect(listing).rejects.toMatchObject({ code: 1 });
+    });
+  });
+
+  describe('GIVEN a model listing with an invalid discovery timeout', (): void => {
+    it('WHEN listing THEN rejects before invoking the provider', async (): Promise<void> => {
+      const listing = runModelCli(['--tool', 'codex', '--executable', CODEX, '--timeout', '0']);
+
+      await expect(listing).rejects.toMatchObject({ code: 1, stdout: '' });
+    });
+  });
+
+  describe('GIVEN missing-field mode over a corrupt invoice, a diff projection, and a controlled external tool', (): void => {
     let project: IntegrationProject;
 
     beforeEach(async (): Promise<void> => {

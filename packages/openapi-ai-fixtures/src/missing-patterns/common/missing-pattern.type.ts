@@ -13,4 +13,6 @@ export type PatternPromptInput = {
   readonly missing: unknown;
   readonly patterns: MissingPattern[];
   readonly scenario: string;
+  /** Name of the whole baseline staged in the agent's working directory; absent keeps the agent tool-free. */
+  readonly baselineFile?: string;
 };

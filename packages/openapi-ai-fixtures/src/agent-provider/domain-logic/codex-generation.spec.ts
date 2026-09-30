@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { codexFixture } from './codex-generation.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
-import { agentArgs, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
+import { agentArgs, agentCommand, fileRequest, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
 import type { AgentRequest } from '../common/agent-provider.type.ts';
 
 vi.mock('../../agent-process/data-access/agent-process.client.ts');
@@ -104,6 +104,20 @@ describe('FEATURE: Codex fixture response handling', (): void => {
 
       expect(args).not.toContain('-m');
       expect(args.at(-1)).toBe('-');
+    });
+  });
+
+  describe('GIVEN a request that stages files', (): void => {
+    it('WHEN the fixture is requested THEN stages nothing and keeps the argument vector, since Codex stays digest-only', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(codexEvents);
+
+      await codexFixture(fileRequest('codex'));
+
+      const command = agentCommand(vi.mocked(runAgent).mock.calls);
+
+      expect(command.files).toBeUndefined();
+      expect(command.args).not.toContain('features.shell_tool=true');
+      expect(command.args.at(-1)).toBe('-');
     });
   });
 });

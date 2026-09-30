@@ -52,7 +52,7 @@ const promptResult = (baseline: unknown, missing: MissingFile, scenario: string 
 };
 
 /**
- * The prompt `aiMissingFixture` sends a CLI, plus a response schema, for a model the browser runs itself.
+ * The per-path prompt for the on-device model the browser runs, plus a response schema.
  * With `paths`, only those missing paths are asked for and the baseline keeps only their context, so a small
  * on-device model can fill the gaps chunk by chunk.
  */

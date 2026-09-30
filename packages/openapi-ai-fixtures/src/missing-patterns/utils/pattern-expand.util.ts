@@ -1,6 +1,6 @@
 import { isRecord } from '@fixture-automation/shared';
 
-import type { MissingFill, PathValue } from '../../missing-values/common/missing.type.ts';
+import type { PathValue } from '../../missing-values/common/missing.type.ts';
 import { pathTree } from '../../missing-values/utils/path-tree.util.ts';
 import type { MissingPattern } from '../common/missing-pattern.type.ts';
 
@@ -71,22 +71,19 @@ const patternValues = (answer: PatternAnswer, pattern: MissingPattern): PathValu
   return pattern.paths.map(valueAt);
 };
 
-const isConcreteFill = (answer: unknown): answer is MissingFill => Array.isArray(answer) || isRecord(answer);
-
 /**
  * The concrete fill a pattern answer (`{ "lines[*].qty": [3, 1] }`) stands for, every path getting its own copy of
- * its example. A pattern without examples leaves its paths absent. An object or list answering in the concrete shape
- * instead is returned unchanged; any other value fills nothing.
+ * its example. A pattern without examples leaves its paths absent. Any other answer, including a pattern answer
+ * whose patterns hold no example at all, is returned unchanged for the projection to judge: expanding it would give
+ * an empty fill, and an empty list passes a list projection.
  */
-export const expandedFill = (answer: unknown, patterns: MissingPattern[], isList: boolean): MissingFill => {
-  if (isPatternAnswer(answer, patterns)) {
-    const valuesOf = (pattern: MissingPattern): PathValue[] => patternValues(answer, pattern);
-    const entries = patterns.flatMap(valuesOf);
+export const expandedFill = (answer: unknown, patterns: MissingPattern[], isList: boolean): unknown => {
+  if (!isPatternAnswer(answer, patterns)) return answer;
 
-    return pathTree(entries, isList);
-  }
+  const valuesOf = (pattern: MissingPattern): PathValue[] => patternValues(answer, pattern);
+  const entries = patterns.flatMap(valuesOf);
 
-  if (isConcreteFill(answer)) return answer;
+  if (entries.length === 0) return answer;
 
-  return pathTree([], isList);
+  return pathTree(entries, isList);
 };

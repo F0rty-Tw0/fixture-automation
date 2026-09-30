@@ -22,6 +22,8 @@ export { isListFill } from './missing-values/utils/missing-fill.util.ts';
 
 export { pathTree, valueAtPath, valueAtTokens } from './missing-values/utils/path-tree.util.ts';
 
+export { violatedPaths } from './missing-values/utils/violation-paths.util.ts';
+
 export { discoverModels } from './model-discovery/domain-logic/model-discovery.ts';
 
 export { detectAiTools } from './tool-install/data-access/ai-tool-install.client.ts';

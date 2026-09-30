@@ -23,6 +23,11 @@ const STATUS_SCHEMA = { type: 'string', enum: ['draft', 'open'] };
 const STATUS_PROPERTIES = { status: STATUS_SCHEMA };
 const STATUS_ITEM = { type: 'object', required: ['status'], properties: STATUS_PROPERTIES };
 const LIST_SCHEMA = { type: 'array', items: STATUS_ITEM };
+const STRING_SCHEMA = { type: 'string' };
+const TAGS_SCHEMA = { type: 'array', items: STRING_SCHEMA };
+const TAGGED_PROPERTIES = { tags: TAGS_SCHEMA, id: STRING_SCHEMA };
+const TAGGED_SCHEMA = { type: 'object', required: ['tags', 'id'], properties: TAGGED_PROPERTIES };
+const TAGS_ONLY_SCHEMA = { ...TAGGED_SCHEMA, required: ['tags'] };
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const COMPONENTS = { schemas: EMPTY_SCHEMAS };
 const VALID: MissingVerdict = { valid: true, details: '', errors: [] };
@@ -44,6 +49,9 @@ const INVALID_LINES = [
   { qty: 0, sku: 'SKU-5' }
 ];
 const INVALID_FILL = { lines: INVALID_LINES };
+const ZERO_QUANTITY_ANSWER = { 'lines[*].qty': [0] };
+const ZERO_QUANTITY_LINES = [{ qty: 0 }, { qty: 0 }, { qty: 0 }, { qty: 0 }, { qty: 0 }];
+const ZERO_QUANTITY_FILL = { lines: ZERO_QUANTITY_LINES };
 
 const linePaths = (field: string): string[] =>
   Array.from({ length: LINE_COUNT }, (_value: unknown, index: number): string => `lines[${index}].${field}`);
@@ -68,6 +76,13 @@ const MISSING: MissingFile = {
 };
 const OPTIONS: AiFixtureOptions = { tool: 'claude', timeoutMs: 10000 };
 const REQUEST: AiMissingRequest = { fixture: FIXTURE, missing: MISSING, scenario: SCENARIO };
+const LIST_MISSING: MissingFile = { ...MISSING, paths: ['[0].status', '[1].status'], schema: LIST_SCHEMA };
+const LIST_FIXTURE = [{ id: 'a' }, { id: 'b' }];
+const LIST_REQUEST: AiMissingRequest = { ...REQUEST, fixture: LIST_FIXTURE, missing: LIST_MISSING };
+const TAGS_MISSING: MissingFile = { ...MISSING, paths: ['tags'], schema: TAGS_ONLY_SCHEMA };
+const TAGGED_MISSING: MissingFile = { ...MISSING, paths: ['tags', 'id'], schema: TAGGED_SCHEMA };
+const TAGS_REQUEST: AiMissingRequest = { ...REQUEST, fixture: {}, missing: TAGS_MISSING };
+const TAGGED_REQUEST: AiMissingRequest = { ...REQUEST, fixture: {}, missing: TAGGED_MISSING };
 
 const answer = (value: unknown): string => agentResponse('claude', JSON.stringify(value));
 
@@ -157,6 +172,19 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
       expect(error.problem).toMatch(/\/lines\/0\/qty/);
     });
 
+    it('WHEN the answer is prose with two fenced pattern answers THEN the rejection candidates are both expansions', async (): Promise<void> => {
+      const invalid = JSON.stringify(INVALID_ANSWER);
+      const zeroQuantity = JSON.stringify(ZERO_QUANTITY_ANSWER);
+      const text = `Here are two options.\n\n\`\`\`json\n${invalid}\n\`\`\`\n\nOr:\n\n\`\`\`json\n${zeroQuantity}\n\`\`\``;
+      const expected = [ZERO_QUANTITY_FILL, INVALID_FILL, ZERO_QUANTITY_FILL, INVALID_FILL];
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', text));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', REQUEST));
+
+      expect(error.candidates).toStrictEqual(expected);
+    });
+
     it('WHEN one pattern is left out THEN its paths stay absent and the projection rejects the fill', async (): Promise<void> => {
       const partial = { 'lines[*].qty': [2] };
 
@@ -170,16 +198,55 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
 
   describe('GIVEN a list fixture whose elements lack a status', (): void => {
     it('WHEN the harness answers by pattern THEN returns the expanded list', async (): Promise<void> => {
-      const listMissing: MissingFile = { ...MISSING, paths: ['[0].status', '[1].status'], schema: LIST_SCHEMA };
-      const fixture = [{ id: 'a' }, { id: 'b' }];
-      const list: AiMissingRequest = { ...REQUEST, fixture, missing: listMissing };
       const listAnswer = { '[*].status': ['draft', 'open'] };
 
       vi.mocked(runAgent).mockResolvedValue(answer(listAnswer));
 
-      const result = await aiMissingFixture(OPTIONS)('invoice', list);
+      const result = await aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST);
 
       expect(result).toStrictEqual([{ status: 'draft' }, { status: 'open' }]);
+    });
+
+    it('WHEN the harness answers a bare number THEN rejects instead of accepting an empty list', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(answer(42));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST));
+
+      expect(error.problem).toBe('/: must be array');
+    });
+
+    it('WHEN the pattern holds no examples THEN rejects instead of accepting an empty list', async (): Promise<void> => {
+      const emptyAnswer = { '[*].status': [] };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(emptyAnswer));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST));
+
+      expect(error.problem).toBe('/: must be array');
+    });
+  });
+
+  describe('GIVEN an order lacking its top-level tags array', (): void => {
+    it('WHEN the harness answers the concrete tags THEN returns them instead of reading them as examples', async (): Promise<void> => {
+      const concrete = { tags: ['a', 'b'] };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(concrete));
+
+      const result = await aiMissingFixture(OPTIONS)('invoice', TAGS_REQUEST);
+
+      expect(result).toStrictEqual(concrete);
+      expect(runAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('WHEN the concrete answer also holds another missing key THEN returns it whole', async (): Promise<void> => {
+      const concrete = { tags: ['a', 'b'], id: 'ord_1' };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(concrete));
+
+      const result = await aiMissingFixture(OPTIONS)('invoice', TAGGED_REQUEST);
+
+      expect(result).toStrictEqual(concrete);
+      expect(runAgent).toHaveBeenCalledTimes(1);
     });
   });
 });

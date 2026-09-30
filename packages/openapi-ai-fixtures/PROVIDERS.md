@@ -179,15 +179,16 @@ Implementation: [Claude adapter](./src/agent-provider/domain-logic/claude-genera
 
 ### Invocation and capabilities
 
-| Item                  | Adapter contract                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Executable            | `claude`                                                                                                                                                             |
-| Exact argument vector | `-p --input-format text --output-format json --safe-mode --tools "" --disallowedTools mcp__* --strict-mcp-config --no-session-persistence --permission-prompts none` |
-| Empty argument        | The value immediately following `--tools` is an actual empty-string argv element (`""` in the table), not an omitted option.                                         |
-| stdin                 | The complete fixture-enrichment request as UTF-8 text; stdin is then closed.                                                                                         |
-| Files and environment | No files staged outside [file mode](#file-mode); no provider-specific environment overlay. Normal environment/authentication is inherited.                           |
-| Required capability   | An installed, authenticated Claude Code CLI that accepts this print-mode JSON contract and flags.                                                                    |
-| Model selection       | `--model <slug>` is appended when a non-`default` model is selected; nothing is appended otherwise.                                                                  |
+| Item                  | Adapter contract                                                                                                                                                                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Executable            | `claude`                                                                                                                                                                                                                                                                                              |
+| Exact argument vector | `-p --input-format text --output-format json --safe-mode --tools "" --disallowedTools mcp__* --strict-mcp-config --no-session-persistence --permission-prompts none`                                                                                                                                  |
+| File-mode vector      | With staged files (see [file mode](#file-mode)): `-p --input-format text --output-format json --safe-mode --tools Read,Grep,Glob --disallowedTools mcp__* --strict-mcp-config --no-session-persistence --permission-prompts none --restricted`, run in the scratch directory holding `baseline.json`. |
+| Empty argument        | The value immediately following `--tools` is an actual empty-string argv element (`""` in the table), not an omitted option.                                                                                                                                                                          |
+| stdin                 | The complete fixture-enrichment request as UTF-8 text; stdin is then closed.                                                                                                                                                                                                                          |
+| Files and environment | No files staged outside [file mode](#file-mode); no provider-specific environment overlay. Normal environment/authentication is inherited.                                                                                                                                                            |
+| Required capability   | An installed, authenticated Claude Code CLI that accepts this print-mode JSON contract and flags.                                                                                                                                                                                                     |
+| Model selection       | `--model <slug>` is appended when a non-`default` model is selected; nothing is appended otherwise.                                                                                                                                                                                                   |
 
 ### Result and failure framing
 

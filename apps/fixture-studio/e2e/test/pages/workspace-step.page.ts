@@ -8,18 +8,25 @@ const workspaceRegion = (page: Page): Locator => page.getByRole('region', { name
 /** Endpoint tabs are named by their endpoint id, `METHOD /path`; format sub-tabs by their label. */
 const endpointTabs = (page: Page): Locator => workspaceRegion(page).getByRole('tab', { name: /^[A-Z]+ \//u });
 
-/** Visited endpoint tabs keep their panel rendered off screen; only the selected one is visible. */
-const activePanel = (page: Page): Locator => workspaceRegion(page).getByRole('tabpanel').filter({ visible: true });
+/**
+ * Visited endpoint tabs keep their panel rendered off screen; only the selected one is visible. An endpoint panel holds
+ * the format tab list, which tells it apart from the format panels nested inside it. Only the chosen format is rendered.
+ */
+const activePanel = (page: Page): Locator => {
+  const formatList = page.getByRole('tablist', { name: 'Fixture formats' });
 
-/** A document's folding section: `<summary>` has no ARIA role of its own, so this one locator reads the element. */
-const documentSummary = (page: Page, label: string): Locator => activePanel(page).locator('summary').filter({ hasText: label });
+  return workspaceRegion(page).getByRole('tabpanel').filter({ visible: true, has: formatList });
+};
+
+/** A format tab is named by its label, then its file name. */
+const formatTabs = (page: Page): Locator => activePanel(page).getByRole('tab');
 
 export const openEndpointTab = async (page: Page, endpointId: string): Promise<void> => {
   await workspaceRegion(page).getByRole('tab', { name: endpointId, exact: true }).click();
 };
 
-export const openDocument = async (page: Page, label: string): Promise<void> => {
-  await documentSummary(page, label).click();
+export const openFormatTab = async (page: Page, label: string): Promise<void> => {
+  await formatTabs(page).filter({ hasText: label }).click();
 };
 
 export const copyDocument = async (page: Page): Promise<void> => {
@@ -48,10 +55,10 @@ export const expectEndpointTabs = async (page: Page, endpointIds: string[]): Pro
   await expect(tabs).toHaveText(endpointIds);
 };
 
-export const expectDocuments = async (page: Page, labels: string[]): Promise<void> => {
-  const summaries = activePanel(page).locator('summary');
+export const expectFormatTabs = async (page: Page, labels: string[]): Promise<void> => {
+  const tabs = formatTabs(page);
 
-  await expect(summaries).toContainText(labels);
+  await expect(tabs).toContainText(labels);
 };
 
 /** CodeMirror's content element is the textbox named after the file it shows. */

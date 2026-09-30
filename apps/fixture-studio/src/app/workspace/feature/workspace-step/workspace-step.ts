@@ -8,8 +8,8 @@ import { MethodBadge } from '../../../shared/method-badge/ui/method-badge/method
 import { FixtureGeneration } from '../../../spec/domain-logic/fixture-generation.service.ts';
 
 /**
- * Step three: one tab per generated endpoint, each holding its documents as folding sections. The chosen tab is the
- * endpoint that Compare, Missing values and AI fill follow.
+ * Step three: one tab per generated endpoint, each holding a sub-tab per document format. The chosen endpoint tab is
+ * the endpoint that Compare, Missing values and AI fill follow.
  */
 @Component({
   selector: 'fs-workspace-step',

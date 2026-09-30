@@ -1,5 +1,6 @@
-// The endpoint strip reads as a row of open files, sunken with the active one lifted to the panel color. Material
-// renders the header itself, so the rule lives here, scoped by the component tag.
+// Two levels of tabs: endpoints outside, formats inside. The endpoint strip reads as a row of open files, sunken
+// with the active one lifted to the panel color, so it never looks like the format tabs nested under it. Material
+// renders the header itself, so the rules live here, scoped by the component tag.
 fs-workspace-step .workspace__tabs > .mat-mdc-tab-header {
   background: var(--fs-surface-sunken);
   border-radius: var(--fs-radius-md) var(--fs-radius-md) 0 0;
@@ -7,4 +8,10 @@ fs-workspace-step .workspace__tabs > .mat-mdc-tab-header {
 
 fs-workspace-step .workspace__tabs > .mat-mdc-tab-header .mdc-tab--active {
   background: var(--fs-surface);
+}
+
+// On a narrow screen the format tabs wrap onto a second row instead of hiding behind pagination arrows (the group
+// sets disablePagination). Scoped to the inner group, so the endpoint strip keeps its single row.
+fs-workspace-step .workspace__formats .mat-mdc-tab-labels {
+  flex-wrap: wrap;
 }

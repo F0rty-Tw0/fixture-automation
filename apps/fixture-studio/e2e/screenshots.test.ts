@@ -11,7 +11,7 @@ import { continueToAiFill, expectMissingPaths } from './test/pages/missing-value
 import { expectSpecLoaded, loadSpecFromUrl, openStudio } from './test/pages/spec-step.page.ts';
 import { SPEC_URL } from './test/pages/studio.page.ts';
 import { openInvoiceCompare, workbenchRoutes } from './test/pages/workbench.page.ts';
-import { expectCode, expectEndpointTabs, openDocument } from './test/pages/workspace-step.page.ts';
+import { expectCode, expectEndpointTabs, openFormatTab } from './test/pages/workspace-step.page.ts';
 import { GENERATE_RESULT_STUB, LOADED_SPEC_STUB } from './test/stubs/studio-api.stub.ts';
 import { DIFF_RESULT_STUB } from './test/stubs/workbench.stub.ts';
 import { apiRoute } from './test/utils/route.spec.util.ts';
@@ -53,7 +53,7 @@ test.describe('FEATURE: screenshots of every step', () => {
       await test.step('AND the JSON document is captured', async (): Promise<void> =>
         capture(page, variant.name, '04-workspace-json'));
 
-      await test.step('WHEN the TS stub section is opened', async (): Promise<void> => openDocument(page, 'TS stub'));
+      await test.step('WHEN the TS stub tab is opened', async (): Promise<void> => openFormatTab(page, 'TS stub'));
 
       await test.step('THEN the editor shows the invoice stub', async (): Promise<void> =>
         expectCode(page, 'invoice.stub.ts', 'export const INVOICE_STUB'));

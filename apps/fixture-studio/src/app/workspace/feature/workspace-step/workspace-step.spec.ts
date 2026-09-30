@@ -25,6 +25,9 @@ const LIST_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, json: '{}', 
 const CREATE_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, endpointId: CREATE_INVOICE.id, schemaName: 'Invoice', json: '{}' };
 const RESULT: GenerateResult = { fixtures: [LIST_FIXTURE, CREATE_FIXTURE] };
 
+const ENDPOINT_TABS = MatTabGroupHarness.with({ selector: '.workspace__tabs' });
+const FORMAT_TABS = MatTabGroupHarness.with({ selector: '.workspace__formats' });
+
 const tabLabels = (fixture: ComponentFixture<WorkspaceStep>): string[] => textsAt(fixture, '.workspace__tab-label');
 
 describe('FEATURE: WorkspaceStep', (): void => {
@@ -82,21 +85,18 @@ describe('FEATURE: WorkspaceStep', (): void => {
       expect(tabLabels(fixture)).toStrictEqual(['GET /v1/invoices', 'POST /v1/invoices']);
     });
 
-    it('WHEN the API answers THEN the first document is open and the others fold', async (): Promise<void> => {
+    it('WHEN the API answers THEN the endpoint offers a sub-tab per format, labelled with its file name', async (): Promise<void> => {
       await answerGenerate(http, 'spec-1', RESULT);
-      await fixture.whenStable();
+      const formats = await TestbedHarnessEnvironment.loader(fixture).getHarness(FORMAT_TABS);
+      const tabs = await formats.getTabs();
+      const labels = await Promise.all(tabs.map(async (tab) => tab.getLabel()));
 
-      const matches = hostOf(fixture).querySelectorAll<HTMLDetailsElement>('.workspace__document');
-      const documents = [...matches];
-      const openStates = documents.map((document) => document.open);
-
-      expect(textsAt(fixture, '.workspace__file')).toStrictEqual(['InvoiceList.json', 'InvoiceList.stub.ts']);
-      expect(openStates).toStrictEqual([true, false]);
+      expect(labels).toStrictEqual(['JSON fixture InvoiceList.json', 'TS stub InvoiceList.stub.ts']);
     });
 
     it('WHEN another endpoint tab is chosen THEN it becomes the endpoint the later steps follow', async (): Promise<void> => {
       await answerGenerate(http, 'spec-1', RESULT);
-      const tabs = await TestbedHarnessEnvironment.loader(fixture).getHarness(MatTabGroupHarness);
+      const tabs = await TestbedHarnessEnvironment.loader(fixture).getHarness(ENDPOINT_TABS);
 
       await tabs.selectTab({ label: 'POST /v1/invoices' });
 

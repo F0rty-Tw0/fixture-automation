@@ -10,7 +10,7 @@ One page, six steps on a rail. Each step's heading folds it away; the active ste
 
 1. **Spec** — load an OpenAPI JSON spec from an `http(s)` URL, or drop a local `.json` file.
 2. **Endpoints** — filter by path, tag, or method; pick one or more; optional "Required fields only".
-3. **Generate** — one tab per endpoint; each format is a folding section: JSON fixture (`.json`), typed TS stub (`.stub.ts`), types (`.d.ts`). The chosen tab is the endpoint steps 4–6 follow.
+3. **Generate** — one tab per endpoint, with a sub-tab per format: JSON fixture (`.json`), typed TS stub (`.stub.ts`), types (`.d.ts`). The chosen tab is the endpoint steps 4–6 follow.
 4. **Compare** — drop or paste an existing fixture. The envelope property (e.g. `data`) is detected and preselected; change it to compare again. The diff has a change map beside it: click a mark, or use Previous/Next change.
 5. **Missing & broken values** — the missing paths, grouped by their first key, and the present values that are broken (path, value, reason). Fix broken values (AI fill rewrites them) or keep them. Then **Continue to AI fill**.
 6. **Fill with AI** — an optional extra prompt (scenario), then fill; the answer streams into the log as one block, and the result is merged and validated against the schema.

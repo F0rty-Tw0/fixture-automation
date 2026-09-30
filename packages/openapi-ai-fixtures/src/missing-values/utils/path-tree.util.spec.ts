@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { pathTree, valueAtPath } from './path-tree.util.ts';
 import type { PathValue } from '../common/missing.type.ts';
@@ -83,6 +83,26 @@ describe('FEATURE: fill paths', (): void => {
       const tree = pathTree([], false);
 
       expect(tree).toStrictEqual({});
+    });
+  });
+
+  describe('GIVEN a path through an inherited key', (): void => {
+    afterEach((): void => {
+      Reflect.deleteProperty(Object.prototype, 'polluted');
+    });
+
+    it('WHEN built into a tree THEN Object.prototype stays untouched', (): void => {
+      const polluted: PathValue = { path: '__proto__.polluted', value: 1 };
+
+      pathTree([polluted], false);
+
+      expect(Object.hasOwn(Object.prototype, 'polluted')).toBe(false);
+    });
+
+    it('WHEN read THEN returns undefined, not the inherited value', (): void => {
+      const value = valueAtPath({}, 'constructor');
+
+      expect(value).toBeUndefined();
     });
   });
 });

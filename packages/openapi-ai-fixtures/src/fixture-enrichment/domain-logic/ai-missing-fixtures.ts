@@ -1,3 +1,5 @@
+import { isRecord } from '@fixture-automation/shared';
+
 import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
 import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
@@ -102,6 +104,20 @@ const preferredAlternatives = (alternatives: unknown[], isList: boolean): unknow
 };
 
 /**
+ * The answer as written when expansion changed it and it is an object or list: a concrete answer for a top-level
+ * array field (`{ "tags": ["a", "b"] }`) also reads as a pattern answer, which expansion would turn into `"a"`.
+ */
+const unexpandedAnswer = (value: unknown, fill: unknown): unknown[] => {
+  const isExpanded = value !== fill;
+  const isContainer = isRecord(value) || Array.isArray(value);
+  const isRawFill = isExpanded && isContainer;
+
+  if (!isRawFill) return [];
+
+  return [value];
+};
+
+/**
  * Expands each parsed pattern answer to its concrete fill and judges that against the projection, counting only the
  * errors that touch a missing path: sparse indices leave array holes, and the projection's collapsed `items` requires
  * every missing key on every item, neither of which the merge ever writes. When the parser's best-ranked value fails,
@@ -145,7 +161,10 @@ const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: M
       return undefined;
     }
 
-    for (const alternative of preferredAlternatives(alternatives, isList)) {
+    const raw = unexpandedAnswer(value, fill);
+    const preferred = preferredAlternatives(alternatives, isList);
+
+    for (const alternative of [...raw, ...preferred]) {
       const alternativeProblem = await problemOf(alternative);
 
       if (alternativeProblem !== undefined) continue;

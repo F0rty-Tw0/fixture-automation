@@ -23,6 +23,11 @@ const STATUS_SCHEMA = { type: 'string', enum: ['draft', 'open'] };
 const STATUS_PROPERTIES = { status: STATUS_SCHEMA };
 const STATUS_ITEM = { type: 'object', required: ['status'], properties: STATUS_PROPERTIES };
 const LIST_SCHEMA = { type: 'array', items: STATUS_ITEM };
+const STRING_SCHEMA = { type: 'string' };
+const TAGS_SCHEMA = { type: 'array', items: STRING_SCHEMA };
+const TAGGED_PROPERTIES = { tags: TAGS_SCHEMA, id: STRING_SCHEMA };
+const TAGGED_SCHEMA = { type: 'object', required: ['tags', 'id'], properties: TAGGED_PROPERTIES };
+const TAGS_ONLY_SCHEMA = { ...TAGGED_SCHEMA, required: ['tags'] };
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const COMPONENTS = { schemas: EMPTY_SCHEMAS };
 const VALID: MissingVerdict = { valid: true, details: '', errors: [] };
@@ -71,6 +76,10 @@ const REQUEST: AiMissingRequest = { fixture: FIXTURE, missing: MISSING, scenario
 const LIST_MISSING: MissingFile = { ...MISSING, paths: ['[0].status', '[1].status'], schema: LIST_SCHEMA };
 const LIST_FIXTURE = [{ id: 'a' }, { id: 'b' }];
 const LIST_REQUEST: AiMissingRequest = { ...REQUEST, fixture: LIST_FIXTURE, missing: LIST_MISSING };
+const TAGS_MISSING: MissingFile = { ...MISSING, paths: ['tags'], schema: TAGS_ONLY_SCHEMA };
+const TAGGED_MISSING: MissingFile = { ...MISSING, paths: ['tags', 'id'], schema: TAGGED_SCHEMA };
+const TAGS_REQUEST: AiMissingRequest = { ...REQUEST, fixture: {}, missing: TAGS_MISSING };
+const TAGGED_REQUEST: AiMissingRequest = { ...REQUEST, fixture: {}, missing: TAGGED_MISSING };
 
 const answer = (value: unknown): string => agentResponse('claude', JSON.stringify(value));
 
@@ -198,6 +207,30 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
       const error = await rejection(aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST));
 
       expect(error.problem).toBe('/: must be array');
+    });
+  });
+
+  describe('GIVEN an order lacking its top-level tags array', (): void => {
+    it('WHEN the harness answers the concrete tags THEN returns them instead of reading them as examples', async (): Promise<void> => {
+      const concrete = { tags: ['a', 'b'] };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(concrete));
+
+      const result = await aiMissingFixture(OPTIONS)('invoice', TAGS_REQUEST);
+
+      expect(result).toStrictEqual(concrete);
+      expect(runAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('WHEN the concrete answer also holds another missing key THEN returns it whole', async (): Promise<void> => {
+      const concrete = { tags: ['a', 'b'], id: 'ord_1' };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(concrete));
+
+      const result = await aiMissingFixture(OPTIONS)('invoice', TAGGED_REQUEST);
+
+      expect(result).toStrictEqual(concrete);
+      expect(runAgent).toHaveBeenCalledTimes(1);
     });
   });
 });

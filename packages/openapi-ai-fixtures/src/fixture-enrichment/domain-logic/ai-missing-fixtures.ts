@@ -1,13 +1,15 @@
 import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
 import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import type { MissingPattern, PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
+import { missingPatterns } from '../../missing-patterns/utils/path-pattern.util.ts';
+import { expandedFill } from '../../missing-patterns/utils/pattern-expand.util.ts';
 import { MISSING_SCHEMA_NAME } from '../../missing-values/common/missing.const.ts';
 import type {
   AiMissingFactory,
   AiMissingRequest,
   MissingFile,
   MissingFill,
-  MissingPromptInput,
   MissingValidator,
   MissingVerdict
 } from '../../missing-values/common/missing.type.ts';
@@ -19,7 +21,7 @@ import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
 import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
-import { missingPrompt } from '../utils/fixture-prompt.util.ts';
+import { patternPrompt } from '../utils/fixture-prompt.util.ts';
 
 const NOT_OBJECT = 'the fill must be one JSON object';
 const NOT_LIST = 'the fill must be one JSON array';
@@ -70,7 +72,7 @@ const checkedFill = async (request: AgentRequest, check: FixtureCheck, candidate
 
 type FillJudge = {
   readonly check: FixtureCheck;
-  /** Every parsed value, each answer's alternatives before its chosen value, in attempt order. */
+  /** Every parsed value expanded to a concrete fill, each answer's alternatives before its chosen value, in attempt order. */
   readonly candidates: unknown[];
   /** The value the last passing `check` accepted: the chosen one, or an alternative from the same answer. */
   readonly accepted: () => unknown;
@@ -98,11 +100,11 @@ const preferredAlternatives = (alternatives: unknown[], isList: boolean): unknow
 };
 
 /**
- * Judges each parsed answer against the projection. When the parser's best-ranked value fails, another JSON value
- * from the same answer that fits is accepted instead, so a correct answer next to a bigger or differently shaped one
- * costs no repair run.
+ * Expands each parsed pattern answer to its concrete fill and judges that against the projection. When the parser's
+ * best-ranked value fails, another JSON value from the same answer that fits is accepted instead, so a correct answer
+ * next to a bigger or differently shaped one costs no repair run.
  */
-const fillJudge = (missing: MissingFile, validate: MissingValidator): FillJudge => {
+const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: MissingPattern[]): FillJudge => {
   const isList = isListFill(missing.paths);
   const wrongShape = wrongShapeOf(missing);
   const candidates: unknown[] = [];
@@ -118,18 +120,23 @@ const fillJudge = (missing: MissingFile, validate: MissingValidator): FillJudge 
     return verdict.details || wrongShape;
   };
 
-  const check = async (value: unknown, parsed: AgentJson): Promise<string | undefined> => {
-    candidates.push(...parsed.alternatives, value);
+  const expanded = (value: unknown): MissingFill => expandedFill(value, patterns, isList);
 
-    const problem = await problemOf(value);
+  const check = async (value: unknown, parsed: AgentJson): Promise<string | undefined> => {
+    const fill = expanded(value);
+    const alternatives = parsed.alternatives.map(expanded);
+
+    candidates.push(...alternatives, fill);
+
+    const problem = await problemOf(fill);
 
     if (problem === undefined) {
-      accepted = value;
+      accepted = fill;
 
       return undefined;
     }
 
-    for (const alternative of preferredAlternatives(parsed.alternatives, isList)) {
+    for (const alternative of preferredAlternatives(alternatives, isList)) {
       const alternativeProblem = await problemOf(alternative);
 
       if (alternativeProblem !== undefined) continue;
@@ -170,11 +177,13 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
 
     if (typeof fixtureJson !== 'string') throw new Error('the existing fixture must be JSON-serializable');
 
+    const fixture: unknown = JSON.parse(fixtureJson);
     const document = missingDocument(missing);
+    const patterns = missingPatterns(missing.paths);
     const validate = request.validate ?? inProcessValidator(missing);
-    const { accepted, candidates, check } = fillJudge(missing, validate);
-    const input: MissingPromptInput = { fixtureJson, missing: document, scenario };
-    const prompt = missingPrompt(input);
+    const { accepted, candidates, check } = fillJudge(missing, validate, patterns);
+    const input: PatternPromptInput = { fixture, missing: document, patterns, scenario };
+    const prompt = patternPrompt(input);
     const agentRequest: AgentRequest = { prompt, options };
     const generated = await checkedFill(agentRequest, check, candidates);
     const result = accepted();

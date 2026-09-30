@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readsFiles } from './file-mode.util.ts';
+import { readsFiles, withReadFilesEnv } from './file-mode.util.ts';
 import type { AiFixtureOptions, AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 
 describe('FEATURE: agent file mode', (): void => {
@@ -54,5 +54,34 @@ describe('FEATURE: agent file mode', (): void => {
 
       expect(isFileMode).toBe(false);
     });
+  });
+
+  describe('GIVEN OPENAPI_AI_READ_FILES', (): void => {
+    it('WHEN it is 0 and the caller did not choose THEN file mode is off', (): void => {
+      const options: AiFixtureOptions = { tool: 'claude' };
+
+      const resolved = withReadFilesEnv(options, '0');
+
+      expect(resolved).toStrictEqual({ tool: 'claude', readsFiles: false });
+    });
+
+    it('WHEN it is 0 and the caller forced file mode on THEN the caller wins', (): void => {
+      const options: AiFixtureOptions = { tool: 'claude', readsFiles: true };
+
+      const resolved = withReadFilesEnv(options, '0');
+
+      expect(resolved).toBe(options);
+    });
+
+    it.each<string | undefined>([undefined, '1', 'false', ''])(
+      'WHEN it is %s THEN the options are unchanged',
+      (value: string | undefined): void => {
+        const options: AiFixtureOptions = { tool: 'claude' };
+
+        const resolved = withReadFilesEnv(options, value);
+
+        expect(resolved).toBe(options);
+      }
+    );
   });
 });

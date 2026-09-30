@@ -2,6 +2,7 @@ import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
 import { CODEX_DIGEST_ONLY } from '../../agent-provider/common/agent-provider.const.ts';
 import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import { withReadFilesEnv } from '../../agent-provider/utils/file-mode.util.ts';
 import type { MissingPattern, PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
 import { missingPatterns } from '../../missing-patterns/utils/path-pattern.util.ts';
 import { expandedFill } from '../../missing-patterns/utils/pattern-expand.util.ts';
@@ -170,8 +171,10 @@ const reportDigestOnly = (options: AiFixtureOptions): void => {
  * unusable after the repair round rejects with an `AiFillRejectedError` holding every answer that parsed.
  * The diff's `missing.json` is self-contained, so the OpenAPI document is never loaded here.
  */
-export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory => {
-  parseAiTool(options.tool);
+export const aiMissingFixture = (chosen: AiFixtureOptions): AiMissingFactory => {
+  parseAiTool(chosen.tool);
+
+  const options = withReadFilesEnv(chosen, process.env['OPENAPI_AI_READ_FILES']);
 
   const enrich = async (name: string, request: AiMissingRequest): Promise<MissingFill> => {
     options.signal?.throwIfAborted();

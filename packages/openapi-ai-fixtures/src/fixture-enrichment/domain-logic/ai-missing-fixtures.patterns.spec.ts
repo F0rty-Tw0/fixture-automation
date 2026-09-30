@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { aiMissingFixture } from './ai-missing-fixtures.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
@@ -229,6 +229,31 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
         'restrictions',
         'Do not access tools, code, project files, or external resources.'
       );
+    });
+  });
+
+  describe('GIVEN OPENAPI_AI_READ_FILES=0 and no readsFiles override', (): void => {
+    beforeEach((): void => {
+      vi.stubEnv('OPENAPI_AI_READ_FILES', '0');
+      vi.mocked(runAgent).mockResolvedValue(answer(PATTERN_ANSWER));
+    });
+
+    afterEach((): void => {
+      vi.unstubAllEnvs();
+    });
+
+    it('WHEN Claude answers THEN nothing is staged', async (): Promise<void> => {
+      await aiMissingFixture(OPTIONS)('invoice', REQUEST);
+
+      expect(agentCommand(vi.mocked(runAgent).mock.calls).files).toStrictEqual([]);
+    });
+
+    it('WHEN the caller forces file mode on THEN the baseline is still staged', async (): Promise<void> => {
+      const reading: AiFixtureOptions = { ...OPTIONS, readsFiles: true };
+
+      await aiMissingFixture(reading)('invoice', REQUEST);
+
+      expect(agentPrompt()['files']).toStrictEqual({ baseline: 'baseline.json' });
     });
   });
 

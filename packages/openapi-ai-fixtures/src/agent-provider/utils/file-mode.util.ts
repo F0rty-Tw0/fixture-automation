@@ -7,3 +7,14 @@ export const readsFiles = (options: AiFixtureOptions): boolean => {
 
   return options.readsFiles ?? FILE_MODE_TOOLS[options.tool];
 };
+
+/** `options` with file mode off when `OPENAPI_AI_READ_FILES` is `0` and the caller left `readsFiles` unset; any other value changes nothing. */
+export const withReadFilesEnv = (options: AiFixtureOptions, readFilesEnv: string | undefined): AiFixtureOptions => {
+  const isSwitchedOff = options.readsFiles === undefined && readFilesEnv === '0';
+
+  if (!isSwitchedOff) return options;
+
+  const digestOnly: AiFixtureOptions = { ...options, readsFiles: false };
+
+  return digestOnly;
+};

@@ -21,6 +21,15 @@ export default defineConfig([
     }
   },
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/out-tsc/**', '.nx/**', '.angular/**', '**/coverage/**', '**/tmp/**', '**/test/fixtures/**']
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/out-tsc/**',
+      '.nx/**',
+      '.angular/**',
+      '**/coverage/**',
+      '**/tmp/**',
+      '**/test/fixtures/**'
+    ]
   }
 ]);

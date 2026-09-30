@@ -33,8 +33,8 @@ export type AiFixtureOptions = {
   readonly recoveryFile?: string;
   /**
    * Whether a missing-field fill stages the baseline as `baseline.json` for the agent to read and search, overriding
-   * the tool's default in `FILE_MODE_TOOLS` and the `OPENAPI_AI_READ_FILES=0` switch. Codex ignores `true` and always
-   * gets the digest only.
+   * the tool's default in `FILE_MODE_TOOLS` and the `OPENAPI_AI_READ_FILES` off switch (`0`, `false`, `off` or `no`).
+   * Codex ignores `true` and always gets the digest only.
    */
   readonly readsFiles?: boolean;
 };

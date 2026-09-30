@@ -61,8 +61,9 @@ files, run commands, or use the network. The file is indented JSON, one value pe
 overlong lines and read tools page by line. Without file mode the prompt carries the digest only and forbids every tool.
 
 `FILE_MODE_TOOLS` in [agent-provider.const.ts](./src/agent-provider/common/agent-provider.const.ts) sets each tool's
-default. To turn file mode off without a code change, set `OPENAPI_AI_READ_FILES=0` in the environment of the CLI, the
-wizard or the studio API, or pass `--no-read-files` to the CLI; any other value of the variable changes nothing.
+default. To turn file mode off without a code change, set `OPENAPI_AI_READ_FILES` to `0`, `false`, `off` or `no`
+(trimmed, any case) in the environment of the CLI, the wizard or the studio API, or pass `--no-read-files` to the CLI;
+any other value of the variable changes nothing.
 `AiFixtureOptions.readsFiles` overrides both the default and the variable. The staged file reaches both the first attempt and the repair
 round. Adapters switch to the flags below only when the request stages at least one file.
 

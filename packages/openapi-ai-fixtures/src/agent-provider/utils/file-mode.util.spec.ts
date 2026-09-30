@@ -57,13 +57,16 @@ describe('FEATURE: agent file mode', (): void => {
   });
 
   describe('GIVEN OPENAPI_AI_READ_FILES', (): void => {
-    it('WHEN it is 0 and the caller did not choose THEN file mode is off', (): void => {
-      const options: AiFixtureOptions = { tool: 'claude' };
+    it.each<string>(['0', 'false', 'off', 'no', 'FALSE', ' Off ', 'No'])(
+      'WHEN it is "%s" and the caller did not choose THEN file mode is off',
+      (value: string): void => {
+        const options: AiFixtureOptions = { tool: 'claude' };
 
-      const resolved = withReadFilesEnv(options, '0');
+        const resolved = withReadFilesEnv(options, value);
 
-      expect(resolved).toStrictEqual({ tool: 'claude', readsFiles: false });
-    });
+        expect(resolved).toStrictEqual({ tool: 'claude', readsFiles: false });
+      }
+    );
 
     it('WHEN it is 0 and the caller forced file mode on THEN the caller wins', (): void => {
       const options: AiFixtureOptions = { tool: 'claude', readsFiles: true };
@@ -73,7 +76,7 @@ describe('FEATURE: agent file mode', (): void => {
       expect(resolved).toBe(options);
     });
 
-    it.each<string | undefined>([undefined, '1', 'false', ''])(
+    it.each<string | undefined>([undefined, '1', 'true', 'on', 'yes', '', 'disabled'])(
       'WHEN it is %s THEN the options are unchanged',
       (value: string | undefined): void => {
         const options: AiFixtureOptions = { tool: 'claude' };

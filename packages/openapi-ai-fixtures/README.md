@@ -50,7 +50,7 @@ usage: openapi-ai-fixtures <spec-url> [schema-name] [out-file] [options]
   --executable <path>     absolute path to the harness binary
   --timeout <ms>          harness timeout in milliseconds (default 900000: 15 minutes)
   --no-read-files         with --missing, send the digest only instead of staging baseline.json
-                          for the harness to read (same as OPENAPI_AI_READ_FILES=0)
+                          for the harness to read (same as OPENAPI_AI_READ_FILES=0, false, off or no)
   --list-models           print the models the harness offers (default timeout 120000ms)
   -h, --help              print this help
 
@@ -58,22 +58,22 @@ Without --model a terminal prompts for one and a pipe uses the harness default.
 Live provider output and quiet-period status updates go to stderr; fixture JSON stays on stdout.
 ```
 
-| Flag                  | Required                | What it does                                                                                                                                                           |
-| --------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<spec-url>`          | Yes, unless `--missing` | `http(s)://` or `file://` URL of the JSON spec, not a bare path. With `--missing` the positionals are `[out-file]` only.                                               |
-| `<schema-name>`       | No                      | Key under `components.schemas`; defaults to the spec's `x-root-schema`. With `--missing`, not read: `missing.json` names it.                                           |
-| `[out-file]`          | No                      | Destination file; omitted prints JSON to stdout.                                                                                                                       |
-| `--fixture <file>`    | Yes                     | Existing JSON fixture to enrich. Not overwritten.                                                                                                                      |
-| `--scenario <text>`   | Yes, unless `--missing` | What the fixture should describe. With `--missing` it defaults to filling every gap coherently.                                                                        |
-| `--tool <name>`       | Yes                     | `claude`, `codex`, `antigravity`, `copilot`, or `gemini`.                                                                                                              |
-| `--missing <file>`    | No                      | `missing.json` from [`openapi-fixture-diff diff`](../openapi-fixture-diff/README.md); switches to gap-filling mode.                                                    |
-| `--model <slug>`      | No                      | Model passed to the tool. `default` keeps the harness default. Omitted: a terminal prompts, a pipe uses the default.                                                   |
-| `--ts <types-file>`   | No                      | Write a typed `.ts` stub instead of JSON; requires `out-file`.                                                                                                         |
-| `--executable <path>` | No                      | Absolute native executable or Node `.js`/`.cjs`/`.mjs` entrypoint, overriding the tool's normal command.                                                               |
-| `--timeout <ms>`      | No                      | Integer 1–2147483647; generation defaults to `900000` (15 minutes), model discovery to `120000` (2 minutes).                                                           |
-| `--no-read-files`     | No                      | With `--missing`, turn [file mode](./PROVIDERS.md#file-mode) off: the harness gets the digest only, with no staged `baseline.json`. Same as `OPENAPI_AI_READ_FILES=0`. |
-| `--list-models`       | No                      | Print the tool's models and exit; needs no spec, fixture, or scenario.                                                                                                 |
-| `-h, --help`          | No                      | Print usage and exit 0.                                                                                                                                                |
+| Flag                  | Required                | What it does                                                                                                                                                                                                |
+| --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<spec-url>`          | Yes, unless `--missing` | `http(s)://` or `file://` URL of the JSON spec, not a bare path. With `--missing` the positionals are `[out-file]` only.                                                                                    |
+| `<schema-name>`       | No                      | Key under `components.schemas`; defaults to the spec's `x-root-schema`. With `--missing`, not read: `missing.json` names it.                                                                                |
+| `[out-file]`          | No                      | Destination file; omitted prints JSON to stdout.                                                                                                                                                            |
+| `--fixture <file>`    | Yes                     | Existing JSON fixture to enrich. Not overwritten.                                                                                                                                                           |
+| `--scenario <text>`   | Yes, unless `--missing` | What the fixture should describe. With `--missing` it defaults to filling every gap coherently.                                                                                                             |
+| `--tool <name>`       | Yes                     | `claude`, `codex`, `antigravity`, `copilot`, or `gemini`.                                                                                                                                                   |
+| `--missing <file>`    | No                      | `missing.json` from [`openapi-fixture-diff diff`](../openapi-fixture-diff/README.md); switches to gap-filling mode.                                                                                         |
+| `--model <slug>`      | No                      | Model passed to the tool. `default` keeps the harness default. Omitted: a terminal prompts, a pipe uses the default.                                                                                        |
+| `--ts <types-file>`   | No                      | Write a typed `.ts` stub instead of JSON; requires `out-file`.                                                                                                                                              |
+| `--executable <path>` | No                      | Absolute native executable or Node `.js`/`.cjs`/`.mjs` entrypoint, overriding the tool's normal command.                                                                                                    |
+| `--timeout <ms>`      | No                      | Integer 1–2147483647; generation defaults to `900000` (15 minutes), model discovery to `120000` (2 minutes).                                                                                                |
+| `--no-read-files`     | No                      | With `--missing`, turn [file mode](./PROVIDERS.md#file-mode) off: the harness gets the digest only, with no staged `baseline.json`. Same as setting `OPENAPI_AI_READ_FILES` to `0`, `false`, `off` or `no`. |
+| `--list-models`       | No                      | Print the tool's models and exit; needs no spec, fixture, or scenario.                                                                                                                                      |
+| `-h, --help`          | No                      | Print usage and exit 0.                                                                                                                                                                                     |
 
 **Interactive.** In a terminal, a missing required input starts a prompt session on stderr: it asks for `spec-url`
 (skipped with `--missing`), `--fixture`, `--scenario` (skipped with `--missing`, which defaults it), and `--tool`,

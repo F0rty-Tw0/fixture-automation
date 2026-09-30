@@ -14,5 +14,8 @@ export const FILE_MODE_TOOLS: Record<AiTool, boolean> = {
   antigravity: false
 };
 
+/** `OPENAPI_AI_READ_FILES` values, trimmed and lower-cased, that turn file mode off. */
+export const READ_FILES_OFF_VALUES: string[] = ['0', 'false', 'off', 'no'];
+
 export const CODEX_DIGEST_ONLY =
   'Codex reads no files: its read-only sandbox cannot confine reads to the scratch directory, so it gets the digest only.\n';

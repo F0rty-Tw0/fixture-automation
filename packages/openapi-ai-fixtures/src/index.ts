@@ -12,6 +12,8 @@ export { missingDocument } from './missing-values/utils/missing-document.util.ts
 
 export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
 
+export { missingPatterns, pathPattern } from './missing-patterns/utils/path-pattern.util.ts';
+
 export { baselineContext } from './missing-patterns/utils/baseline-context.util.ts';
 
 export { missingCheck } from './missing-values/utils/missing-check.util.ts';
@@ -58,6 +60,8 @@ export type {
   MissingViolation,
   PathValue
 } from './missing-values/common/missing.type.ts';
+
+export type { MissingPattern, PatternPromptInput } from './missing-patterns/common/missing-pattern.type.ts';
 
 export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './model-discovery/common/model.type.ts';
 

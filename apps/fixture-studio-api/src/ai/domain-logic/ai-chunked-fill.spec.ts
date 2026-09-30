@@ -156,6 +156,12 @@ describe('FEATURE: chunked CLI fill', (): void => {
         expect(enrich.mock.calls.map(chunkPaths)).toStrictEqual([['status'], ['customer']]);
       });
 
+      it('THEN each chunk sends the full fixture, which the library digests and stages itself', (): void => {
+        const request = enrich.mock.calls[1]?.[1];
+
+        expect(request?.fixture).toBe(LARGE_INVOICE);
+      });
+
       it('THEN each chunk keeps the scenario and the worker validator', (): void => {
         const request = enrich.mock.calls[1]?.[1];
 

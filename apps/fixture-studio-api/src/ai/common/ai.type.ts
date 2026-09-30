@@ -40,7 +40,7 @@ export type MissingSalvager = (missing: MissingFile, candidates: unknown[], cont
 /** The paths of one sequential CLI run of a chunked fill. */
 export type FillChunk = {
   readonly paths: string[];
-  /** A lone path whose prompt alone exceeds the 1 MiB CLI input limit: no CLI runs, the sampler fills it. */
+  /** A lone path pattern whose prompt alone exceeds the 1 MiB CLI input limit: no CLI runs, the sampler fills its paths. */
   readonly isOversized: boolean;
 };
 

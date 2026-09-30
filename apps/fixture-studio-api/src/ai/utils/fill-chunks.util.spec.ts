@@ -13,6 +13,7 @@ const LARGE_INVOICE = { ...INVOICE, memo: 'm'.repeat(300 * 1024) };
 const HUGE_INVOICE = { ...INVOICE, memo: 'm'.repeat(1100 * 1024) };
 const LONG_SCENARIO = 's'.repeat(300 * 1024);
 const TEXT_SCHEMA = { type: 'string' };
+const DESCRIBED_SCHEMA = { ...TEXT_SCHEMA, description: 'd'.repeat(100 * 1024) };
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const EMPTY_COMPONENTS = { schemas: EMPTY_SCHEMAS };
 
@@ -29,10 +30,10 @@ const linePaths = (count: number, fields: number): string[] => {
   return Array.from({ length: count }, itemPaths).flat();
 };
 
-/** A projection of `count` lines each missing `fields` string fields: `fields` patterns of `count` paths. */
-const linesMissing = (count: number, fields: number): MissingFile => {
+/** A projection of `count` lines each missing `fields` fields of `fieldSchema`: `fields` patterns of `count` paths. */
+const linesMissing = (count: number, fields: number, fieldSchema: unknown = TEXT_SCHEMA): MissingFile => {
   const names = Array.from({ length: fields }, fieldName);
-  const entries = names.map((name: string): [string, unknown] => [name, TEXT_SCHEMA]);
+  const entries = names.map((name: string): [string, unknown] => [name, fieldSchema]);
   const properties = Object.fromEntries(entries);
   const items = { type: 'object', properties };
   const lines = { type: 'array', items };
@@ -141,6 +142,19 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
 
       expect(chunks.map(chunkPatterns)).toStrictEqual([['lines[*].f0'], ['lines[*].f1'], ['lines[*].f2'], ['lines[*].f3']]);
       expect(chunks.map(chunkSize)).toStrictEqual([10, 10, 10, 10]);
+    });
+  });
+
+  describe('GIVEN array patterns over the chunk budget together whose halves each fit it', (): void => {
+    it('WHEN planned THEN the slice is halved once, not down to single patterns', (): void => {
+      const lines = linesMissing(3, 4, DESCRIBED_SCHEMA);
+
+      const chunks = fillChunks(INVOICE, lines, SCENARIO);
+
+      expect(chunks.map(chunkPatterns)).toStrictEqual([
+        ['lines[*].f0', 'lines[*].f1'],
+        ['lines[*].f2', 'lines[*].f3']
+      ]);
     });
   });
 

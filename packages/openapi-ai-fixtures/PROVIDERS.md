@@ -96,17 +96,16 @@ Prerequisites: the repository cloned, `pnpm install`, and the CLI installed **an
 2. The spec stages a baseline whose **inside marker** sits off every missing path's parent chain, so only
    `baseline.json` holds it, and writes an **outside marker** file into the system temp directory, outside the scratch
    directory. The scenario asks the agent to copy both.
-3. It passes when all four cases pass: the prompt never carries the inside marker, the fill passes the missing
-   projection, the fill carries the inside marker (the agent read the staged file), and no response carries the
-   outside marker (reads stay in the scratch directory).
+3. It passes when all five cases pass: the prompt never carries the inside marker, the fill passes the missing
+   projection, the fill carries the inside marker (the agent read the staged file), the scratch directory holds only
+   the staged files after the agent exits (the agent wrote none), and no response carries the outside marker (reads
+   stay in the scratch directory).
 4. On pass, set that tool to `true` in `FILE_MODE_TOOLS` and put the printed CLI version in the commit message.
 5. On failure, paste the whole output back: after the run the spec prints both markers, the CLI version, every
    attempt's argument vector, and every raw response.
 6. Antigravity: a misspelled name in the profile's `tools:` can hang the run until the timeout. A hang or a missing
    inside marker points at the names; fix `READ_TOOLS` in the
    [Antigravity adapter](./src/agent-provider/domain-logic/antigravity-generation.ts) and rerun.
-
-The check does not inspect the scratch directory for files the agent wrote; the adapters deny write tools instead.
 
 A passing outside-marker case shows the outside file stayed unread, not why: the model may simply obey the prompt. The
 Claude run on 2026-09-30 declined the file itself (`permission_denials: []`), so the CLI's confinement was not

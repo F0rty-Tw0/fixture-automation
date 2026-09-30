@@ -4,7 +4,7 @@ import type { AgentJson } from '../../agent-provider/common/agent-provider.type.
 import type { MissingPattern } from '../../missing-patterns/common/missing-pattern.type.ts';
 import { expandedFill } from '../../missing-patterns/utils/pattern-expand.util.ts';
 import type { MissingFile, MissingValidator } from '../../missing-values/common/missing.type.ts';
-import { isListFill, isMissingFill } from '../../missing-values/utils/missing-fill.util.ts';
+import { isListFill, isMissingFill, missingOnly } from '../../missing-values/utils/missing-fill.util.ts';
 import { violatingErrors } from '../../missing-values/utils/violation-paths.util.ts';
 import { validationDetails } from '../../schema/utils/validation-message.util.ts';
 import type { FillJudge } from '../common/agent-fixture.type.ts';
@@ -52,7 +52,8 @@ const unexpandedAnswer = (value: unknown, fill: unknown): unknown[] => {
  * errors that touch a missing path: sparse indices leave array holes, and the projection's collapsed `items` requires
  * every missing key on every item, neither of which the merge ever writes. When the parser's best-ranked value fails,
  * another JSON value from the same answer that fits is accepted instead, so a correct answer next to a bigger or
- * differently shaped one costs no repair run.
+ * differently shaped one costs no repair run. The accepted value keeps only the missing paths, since the errors this
+ * judge ignores are exactly those outside them.
  */
 export const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: MissingPattern[]): FillJudge => {
   const isList = isListFill(missing.paths);
@@ -86,7 +87,7 @@ export const fillJudge = (missing: MissingFile, validate: MissingValidator, patt
     const problem = await problemOf(fill);
 
     if (problem === undefined) {
-      accepted = fill;
+      accepted = missingOnly(fill, missing.paths);
 
       return undefined;
     }
@@ -99,7 +100,7 @@ export const fillJudge = (missing: MissingFile, validate: MissingValidator, patt
 
       if (alternativeProblem !== undefined) continue;
 
-      accepted = alternative;
+      accepted = missingOnly(alternative, missing.paths);
 
       return undefined;
     }

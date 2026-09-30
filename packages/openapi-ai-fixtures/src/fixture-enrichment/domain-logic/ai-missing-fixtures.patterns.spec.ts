@@ -257,28 +257,35 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
     });
   });
 
-  describe('GIVEN Codex asked to read files', (): void => {
+  describe('GIVEN Codex', (): void => {
     const statuses: string[] = [];
     const onProgress = (progress: AiFixtureProgress): void => {
       if (progress.stream === 'status') statuses.push(progress.text);
     };
-    const codex: AiFixtureOptions = { tool: 'codex', readsFiles: true, onProgress };
+    const codex: AiFixtureOptions = { tool: 'codex', onProgress };
+    const readingCodex: AiFixtureOptions = { ...codex, readsFiles: true };
 
     beforeEach((): void => {
       statuses.length = 0;
       vi.mocked(runAgent).mockResolvedValue(agentResponse('codex', JSON.stringify(PATTERN_ANSWER)));
     });
 
-    it('WHEN the harness answers THEN one status line says why it gets the digest only', async (): Promise<void> => {
-      await aiMissingFixture(codex)('invoice', REQUEST);
+    it('WHEN asked to read files THEN one status line says why it gets the digest only', async (): Promise<void> => {
+      await aiMissingFixture(readingCodex)('invoice', REQUEST);
 
       expect(statuses).toStrictEqual([CODEX_DIGEST_ONLY]);
     });
 
-    it('WHEN the harness answers THEN the prompt names no files', async (): Promise<void> => {
-      await aiMissingFixture(codex)('invoice', REQUEST);
+    it('WHEN asked to read files THEN the prompt names no files', async (): Promise<void> => {
+      await aiMissingFixture(readingCodex)('invoice', REQUEST);
 
       expect(agentPrompt()).not.toHaveProperty('files');
+    });
+
+    it('WHEN no readsFiles override is given THEN no status line is reported', async (): Promise<void> => {
+      await aiMissingFixture(codex)('invoice', REQUEST);
+
+      expect(statuses).toStrictEqual([]);
     });
   });
 });

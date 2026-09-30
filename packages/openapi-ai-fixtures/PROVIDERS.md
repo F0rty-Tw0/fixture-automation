@@ -51,6 +51,71 @@ A second invalid response is saved and fails. Malformed transport envelopes/even
 
 The parsed fixture, including a corrected response, subsequently undergoes local schema validation. Schema-invalid responses are saved without retrying, and normal output remains untouched. Antigravity's `structured_output` is serialized to JSON for diagnostics; response strings are preserved verbatim. See the [CLI reference](./README.md#validation-and-failure-behavior).
 
+## File mode
+
+A missing-field fill (`aiMissingFixture`, the CLI `--missing` fill, the wizard and studio) can stage the whole baseline
+as `baseline.json` in the run's scratch directory and let the agent read and search it, on top of the inline digest.
+The prompt then gains `"files": { "baseline": "baseline.json" }` and its `restrictions` instruction says the agent may
+read and search only the listed files (search first, never read a large file whole) and must not write files, run
+commands, or use the network. Without file mode the prompt carries the digest only and forbids every tool.
+
+`FILE_MODE_TOOLS` in [agent-provider.const.ts](./src/agent-provider/common/agent-provider.const.ts) sets each tool's
+default; `AiFixtureOptions.readsFiles` overrides it. The staged file reaches both the first attempt and the repair
+round. Adapters switch to the flags below only when the request stages at least one file.
+
+| Provider           | Default | Flags and profile when files are staged                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code        | **on**  | `--tools Read,Grep,Glob` instead of `--tools ""`, plus `--restricted`, which confines file tools to the working directory. `--safe-mode` does not confine them (per `claude --help` 2.1.285).                                                                                                                                                                                                 |
+| Codex CLI          | **off** | None; `readsFiles: true` is ignored with one status line. Its read-only sandbox cannot confine reads to the scratch directory, so its shell tool would read the whole disk.                                                                                                                                                                                                                   |
+| Gemini CLI         | off     | `read_file`, `grep_search`, `glob` and `list_directory` leave `tools.exclude`; Gemini's default policy auto-allows them headless and confines them to the workspace ([read-only.toml][gemini-policy], [file-system.md][gemini-fs]). `read_many_files` stays excluded: headless mode denies it without a `tools.allowed` rule.                                                                 |
+| GitHub Copilot CLI | off     | Agent profile `tools: [read, search]`, `--available-tools=view,grep,glob`, `read` leaves `--deny-tool` (`--deny-tool=shell,write,url,memory`), and `--disallow-temp-dir` ([command reference][copilot-cli], [custom agents][copilot-agents]). Unverified live: whether `--disallow-temp-dir` still lets it read the scratch directory, which sits in the temp directory.                      |
+| Antigravity        | off     | Agent profile `tools: [view_file, list_dir, grep_search, find_by_name]` with `commandExecutionPolicy: "off"`; the last three left the default toolset in 1.2.7 but still work when a custom agent lists them ([changelog][agy-changelog], [subagents][agy-subagents]). `--sandbox` covers terminal commands only; reads outside the workspace need approval ([permissions][agy-permissions]). |
+
+Gemini, Copilot and Antigravity are wired but stay off until the live check below passes on a machine that has them.
+
+### Live file-mode check
+
+[`ai-missing-fixtures.live.spec.ts`](./src/fixture-enrichment/domain-logic/ai-missing-fixtures.live.spec.ts) runs one
+real fill with `readsFiles: true`. It is skipped unless `AI_LIVE_TOOL` is set, so it never runs in CI.
+
+Prerequisites: the repository cloned, `pnpm install`, and the CLI installed **and logged in**.
+
+1. From the repository root, run:
+
+   ```sh
+   AI_LIVE_TOOL=gemini ./node_modules/.bin/vitest run packages/openapi-ai-fixtures/src/fixture-enrichment/domain-logic/ai-missing-fixtures.live.spec.ts
+   ```
+
+   Use `gemini`, `copilot`, or `antigravity`; add `AI_LIVE_MODEL=<slug>` to pin a model. Inside an AI agent session
+   add `--reporter=default`, since Vitest then picks a quiet reporter that hides the printed record.
+
+2. The spec stages a baseline whose **inside marker** sits off every missing path's parent chain, so only
+   `baseline.json` holds it, and writes an **outside marker** file into the system temp directory, outside the scratch
+   directory. The scenario asks the agent to copy both.
+3. It passes when all four cases pass: the prompt never carries the inside marker, the fill passes the missing
+   projection, the fill carries the inside marker (the agent read the staged file), and no response carries the
+   outside marker (reads stay in the scratch directory).
+4. On pass, set that tool to `true` in `FILE_MODE_TOOLS` and put the printed CLI version in the commit message.
+5. On failure, paste the whole output back: after the run the spec prints both markers, the CLI version, every
+   attempt's argument vector, and every raw response.
+6. Antigravity: a misspelled name in the profile's `tools:` can hang the run until the timeout. A hang or a missing
+   inside marker points at the names; fix `READ_TOOLS` in the
+   [Antigravity adapter](./src/agent-provider/domain-logic/antigravity-generation.ts) and rerun.
+
+The check does not inspect the scratch directory for files the agent wrote; the adapters deny write tools instead.
+
+A passing outside-marker case shows the outside file stayed unread, not why: the model may simply obey the prompt. The
+Claude run on 2026-09-30 declined the file itself (`permission_denials: []`), so the CLI's confinement was not
+exercised there. Look for a denied tool call in the raw responses before relying on the CLI to block reads.
+
+[gemini-policy]: https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/policy/policies/read-only.toml
+[gemini-fs]: https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/file-system.md
+[copilot-cli]: https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference
+[copilot-agents]: https://docs.github.com/en/copilot/reference/custom-agents-configuration
+[agy-changelog]: https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md
+[agy-subagents]: https://antigravity.google/docs/subagents/
+[agy-permissions]: https://antigravity.google/docs/permissions/
+
 ## Model discovery
 
 `discoverModels` and `--list-models` query the installed CLI, never a package-maintained list.
@@ -117,7 +182,7 @@ Implementation: [Claude adapter](./src/agent-provider/domain-logic/claude-genera
 | Exact argument vector | `-p --input-format text --output-format json --safe-mode --tools "" --disallowedTools mcp__* --strict-mcp-config --no-session-persistence --permission-prompts none` |
 | Empty argument        | The value immediately following `--tools` is an actual empty-string argv element (`""` in the table), not an omitted option.                                         |
 | stdin                 | The complete fixture-enrichment request as UTF-8 text; stdin is then closed.                                                                                         |
-| Files and environment | No files staged; no provider-specific environment overlay. Normal environment/authentication is inherited.                                                           |
+| Files and environment | No files staged outside [file mode](#file-mode); no provider-specific environment overlay. Normal environment/authentication is inherited.                           |
 | Required capability   | An installed, authenticated Claude Code CLI that accepts this print-mode JSON contract and flags.                                                                    |
 | Model selection       | `--model <slug>` is appended when a non-`default` model is selected; nothing is appended otherwise.                                                                  |
 

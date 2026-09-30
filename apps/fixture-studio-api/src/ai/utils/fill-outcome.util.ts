@@ -1,11 +1,10 @@
-import { isListFill } from '@fixture-automation/openapi-ai-fixtures';
-import type { MissingFill } from '@fixture-automation/openapi-ai-fixtures';
+import { isListFill, pathTree, valueAtPath } from '@fixture-automation/openapi-ai-fixtures';
+import type { MissingFill, PathValue } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
 import { mergeAnswers } from './answer-merge.util.ts';
-import { pathTree, valueAtPath } from './fill-path.util.ts';
 import type { FillSource } from '../../contract/common/studio-api.type.ts';
-import type { FillOutcome, PathValue } from '../common/ai.type.ts';
+import type { FillOutcome } from '../common/ai.type.ts';
 
 const sourcesOf = (paths: string[], source: FillSource): Record<string, FillSource> => {
   const entries = paths.map((path: string): [string, FillSource] => [path, source]);

@@ -31,12 +31,6 @@ export type FillOutcome = {
   readonly notes: string[];
 };
 
-/** One value at its diff path, e.g. `lines[2].quantity`. */
-export type PathValue = {
-  readonly path: string;
-  readonly value: unknown;
-};
-
 /** One AI fill, started by the NDJSON stream with its abort signal and progress sink. */
 export type AiFillJob = (signal: AbortSignal, onProgress: (progress: AiFixtureProgress) => void) => Promise<FillOutcome>;
 

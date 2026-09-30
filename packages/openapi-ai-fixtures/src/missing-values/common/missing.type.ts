@@ -65,3 +65,9 @@ export type MissingPromptInput = {
   readonly missing: unknown;
   readonly scenario: string;
 };
+
+/** One value at its diff path, e.g. `lines[2].quantity`. */
+export type PathValue = {
+  readonly path: string;
+  readonly value: unknown;
+};

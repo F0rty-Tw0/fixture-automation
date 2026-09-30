@@ -1,19 +1,20 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { AiFillRejectedError, isListFill } from '@fixture-automation/openapi-ai-fixtures';
+import { AiFillRejectedError, isListFill, pathTree } from '@fixture-automation/openapi-ai-fixtures';
 import type {
   AiFixtureOptions,
   AiMissingFactory,
   AiMissingRequest,
   AiToolInstall,
   MissingFill,
-  ModelDiscovery
+  ModelDiscovery,
+  PathValue
 } from '@fixture-automation/openapi-ai-fixtures';
 
 import { AI_TOOLS } from '../../contract/common/studio-api.schema.ts';
 import type { AiTool } from '../../contract/common/studio-api.type.ts';
-import type { PathValue, StudioAi } from '../common/ai.type.ts';
-import { pathTree, sampleAtPath } from '../utils/fill-path.util.ts';
+import type { StudioAi } from '../common/ai.type.ts';
+import { sampleAtPath } from '../utils/fill-path.util.ts';
 import { missingSample } from '../utils/missing-sample.util.ts';
 
 const MOCK_LINES = ['mock: reading the missing schema\n', 'mock: sampling values\n', 'mock: done\n'];

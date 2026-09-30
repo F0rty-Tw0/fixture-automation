@@ -1,6 +1,6 @@
+import { valueAtPath } from '@fixture-automation/openapi-ai-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
-import { valueAtPath } from './fill-path.util.ts';
 import type { MissingFile } from '../../contract/common/studio-api.type.ts';
 
 /** The projection's only root key, e.g. the `objectShape` wrapper a diff puts around the payload. */

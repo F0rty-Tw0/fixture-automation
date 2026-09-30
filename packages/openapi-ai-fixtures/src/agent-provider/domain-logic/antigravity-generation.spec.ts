@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { antigravityFixture } from './antigravity-generation.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
-import { agentArgs, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
+import { agentArgs, agentCommand, fileRequest, modelRequest, stagedContent } from '../../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
 
 vi.mock('../../agent-process/data-access/agent-process.client.ts');
@@ -62,6 +62,37 @@ describe('FEATURE: Antigravity fixture requests', (): void => {
       await antigravityFixture(modelRequest('antigravity', 'default'));
 
       expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('--model');
+    });
+  });
+
+  describe('GIVEN a request that stages files', (): void => {
+    it('WHEN the fixture is requested THEN stages the files after the agent profile', async (): Promise<void> => {
+      await antigravityFixture(fileRequest('antigravity'));
+
+      const files = agentCommand(vi.mocked(runAgent).mock.calls).files ?? [];
+      const stagedPaths = files.map((file): string => file.path);
+
+      expect(stagedPaths).toStrictEqual(['.agents/agents/fixture-enricher/agent.md', 'baseline.json']);
+    });
+
+    it('WHEN the fixture is requested THEN the profile allows only read-only tools', async (): Promise<void> => {
+      await antigravityFixture(fileRequest('antigravity'));
+
+      const profile = stagedContent(agentCommand(vi.mocked(runAgent).mock.calls), '.agents/agents/fixture-enricher/agent.md');
+
+      expect(profile).toContain('tools: [view_file, list_dir, grep_search, find_by_name]');
+      expect(profile).toContain('Read and search only the files listed under `files` in the request');
+    });
+  });
+
+  describe('GIVEN a request without files', (): void => {
+    it('WHEN the fixture is requested THEN the profile allows no tools', async (): Promise<void> => {
+      await antigravityFixture(modelRequest('antigravity'));
+
+      const profile = stagedContent(agentCommand(vi.mocked(runAgent).mock.calls), '.agents/agents/fixture-enricher/agent.md');
+
+      expect(profile).toContain('tools: []');
+      expect(profile).toContain('Do not read, write, inspect, execute, browse, delegate, or invoke tools.');
     });
   });
 });

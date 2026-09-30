@@ -66,6 +66,27 @@ describe('FEATURE: judge a pattern answer against the missing projection', (): v
       expect(judge.candidates).toHaveLength(2);
     });
 
+    it('WHEN a concrete answer also writes an item the diff never reported THEN only the missing path is accepted', async (): Promise<void> => {
+      const lines = [{}, { qty: 1 }, { qty: 'bad' }, { junk: true }];
+      const answer = { lines };
+      const judge = fillJudge(MISSING, inProcess(MISSING), PATTERNS);
+
+      const problem = await judge.check(answer, parsedAs(answer, []));
+
+      expect(problem).toBeUndefined();
+      expect(JSON.stringify(judge.accepted())).toBe('{"lines":[null,{"qty":1}]}');
+    });
+
+    it('WHEN the validator passes a value of the wrong shape THEN names the shape', async (): Promise<void> => {
+      const verdict: MissingVerdict = { valid: true, details: '', errors: [] };
+      const validate: MissingValidator = async (): Promise<MissingVerdict> => Promise.resolve(verdict);
+      const judge = fillJudge(MISSING, validate, PATTERNS);
+
+      const problem = await judge.check(7, parsedAs(7, []));
+
+      expect(problem).toBe('the fill must be one JSON object');
+    });
+
     it('WHEN the validator says invalid without errors THEN returns its details', async (): Promise<void> => {
       const verdict: MissingVerdict = { valid: false, details: 'rejected upstream', errors: [] };
       const validate: MissingValidator = async (): Promise<MissingVerdict> => Promise.resolve(verdict);

@@ -81,8 +81,9 @@ const reportDigestOnly = (options: AiFixtureOptions): void => {
 };
 
 /**
- * Fill the fields a fixture diff reported as absent, returning only a projection-valid result; an answer still
- * unusable after the repair round rejects with an `AiFillRejectedError` holding every answer that parsed.
+ * Fill the fields a fixture diff reported as absent, returning only the missing paths, each valid against the
+ * projection; an answer still unusable after the repair round rejects with an `AiFillRejectedError` holding every
+ * answer that parsed.
  * The diff's `missing.json` is self-contained, so the OpenAPI document is never loaded here.
  */
 export const aiMissingFixture = (chosen: AiFixtureOptions): AiMissingFactory => {

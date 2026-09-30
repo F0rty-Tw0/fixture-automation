@@ -105,6 +105,17 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       await expect(enrich('invoice', request)).rejects.toThrow(/generated missing fields violate schema "missing": \/status/);
     });
 
+    it('WHEN the first fill breaks the projection and the repair fits THEN returns the repaired fill', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(UNLISTED)));
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(FILLED)));
+
+      const enrich = aiMissingFixture(options);
+      const result = await enrich('invoice', request);
+
+      expect(result).toStrictEqual(FILLED);
+      expect(runAgent).toHaveBeenCalledTimes(2);
+    });
+
     it('WHEN a required missing key is absent THEN rejects rather than returning a partial fill', async (): Promise<void> => {
       vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', '{}'));
 
@@ -156,7 +167,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
 
         const filling = enrich('invoice', injected);
 
-        await expect(filling).rejects.toThrow(/generated missing fields violate schema "missing"/);
+        await expect(filling).rejects.toThrow('generated missing fields violate schema "missing": the fill must be one JSON object');
       });
 
       it('THEN its rejection propagates unchanged', async (): Promise<void> => {

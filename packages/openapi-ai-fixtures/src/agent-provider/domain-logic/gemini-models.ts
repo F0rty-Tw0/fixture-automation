@@ -10,7 +10,7 @@ import { modelNames, modelRpcRequest, modelRpcResult } from '../utils/model-disc
 const INITIALIZE_ID = 1;
 const SESSION_ID = 2;
 const experimental = { autoMemory: false, enableAgents: false };
-const general = { enableAutoUpdate: false, enableAutoUpdateNotification: false };
+const general = { enableAutoUpdate: false, enableAutoUpdateNotification: false, topicUpdateNarration: true };
 const hooksConfig = { enabled: false };
 const ide = { enabled: false, hasSeenNudge: true };
 const skills = { enabled: false };

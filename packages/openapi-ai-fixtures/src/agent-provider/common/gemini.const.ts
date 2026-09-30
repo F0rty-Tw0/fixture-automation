@@ -1,8 +1,9 @@
 /**
- * Every built-in tool of Gemini CLI 0.57.0 and 0.59.0 (its `ALL_BUILTIN_TOOL_NAMES`, the two background-process tools
- * `createToolRegistry` also registers, and the browser agent's `take_snapshot`), excluded one by one so the model can
- * read, write, run or fetch nothing.
- * `tools.core: []` would disable them too, but the CLI then sends an empty tool entry that the Gemini API rejects:
+ * Every built-in tool of Gemini CLI 0.57.0 to 0.62.0 (its `ALL_BUILTIN_TOOL_NAMES`, the two background-process tools
+ * `createToolRegistry` also registers, and the browser agent's `take_snapshot`) except `update_topic`, excluded one by
+ * one so the model can read, write, run or fetch nothing.
+ * `update_topic` only sets an in-memory topic label and stays declared on purpose: with no tool left the CLI still
+ * sends `tools: [{ functionDeclarations: [] }]`, which the API rejects with
  * `400 tools[0].tool_type: required one_of 'tool_type' must have one initialized field`.
  */
 export const GEMINI_EXCLUDED_TOOLS = [
@@ -32,7 +33,6 @@ export const GEMINI_EXCLUDED_TOOLS = [
   'tracker_list_tasks',
   'tracker_update_task',
   'tracker_visualize',
-  'update_topic',
   'web_fetch',
   'write_file',
   'write_todos'

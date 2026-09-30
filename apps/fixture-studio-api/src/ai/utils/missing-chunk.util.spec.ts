@@ -26,6 +26,54 @@ const TAX_ROOT_PROPERTIES = { lines: TAX_LINES };
 const TAX_SCHEMA = { type: 'object', required: ['lines'], properties: TAX_ROOT_PROPERTIES };
 const TAX_ENVELOPE_PROPERTIES = { data: TAX_SCHEMA };
 const TAX_ENVELOPE = { type: 'object', required: ['data'], properties: TAX_ENVELOPE_PROPERTIES };
+const HOLDING_REFERENCE = { $ref: '#/components/schemas/holding' };
+const HOLDING_PROPERTIES = { isin: TEXT_SCHEMA, sustainable_selection_type: TEXT_SCHEMA };
+const HOLDING_SCHEMA = { type: 'object', required: ['isin', 'sustainable_selection_type'], properties: HOLDING_PROPERTIES };
+const HOLDING_SCHEMAS = { holding: HOLDING_SCHEMA };
+const HOLDING_COMPONENTS = { schemas: HOLDING_SCHEMAS };
+const HOLDINGS_SCHEMA = { type: 'array', items: HOLDING_REFERENCE };
+const HOLDINGS_PROPERTIES = { holdings: HOLDINGS_SCHEMA };
+const ACCOUNT_SCHEMA = { type: 'object', required: ['holdings'], properties: HOLDINGS_PROPERTIES };
+const ACCOUNTS_SCHEMA = { type: 'array', items: ACCOUNT_SCHEMA };
+const ACCOUNTS_PROPERTIES = { accounts: ACCOUNTS_SCHEMA };
+const HOLDINGS_ROOT = { type: 'object', required: ['accounts'], properties: ACCOUNTS_PROPERTIES };
+const SELECTION_PATH = 'accounts[1].holdings[0].sustainable_selection_type';
+const HOLDING_PATHS = ['accounts[0].holdings', SELECTION_PATH];
+const SELECTION_PROPERTIES = { sustainable_selection_type: TEXT_SCHEMA };
+const SELECTION_SCHEMA = { type: 'object', required: ['sustainable_selection_type'], properties: SELECTION_PROPERTIES };
+const SELECTION_HOLDINGS = { type: 'array', items: SELECTION_SCHEMA };
+const SELECTION_HOLDINGS_PROPERTIES = { holdings: SELECTION_HOLDINGS };
+const SELECTION_ACCOUNT = { type: 'object', required: ['holdings'], properties: SELECTION_HOLDINGS_PROPERTIES };
+const SELECTION_ACCOUNTS = { type: 'array', items: SELECTION_ACCOUNT };
+const SELECTION_ACCOUNTS_PROPERTIES = { accounts: SELECTION_ACCOUNTS };
+const SELECTION_ROOT = { type: 'object', required: ['accounts'], properties: SELECTION_ACCOUNTS_PROPERTIES };
+const ANY_OF_HOLDING = { anyOf: [HOLDING_REFERENCE] };
+const ONE_OF_HOLDING = { oneOf: [HOLDING_REFERENCE] };
+const ALL_OF_HOLDING = { allOf: [HOLDING_REFERENCE] };
+const CYCLE_REFERENCE = { $ref: '#/components/schemas/cycle' };
+const CYCLE_SCHEMA = { anyOf: [CYCLE_REFERENCE] };
+const GHOST_REFERENCE = { $ref: '#/components/schemas/ghost' };
+const OBJECT_TYPE = { type: 'object' };
+const LOOP_A_REFERENCE = { $ref: '#/components/schemas/loopA' };
+const LOOP_B_REFERENCE = { $ref: '#/components/schemas/loopB' };
+const LOOP_A_SCHEMA = { allOf: [OBJECT_TYPE], anyOf: [LOOP_B_REFERENCE] };
+const LOOP_B_SCHEMA = { allOf: [OBJECT_TYPE], anyOf: [LOOP_A_REFERENCE] };
+const LOOP_SCHEMAS = { loopA: LOOP_A_SCHEMA, loopB: LOOP_B_SCHEMA };
+const DIAMOND_DEPTH = 40;
+
+/** `depth` levels whose members carry `allOf` and branch twice into the next level, which never has the key. */
+const diamondSchemas = (depth: number): Record<string, unknown> => {
+  const schemas: Record<string, unknown> = { [`level${depth}`]: OBJECT_TYPE };
+
+  for (let level = 0; level < depth; level++) {
+    const next = { $ref: `#/components/schemas/level${level + 1}` };
+    const twin = { $ref: `#/components/schemas/level${level + 1}` };
+
+    schemas[`level${level}`] = { allOf: [OBJECT_TYPE], anyOf: [next, twin] };
+  }
+
+  return schemas;
+};
 
 const envelopeMissing = (missing: MissingFile): MissingFile => {
   const paths = missing.paths.map((path: string): string => `data.${path}`);
@@ -34,6 +82,20 @@ const envelopeMissing = (missing: MissingFile): MissingFile => {
   const envelope: MissingFile = { ...missing, paths, schema };
 
   return envelope;
+};
+
+/** The accounts/holdings missing file with the whole-path `holdings` items replaced by `items`. */
+const holdingsMissing = (missing: MissingFile, items: unknown, schemas: Record<string, unknown>): MissingFile => {
+  const holdings = { type: 'array', items };
+  const properties = { holdings };
+  const account = { type: 'object', required: ['holdings'], properties };
+  const accounts = { type: 'array', items: account };
+  const rootProperties = { accounts };
+  const schema = { type: 'object', required: ['accounts'], properties: rootProperties };
+  const components = { schemas };
+  const collapsed: MissingFile = { ...missing, paths: HOLDING_PATHS, schema, components };
+
+  return collapsed;
 };
 
 describe('FEATURE: missing chunk', (): void => {
@@ -102,6 +164,48 @@ describe('FEATURE: missing chunk', (): void => {
       expect(chunking).toThrow('"lines[0].skus" is not a missing path');
       expect(chunking).toThrow(expect.objectContaining({ fix: `available: ${LISTED_PATHS}` }));
     });
+  });
+
+  describe('GIVEN a path another index already lists whole, through a component reference', (): void => {
+    it('WHEN chunked THEN the path schema resolves through the reference', (): void => {
+      const collapsed: MissingFile = { ...missing, paths: HOLDING_PATHS, schema: HOLDINGS_ROOT, components: HOLDING_COMPONENTS };
+
+      const chunk = missingChunk(collapsed, [SELECTION_PATH]);
+
+      expect(chunk.schema).toStrictEqual(SELECTION_ROOT);
+    });
+
+    it.each([
+      ['anyOf', ANY_OF_HOLDING],
+      ['oneOf', ONE_OF_HOLDING],
+      ['allOf', ALL_OF_HOLDING]
+    ])(
+      'WHEN the whole-path leaf wraps the reference in %s THEN the path schema resolves through it',
+      (_kind: string, items: unknown): void => {
+        const collapsed = holdingsMissing(missing, items, HOLDING_SCHEMAS);
+
+        const chunk = missingChunk(collapsed, [SELECTION_PATH]);
+
+        expect(chunk.schema).toStrictEqual(SELECTION_ROOT);
+      }
+    );
+
+    it.each([
+      ['a reference cycle', CYCLE_REFERENCE, { cycle: CYCLE_SCHEMA }],
+      ['an unresolved reference', GHOST_REFERENCE, {}],
+      ['a reference cycle whose members carry allOf', LOOP_A_REFERENCE, LOOP_SCHEMAS],
+      ['a deep allOf diamond without the key', { $ref: '#/components/schemas/level0' }, diamondSchemas(DIAMOND_DEPTH)]
+    ])(
+      'WHEN the leaf holds %s THEN fails asking for a fresh diff',
+      (_kind: string, items: unknown, schemas: Record<string, unknown>): void => {
+        const collapsed = holdingsMissing(missing, items, schemas);
+
+        const chunking = (): MissingFile => missingChunk(collapsed, [SELECTION_PATH]);
+
+        expect(chunking).toThrow(FixtureError);
+        expect(chunking).toThrow(`missing path "${SELECTION_PATH}" has no schema`);
+      }
+    );
   });
 
   describe('GIVEN a listed path its schema lacks', (): void => {

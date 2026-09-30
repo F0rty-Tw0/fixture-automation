@@ -43,7 +43,8 @@ assert.deepEqual(settings, {
   },
   general: {
     enableAutoUpdate: false,
-    enableAutoUpdateNotification: false
+    enableAutoUpdateNotification: false,
+    topicUpdateNarration: true
   },
   hooksConfig: {
     enabled: false
@@ -83,7 +84,6 @@ assert.deepEqual(settings, {
       'tracker_list_tasks',
       'tracker_update_task',
       'tracker_visualize',
-      'update_topic',
       'web_fetch',
       'write_file',
       'write_todos'

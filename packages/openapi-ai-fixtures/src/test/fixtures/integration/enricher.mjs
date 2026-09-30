@@ -21,8 +21,8 @@ if (input.includes('invalid fixture JSON')) {
     const repair = JSON.parse(input);
     const validRepair =
       repair.invalidResponse === '\r\n{"status": \t' &&
-      typeof repair.parseError === 'string' &&
-      repair.parseError.length > 0 &&
+      typeof repair.error === 'string' &&
+      repair.error.length > 0 &&
       typeof repair.request === 'string' &&
       repair.request.includes('invalid fixture JSON');
     const files = await readdir(new URL('.', import.meta.url));

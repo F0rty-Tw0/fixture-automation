@@ -236,6 +236,17 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
       expect(writtenSettings(vi.mocked(runAgent).mock.calls)).toHaveProperty('tools', EXCLUDED_TOOLS);
     });
 
+    it('WHEN the command is built THEN update_topic stays declared so the request never carries an empty tool entry', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(request);
+
+      const settings = writtenSettings(vi.mocked(runAgent).mock.calls);
+
+      expect(GEMINI_EXCLUDED_TOOLS).not.toContain('update_topic');
+      expect(settings).toHaveProperty('general.topicUpdateNarration', true);
+    });
+
     it.each(['read_file', 'write_file', 'replace', 'run_shell_command', 'web_fetch', 'google_web_search', 'invoke_agent'])(
       'WHEN the command is built THEN %s is excluded',
       async (tool: string): Promise<void> => {

@@ -8,8 +8,9 @@ const ANTIGRAVITY_AGENT_PATH = '.agents/agents/fixture-enricher/agent.md';
 const NO_TOOLS_DESCRIPTION = 'Generates one JSON fixture without project or tool access.';
 const NO_TOOLS_ACCESS = 'Do not read, write, inspect, execute, browse, delegate, or invoke tools.';
 /**
- * Unverified guess: Antigravity documents no read-only tool names for `tools:`; these are its IDE agent's file view,
- * list and search tools. The live check (`ai-missing-fixtures.live.spec.ts`) fails when they are wrong.
+ * Antigravity's file view, list and search tools. Changelog 1.2.7 names them: the last three left the default toolset
+ * but still work when a custom agent lists them. Unverified by a live run; the live check
+ * (`ai-missing-fixtures.live.spec.ts`) fails when they are wrong.
  */
 const READ_TOOLS = '[view_file, list_dir, grep_search, find_by_name]';
 const READ_DESCRIPTION = 'Generates one JSON fixture, reading only the files the request lists.';

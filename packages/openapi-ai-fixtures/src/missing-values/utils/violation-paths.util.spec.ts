@@ -1,7 +1,7 @@
-import type { MissingViolation } from '@fixture-automation/openapi-ai-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import { violatedPaths } from './violation-paths.util.ts';
+import { violatedPaths, violatingErrors } from './violation-paths.util.ts';
+import type { MissingViolation } from '../common/missing.type.ts';
 
 const PATHS = ['id', 'customer.email', 'lines[0].sku', 'lines[1].tax', 'lines[2].quantity'];
 const LINE_PATHS = ['lines[0].sku', 'lines[1].tax', 'lines[2].quantity'];
@@ -82,6 +82,18 @@ describe('FEATURE: violated missing paths', (): void => {
       const paths = violatedPaths([], PATHS);
 
       expect([...paths]).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN a verdict mixing errors on missing paths with errors on array holes', (): void => {
+    it('WHEN the violating errors are picked THEN keeps only the errors that flag a missing path', (): void => {
+      const taxError = violation('/lines/1/tax/rate', 'type');
+      const holeError = violation('/lines/3', 'type');
+      const errors = [holeError, taxError, requiredAt('/lines/0', 'tax'), violation('', 'if')];
+
+      const violating = violatingErrors(errors, PATHS);
+
+      expect(violating).toStrictEqual([taxError]);
     });
   });
 });

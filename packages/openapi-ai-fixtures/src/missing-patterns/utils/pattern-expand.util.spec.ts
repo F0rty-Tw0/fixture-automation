@@ -85,6 +85,14 @@ describe('FEATURE: pattern answer expansion', (): void => {
       expect(fill).toStrictEqual({ lines });
     });
 
+    it('WHEN no pattern holds an example THEN the answer is returned unchanged', (): void => {
+      const answer = { '[*].id': [] };
+
+      const fill = expandedFill(answer, [LIST_IDS], true);
+
+      expect(fill).toBe(answer);
+    });
+
     it('WHEN the fill is a list THEN the expansion is a list with holes at unlisted indices', (): void => {
       const answer = { '[*].id': ['id-{n}'] };
 
@@ -112,10 +120,10 @@ describe('FEATURE: pattern answer expansion', (): void => {
       expect(fill).toBe(answer);
     });
 
-    it('WHEN it is not an object or a list THEN no path is filled', (): void => {
-      const fill = expandedFill('open', [STATUS], false);
+    it('WHEN it is not an object or a list THEN it is returned unchanged', (): void => {
+      const fill = expandedFill(42, [LIST_IDS], true);
 
-      expect(fill).toStrictEqual({});
+      expect(fill).toBe(42);
     });
   });
 

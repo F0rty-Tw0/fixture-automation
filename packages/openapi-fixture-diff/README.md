@@ -212,6 +212,6 @@ pnpm run lint
 - `src/fixture-diff/domain-logic/missing-files.ts` owns building the three output files; `src/fixture-diff/data-access/missing-files.store.ts` writes them.
 - `src/fixture-diff-cli/feature/` owns the `corrupt` and `diff` command lines.
 - `src/schema/` owns schema lookup and `$ref` resolution.
-- `src/shared/fixture-path/` owns path parsing and corruption.
+- `src/shared/fixture-path/` owns fixture corruption (`dropPaths`, `hasPath`); path parsing lives in `@fixture-automation/shared`.
 - Each slice's `common/` owns its types.
 - `src/index.ts` is the public entry point; `src/cli.ts` is the CLI.

@@ -227,6 +227,11 @@ const invoice = await enrich('invoice', {
 
 - Invalid model JSON triggers **one repair attempt** using the exact failed response, its parser error, and the original request with the same tool/model: at most two processes per call. No fallback tool or result cache.
 - In missing-field mode, a first response that parses but fails the missing projection gets that same single repair, with the validation errors in place of the parser error.
+- In missing-field mode, the prompt asks once per path pattern (`lines[*].qty`) for a few examples, reused cyclically
+  across that pattern's paths. Inside string examples, `{n}` becomes the path's 1-based position among its pattern's
+  paths, not its array index: with sparse paths `lines[5].sku` can get `SKU-1`, and a numbered value can collide with
+  one the baseline already holds. Only projection errors that touch a requested path count against a fill, so array
+  items the diff did not report stay holes and never overwrite the baseline on merge.
 - Malformed transport envelopes, provider errors, process failures, timeouts, cancellation, and schema-validation failures are **not retried**. A second invalid model response fails with an error reporting both attempts.
 - Before repair, the CLI saves the failed response verbatim to `<output>.failed-attempt-1.txt` and prints its path on stderr. Without an output file, the `--fixture` path is the base. Existing sidecars are never overwritten: a collision gets a UUID suffix.
 - If repair produces invalid JSON or fails schema validation, its response is saved as `<output>.failed-attempt-2.txt`. In full-fixture mode a schema-invalid first response is also saved, without retrying. Recovery files remain even when repair succeeds.

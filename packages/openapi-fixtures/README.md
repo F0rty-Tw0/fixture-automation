@@ -212,6 +212,7 @@ const components = JSON.parse(JSON.stringify(spec.components, (k, v) => (k === '
 
 - `loadSpec(specUrl: string | URL): Promise<OpenApiSpec>` — fetches and parses a JSON spec over `http(s)://` or `file://`.
 - `fixtures<TComponents>(spec, options?): FixtureFactory<TComponents>` — returns a typed schema-name getter with shallow overrides. `options` is `SampleOptions` (`openapi-sampler` options, including `skipNonRequired`).
+- `schemaSample(spec, name, options?): unknown` — the raw `openapi-sampler` value of `components.schemas[name]`, of any JSON type (an array schema samples to an array). Throws a `FixtureError` with a suggestion for an unknown name.
 - `typescriptImport(outputPath: string, typesPath: string): string` — a type-only relative import path between two absolute paths. Throws if they're on different drives.
 - `typescriptStub(schemaName: string, typesImport: string, json: string): string` — renders a `const <NAME>_STUB: components["schemas"]["<name>"] = <json>` module.
 - `FixtureError` — an `Error` subclass with an optional `.fix: string | undefined` naming the corrective action.

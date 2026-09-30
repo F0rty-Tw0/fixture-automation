@@ -3,7 +3,7 @@ import type { ValidateFunction } from 'ajv';
 import type { JSONSchema7 } from 'json-schema';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { fixtures, loadSpec } from '@fixture-automation/openapi-fixtures';
+import { fixtures, loadSpec, schemaSample } from '@fixture-automation/openapi-fixtures';
 
 import type { OpenApiSpec } from '../../shared/openapi-document/common/openapi.type.ts';
 import { fixtureUrl } from '../../test/utils/fixture-url.spec.util.ts';
@@ -80,6 +80,29 @@ describe('FEATURE: OpenAPI fixtures', (): void => {
       const fx = fixtures(spec);
 
       expect((): unknown => fx('scalar')).toThrow(Error);
+    });
+  });
+
+  describe('GIVEN a component schema that describes an array', (): void => {
+    it('WHEN sampled raw THEN returns the sampled array', (): void => {
+      const id: JSONSchema7 = { type: 'string', default: 'in_1' };
+      const properties = { id };
+      const item: JSONSchema7 = { type: 'object', required: ['id'], properties };
+      const list: JSONSchema7 = { type: 'array', items: item };
+      const schemas = { list };
+      const components = { schemas };
+      const spec: OpenApiSpec = { components };
+      const expected = { id: 'in_1' };
+
+      const sampled = schemaSample(spec, 'list');
+
+      expect(sampled).toStrictEqual([expected]);
+    });
+
+    it('WHEN the schema name is unknown THEN throws with a suggestion', (): void => {
+      const spec: OpenApiSpec = {};
+
+      expect((): unknown => schemaSample(spec, 'list')).toThrow(expect.objectContaining({ fix: 'the document declares no schemas' }));
     });
   });
 

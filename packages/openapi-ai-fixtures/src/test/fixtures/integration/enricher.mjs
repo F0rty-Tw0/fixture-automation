@@ -44,6 +44,11 @@ if (input.includes('invalid fixture JSON')) {
 }
 
 const fixture = { id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' };
+if (input.includes('recovered junk') && !input.includes('"invalidResponse"')) {
+  const prose = 'Per the spec [2] the invoice is open.';
+  process.stdout.write(JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: prose }));
+  process.exit(0);
+}
 const isDefaultMissingScenario = input.includes('Fill every missing field with realistic values coherent with the baseline');
 if (input.includes('missing-mode') || isDefaultMissingScenario) {
   let filled = { status: 'open' };

@@ -3,6 +3,7 @@ import { Service, inject } from '@angular/core';
 
 import type {
   AiFillBody,
+  AiFillResultEvent,
   AiModelsResult,
   AiPromptBody,
   AiPromptResult,
@@ -65,7 +66,7 @@ export class HttpStudioEngine implements StudioEngine {
     return untilAborted(this.http.get<AiToolsResult>(CLI_TOOLS_URL), call.signal);
   }
 
-  public async cliFill(specId: string, body: AiFillBody, call: EngineStreamCall): Promise<Record<string, unknown>> {
+  public async cliFill(specId: string, body: AiFillBody, call: EngineStreamCall): Promise<AiFillResultEvent> {
     const events$ = this.http.post(specActionUrl(specId, 'aiFill'), body, { observe: 'events', reportProgress: true, responseType: 'text' });
 
     return readFillStream(events$, call);

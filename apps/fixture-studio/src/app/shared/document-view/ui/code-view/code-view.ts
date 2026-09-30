@@ -7,7 +7,8 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
 import { changedLinesOf, editorExtensions, languageExtension, revealChange, syncEditor } from './code-view-editor.ts';
-import type { ChangeMark, CodeLanguage } from '../../common/document-view.type.ts';
+import { showHighlights } from './code-view-highlight.ts';
+import type { ChangeMark, CodeLanguage, LineHighlight } from '../../common/document-view.type.ts';
 import { changeMarks, nearestMark } from '../../utils/change-map.util.ts';
 import { lineDiff } from '../../utils/line-diff.util.ts';
 
@@ -31,6 +32,10 @@ export class CodeView {
   public readonly language = input.required<CodeLanguage>();
   public readonly label = input.required<string>();
   public readonly original = input<string | undefined>(undefined);
+  /** Lines of `doc` to mark as broken or fixed. */
+  public readonly highlights = input<LineHighlight[]>([]);
+  /** Lines of `original` to mark, shown only in a diff. */
+  public readonly originalHighlights = input<LineHighlight[]>([]);
 
   private readonly editorHost = viewChild.required<ElementRef<HTMLElement>>('editor');
   private readonly languageSlot = new Compartment();
@@ -58,6 +63,7 @@ export class CodeView {
 
     effect((): void => {
       this.syncView(this.doc(), this.language(), this.original());
+      this.markLines(this.highlights(), this.originalHighlights());
     });
 
     inject(DestroyRef).onDestroy((): void => {
@@ -114,6 +120,7 @@ export class CodeView {
 
       this.view = new EditorView({ state, parent });
       this.refreshChanges();
+      this.markLines(this.highlights(), this.originalHighlights());
 
       return;
     }
@@ -126,6 +133,7 @@ export class CodeView {
     this.merge = new MergeView({ a, b, parent, diffConfig: DIFF_CONFIG });
     this.view = this.merge.b;
     this.refreshChanges();
+    this.markLines(this.highlights(), this.originalHighlights());
   }
 
   private destroyView(): void {
@@ -152,6 +160,12 @@ export class CodeView {
     const lines = changedLinesOf(merge);
 
     this.changes.set(changeMarks(lines, merge.b.state.doc.lines));
+  }
+
+  /** Called after the documents are in place: a new document drops the highlights of the old one. */
+  private markLines(highlights: LineHighlight[], originalHighlights: LineHighlight[]): void {
+    this.view?.dispatch(showHighlights(highlights));
+    this.merge?.a.dispatch(showHighlights(originalHighlights));
   }
 
   private syncView(doc: string, language: CodeLanguage, original: string | undefined): void {

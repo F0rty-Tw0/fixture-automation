@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { AiFillBody, DiffBody, MergeBody } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillBody, AiFillResultEvent, DiffBody, MergeBody } from '@fixture-automation/fixture-studio-api/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AiFillStore } from './ai-fill.store.ts';
@@ -17,11 +17,13 @@ import { studioEngineMock } from '../test/mocks/studio-engine.mock.ts';
 
 const FIXTURE = { id: 'in_1' };
 const POPULATED = { status: 'open' };
+const RESULT: AiFillResultEvent = { type: 'result', populated: POPULATED };
 const CONTEXT: AiFillContext = {
   specId: 'spec-1',
   endpointId: 'GET /v1/invoices',
   fixture: FIXTURE,
   missing: MISSING_FILE_STUB,
+  complete: undefined,
   scenario: undefined,
   tool: 'claude',
   model: undefined
@@ -41,7 +43,7 @@ describe('FEATURE: AI fill store', (): void => {
   let runSignal: AbortSignal | undefined;
   let reportProgress: EngineStreamCall['onProgress'];
   let reportDownload: AiRunOptions['onDownload'];
-  let resolveFill: (populated: Record<string, unknown>) => void;
+  let resolveFill: (result: AiFillResultEvent) => void;
 
   beforeEach((): void => {
     engine = studioEngineMock();
@@ -53,18 +55,18 @@ describe('FEATURE: AI fill store', (): void => {
     chrome = TestBed.inject(CHROME_AI_PROVIDER);
     runSignal = undefined;
 
-    const pending = async (): Promise<Record<string, unknown>> => {
-      return new Promise<Record<string, unknown>>((resolve) => {
+    const pending = async (): Promise<AiFillResultEvent> => {
+      return new Promise<AiFillResultEvent>((resolve) => {
         resolveFill = resolve;
       });
     };
-    const pendingCli = async (_specId: string, _body: AiFillBody, call: EngineStreamCall): Promise<Record<string, unknown>> => {
+    const pendingCli = async (_specId: string, _body: AiFillBody, call: EngineStreamCall): Promise<AiFillResultEvent> => {
       runSignal = call.signal;
       reportProgress = call.onProgress;
 
       return pending();
     };
-    const pendingChrome = async (_context: AiFillContext, options: AiRunOptions): Promise<unknown> => {
+    const pendingChrome = async (_context: AiFillContext, options: AiRunOptions): Promise<AiFillResultEvent> => {
       runSignal = options.signal;
       reportDownload = options.onDownload;
 
@@ -102,7 +104,7 @@ describe('FEATURE: AI fill store', (): void => {
     });
 
     it('WHEN the CLI answers THEN merges the answer into the fixture, inside the envelope', async (): Promise<void> => {
-      resolveFill(POPULATED);
+      resolveFill(RESULT);
       await settle();
 
       expect(engine.merge).toHaveBeenCalledWith('spec-1', EXPECTED_MERGE, expect.anything());
@@ -151,7 +153,7 @@ describe('FEATURE: AI fill store', (): void => {
     });
 
     it('WHEN the compare changes after the merge THEN drops the result and the merge', async (): Promise<void> => {
-      resolveFill(POPULATED);
+      resolveFill(RESULT);
       await settle();
 
       TestBed.inject(ComparisonStore).compare(OTHER_COMPARE);
@@ -159,6 +161,21 @@ describe('FEATURE: AI fill store', (): void => {
 
       expect(store.run.hasValue()).toBe(false);
       expect(store.merge.hasValue()).toBe(false);
+      expect(store.answer()).toBeUndefined();
+      expect(store.merged()).toBeUndefined();
+    });
+
+    it('WHEN a re-run fails after a merge THEN keeps the last answer and merge', async (): Promise<void> => {
+      resolveFill(RESULT);
+      await settle();
+      vi.mocked(engine.cliFill).mockRejectedValueOnce(new Error('claude exited with code 1.'));
+
+      store.start({ ...CLI_RUN });
+      await settle();
+
+      expect(store.run.status()).toBe('error');
+      expect(store.answer()).toStrictEqual(RESULT);
+      expect(store.merged()).toStrictEqual({ answer: RESULT, merge: MERGE_RESULT_STUB });
     });
   });
 
@@ -173,7 +190,7 @@ describe('FEATURE: AI fill store', (): void => {
     it('WHEN the CLI answers THEN sends the compared fixture as the original that orders the merge', async (): Promise<void> => {
       const expected: MergeBody = { ...EXPECTED_MERGE, original: OTHER_FIXTURE };
 
-      resolveFill(POPULATED);
+      resolveFill(RESULT);
       await settle();
 
       expect(engine.merge).toHaveBeenCalledWith('spec-1', expected, expect.anything());
@@ -237,7 +254,7 @@ describe('FEATURE: AI fill store', (): void => {
     });
 
     it('WHEN it settles THEN counts the settled on-device run', async (): Promise<void> => {
-      resolveFill(POPULATED);
+      resolveFill(RESULT);
       await settle();
 
       expect(store.chromeRunsSettled()).toBe(1);

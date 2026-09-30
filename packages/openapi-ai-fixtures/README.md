@@ -233,10 +233,20 @@ const invoice = await enrich('invoice', {
 - Prompts go over stdin, limited to **1 MiB per attempt**. Combined stdout/stderr is limited to **8 MiB per attempt**.
 - A timeout terminates the owned process tree. If tree termination cannot be confirmed, the call
   fails and the temporary scratch directory is **kept**, not deleted under a possibly running process.
-- The final response must contain one JSON value. A single complete triple-backtick code fence,
-  labelled `json` or unlabelled, is unwrapped before parsing; it does not trigger a repair by itself.
-  Surrounding prose, multiple blocks, incomplete fences, and malformed JSON remain invalid.
-  Local schema validation still runs without coercing types, inserting defaults, or removing properties.
+- The final response should be one JSON value. Plain JSON, or one complete triple-backtick code fence
+  labelled `json` or unlabelled, is parsed first. When that fails, the parser recovers JSON wrapped in prose or
+  Markdown from every fenced block (any language label) and every top-level balanced `{...}`/`[...]` span,
+  skipping brackets inside strings and empty `{}`/`[]`. It keeps the best: an object over a list over a scalar,
+  then the structurally larger, then the earlier, plus up to 8 alternatives. In missing-field mode, when the best
+  value fails the projection, an alternative that fits (a list first for a list fill) is accepted without a repair. A response with no such JSON gets the repair round; in
+  full-fixture mode a recovered value that fails the schema gets it too, since prose can hold the wrong span.
+  Recovered JSON is still parsed strictly (overflowing numbers stay invalid), and local schema validation still
+  runs without coercing types, inserting defaults, or removing properties.
+- In missing-field mode, a fill still unusable after the repair rejects with an `AiFillRejectedError`
+  (same message as before) whose `candidates` hold every answer that parsed, including the other JSON values
+  recovered from each, and whose `problem` says why, so a caller such as Fixture Studio can salvage values
+  instead of discarding them. A repair run that crashes after a first answer parsed rejects the same way.
+  For a list fixture (missing paths such as `[0].status`) the fill is a JSON array.
 - Validation completes before writing normal output. Output is staged beside the destination and renamed
   atomically; a failed or invalid response leaves an existing destination unchanged. Diagnostic sidecars are separate.
 - Output paths are made absolute before validation. Existing destinations are resolved through symlinks;

@@ -29,34 +29,26 @@
   white-space: nowrap;
 }
 
-.workspace__documents {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--fs-space-3);
-  padding: var(--fs-space-3) var(--fs-space-4) var(--fs-space-4);
-}
+.workspace__formats {
+  // Format tabs sit under the endpoint tabs: shorter, smaller and quieter until chosen.
+  --mat-tab-container-height: 2.25rem;
+  --mat-tab-label-text-size: var(--fs-text-sm);
+  --mat-tab-inactive-label-text-color: var(--fs-ink-muted);
 
-.workspace__document {
-  min-width: 0;
-}
-
-.workspace__document-title {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--fs-space-2);
-  align-items: baseline;
-  margin-bottom: var(--fs-space-2);
-  font-size: var(--fs-text-sm);
-  font-weight: 600;
-  cursor: pointer;
+  padding: 0 var(--fs-space-4);
 }
 
 .workspace__file {
+  margin-left: var(--fs-space-2);
   font-family: var(--fs-font-mono);
   font-size: var(--fs-text-xs);
   font-weight: 400;
   color: var(--fs-ink-muted);
-  overflow-wrap: anywhere;
+}
+
+.workspace__document {
+  display: block;
+  padding: var(--fs-space-3) 0 var(--fs-space-4);
 }
 
 .workspace__empty {

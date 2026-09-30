@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import type { AiToolStatus, AiToolsResult, DiffResult } from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FillOutcome } from './fill-outcome.service.ts';
 import { FixtureAiFill } from './fixture-ai-fill.service.ts';
 import { FixtureComparison } from './fixture-comparison.service.ts';
 import { provideFixtureWorkbench } from './fixture-workbench.provider.ts';
@@ -11,7 +12,13 @@ import { OnDeviceAi } from './on-device-ai.service.ts';
 import type { StudioEngine } from '../../shared/studio-engine/common/engine.type.ts';
 import { STUDIO_ENGINE } from '../../shared/studio-engine/common/studio-engine.token.ts';
 import { SpecBrowser } from '../../spec/domain-logic/spec-browser.service.ts';
-import { CLI_TOOLS_RESULT_STUB, DIFF_RESULT_STUB, LOADED_SPEC_STUB, MERGE_RESULT_STUB } from '../../test/stubs/studio.stub.ts';
+import {
+  CLI_TOOLS_RESULT_STUB,
+  DIFF_RESULT_STUB,
+  FILL_RESULT_STUB,
+  LOADED_SPEC_STUB,
+  MERGE_RESULT_STUB
+} from '../../test/stubs/studio.stub.ts';
 import { settle } from '../../test/utils/studio-http.spec.util.ts';
 import type { AiAvailability } from '../common/ai-fill.type.ts';
 import { AiSettingsStore } from '../data-access/ai-settings.store.ts';
@@ -67,7 +74,7 @@ describe('FEATURE: fixture AI fill', (): void => {
     vi.mocked(engine.loadSpec).mockResolvedValue(LOADED_SPEC_STUB);
     vi.mocked(engine.diff).mockResolvedValue(DIFF_RESULT_STUB);
     vi.mocked(engine.merge).mockResolvedValue(MERGE_RESULT_STUB);
-    vi.mocked(engine.cliFill).mockResolvedValue({ status: 'open' });
+    vi.mocked(engine.cliFill).mockResolvedValue(FILL_RESULT_STUB);
     const engineProvider: Provider = { provide: STUDIO_ENGINE, useValue: engine };
 
     TestBed.configureTestingModule({ providers: [provideFixtureWorkbench(), engineProvider] });
@@ -248,7 +255,7 @@ describe('FEATURE: fixture AI fill', (): void => {
         const expectedBody = { scenario: 'overdue', model: undefined, missing: DIFF_RESULT_STUB.missing };
 
         expect(body).toMatchObject(expectedBody);
-        expect(fill.filledJson()).toBe('{\n  "status": "open"\n}\n');
+        expect(TestBed.inject(FillOutcome).filledJson()).toBe('{\n  "status": "open"\n}\n');
         expect(fill.mergeResult()).toStrictEqual(MERGE_RESULT_STUB);
       });
 
@@ -296,18 +303,20 @@ describe('FEATURE: fixture AI fill', (): void => {
         expect(engine.merge).toHaveBeenLastCalledWith('spec-1', expect.objectContaining({ fixture: baseline }), expect.anything());
       });
 
-      it('WHEN run on the device THEN the on-device model gets the baseline', async (): Promise<void> => {
+      it('WHEN run on the device THEN the on-device model gets the baseline and the sampler-complete fixture', async (): Promise<void> => {
         TestBed.inject(AiSettingsStore).setChromeOptIn(true);
         const chrome = TestBed.inject(CHROME_AI_PROVIDER);
         const fill = await setUp('available');
 
-        vi.spyOn(chrome, 'fill').mockResolvedValue({ status: 'open' });
+        vi.spyOn(chrome, 'fill').mockResolvedValue(FILL_RESULT_STUB);
         await compareInvoice();
         await settle();
         fill.run();
         await settle();
 
-        expect(chrome.fill).toHaveBeenCalledWith(expect.objectContaining({ fixture: baseline }), expect.anything());
+        const complete: unknown = JSON.parse(DIFF_RESULT_STUB.completeJson);
+
+        expect(chrome.fill).toHaveBeenCalledWith(expect.objectContaining({ fixture: baseline, complete }), expect.anything());
       });
     });
 
@@ -316,7 +325,7 @@ describe('FEATURE: fixture AI fill', (): void => {
       const chrome = TestBed.inject(CHROME_AI_PROVIDER);
       const fill = await setUp('downloadable');
 
-      vi.spyOn(chrome, 'fill').mockResolvedValue({ status: 'open' });
+      vi.spyOn(chrome, 'fill').mockResolvedValue(FILL_RESULT_STUB);
       vi.mocked(chrome.availability).mockResolvedValue('available');
       await compareInvoice();
       await settle();

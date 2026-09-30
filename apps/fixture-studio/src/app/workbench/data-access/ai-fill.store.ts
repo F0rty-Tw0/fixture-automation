@@ -1,14 +1,14 @@
 import { Service, computed, effect, inject, linkedSignal, resource, signal, untracked } from '@angular/core';
 import type { ResourceRef, Signal, WritableSignal } from '@angular/core';
 
-import type { AiFillProgressEvent, MergeResult } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillProgressEvent, AiFillResultEvent, MergeResult } from '@fixture-automation/fixture-studio-api/contract';
 
 import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
 import { ComparisonStore } from './comparison.store.ts';
 import type { EngineCall, EngineStreamCall } from '../../shared/studio-engine/common/engine.type.ts';
 import { STUDIO_ENGINE } from '../../shared/studio-engine/common/studio-engine.token.ts';
 import { AI_LOG_BLOCK_LIMIT, AI_LOG_LIMIT, DEFAULT_AI_FILL_FORM } from '../common/ai-fill.const.ts';
-import type { AiDownloadOptions, AiFillForm, AiRunOptions, AiRunRequest, MergeRequest } from '../common/ai-fill.type.ts';
+import type { AiDownloadOptions, AiFillForm, AiRunOptions, AiRunRequest, MergeRequest, MergedFill } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
 import { appendProgress } from '../utils/ai-log.util.ts';
 import { cliFillBody } from '../utils/ai-provider.util.ts';
@@ -50,12 +50,33 @@ export class AiFillStore {
     computation: (): undefined => undefined
   });
 
+  /** The last answer of this compare: it stays while a re-run loads, fails or is cancelled. */
+  public readonly answer = linkedSignal<DiffRequest | undefined, AiFillResultEvent | undefined>({
+    source: this.compared,
+    computation: (): undefined => undefined
+  });
+
+  /** The last merge of this compare with the answer it merged, kept like `answer`. */
+  public readonly merged = linkedSignal<DiffRequest | undefined, MergedFill | undefined>({
+    source: this.compared,
+    computation: (): undefined => undefined
+  });
+
+  /** The user cancelled the last run; a new run or compare clears it. */
+  public readonly isCancelled = linkedSignal<DiffRequest | undefined, boolean>({
+    source: this.compared,
+    computation: (): boolean => false
+  });
+
+  /** The answer behind what is on screen: the merged one, or with no merge yet, the last answer. */
+  public readonly shownAnswer: Signal<AiFillResultEvent | undefined> = computed(() => this.merged()?.answer ?? this.answer());
+
   /** Bumps when an on-device run or model download settles: either may have changed Chrome's availability. */
   public readonly chromeRunsSettled: Signal<number> = this.settledChromeRuns.asReadonly();
 
-  public readonly run: ResourceRef<unknown> = resource({
+  public readonly run: ResourceRef<AiFillResultEvent | undefined> = resource({
     params: () => this.runRequest(),
-    loader: async ({ params, abortSignal }): Promise<unknown> => {
+    loader: async ({ params, abortSignal }): Promise<AiFillResultEvent> => {
       const run = new AbortController();
       const forwardAbort = (): void => run.abort(abortSignal.reason);
 
@@ -68,7 +89,11 @@ export class AiFillStore {
         onDownload: (ratio): void => this.downloadRatio.set(ratio)
       };
 
-      return this.fillWith(params, options);
+      const answer = await this.fillWith(params, options);
+
+      this.answer.set(answer);
+
+      return answer;
     }
   });
 
@@ -87,8 +112,9 @@ export class AiFillStore {
 
     const { context, objectShape } = request;
     const original = this.compared()?.body.fixture;
-    const body = { endpointId: context.endpointId, fixture: context.fixture, populated: this.run.value(), objectShape, original };
-    const merge: MergeRequest = { specId: context.specId, body };
+    const answer = this.run.value();
+    const body = { endpointId: context.endpointId, fixture: context.fixture, populated: answer.populated, objectShape, original };
+    const merge: MergeRequest = { specId: context.specId, body, answer };
 
     return merge;
   });
@@ -97,8 +123,12 @@ export class AiFillStore {
     params: () => this.mergeRequest(),
     loader: async ({ params, abortSignal }): Promise<MergeResult> => {
       const call: EngineCall = { signal: abortSignal };
+      const merge = await this.engine.merge(params.specId, params.body, call);
+      const merged: MergedFill = { answer: params.answer, merge };
 
-      return this.engine.merge(params.specId, params.body, call);
+      this.merged.set(merged);
+
+      return merge;
     }
   });
 
@@ -111,6 +141,7 @@ export class AiFillStore {
   }
 
   public start(request: AiRunRequest): void {
+    this.isCancelled.set(false);
     this.log.set([]);
     this.downloadRatio.set(undefined);
     this.runRequest.set(request);
@@ -124,6 +155,7 @@ export class AiFillStore {
 
   /** Aborts the running call; the provider stops (the API kills the CLI when the request closes). */
   public cancel(): void {
+    this.isCancelled.set(true);
     this.abortActiveRun();
     this.runRequest.set(undefined);
     this.appendLog(CANCELLED);
@@ -134,7 +166,7 @@ export class AiFillStore {
     this.activeRun = undefined;
   }
 
-  private async fillWith(request: AiRunRequest, options: AiRunOptions): Promise<unknown> {
+  private async fillWith(request: AiRunRequest, options: AiRunOptions): Promise<AiFillResultEvent> {
     const { context } = request;
 
     if (request.provider === 'chrome') return this.fillOnDevice(request, options);
@@ -144,7 +176,7 @@ export class AiFillStore {
     return this.engine.cliFill(context.specId, cliFillBody(context), call);
   }
 
-  private async fillOnDevice(request: AiRunRequest, options: AiRunOptions): Promise<unknown> {
+  private async fillOnDevice(request: AiRunRequest, options: AiRunOptions): Promise<AiFillResultEvent> {
     try {
       return await this.chrome.fill(request.context, options);
     } finally {

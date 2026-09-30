@@ -25,6 +25,12 @@ export type SchemaViolation = {
   readonly message?: string | undefined;
 };
 
+/** The schema the walk descends with and AJV's violations of the payload. */
+export type PayloadCheck = {
+  readonly schema: SpecSchema;
+  readonly violations: SchemaViolation[];
+};
+
 /** A present value the schema rejects or that is an openapi-sampler placeholder. */
 export type BrokenEntry = {
   readonly path: string;
@@ -40,6 +46,7 @@ export type WalkInput = {
   readonly schemas: SpecSchemas;
   readonly requiredOnly: boolean;
   readonly ancestry: string[];
+  /** Asked for every present value the walk meets; under `requiredOnly` an optional one's answer is ignored. */
   readonly isReplaceable: ReplaceablePredicate;
 };
 

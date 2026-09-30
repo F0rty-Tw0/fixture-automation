@@ -5,10 +5,17 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { missingCheck } from './missing-check.util.ts';
 import { parseMissingFile } from './missing-file.util.ts';
 import { integrationFile } from '../../test/utils/integration-project.spec.util.ts';
-import type { MissingFile, MissingVerdict } from '../common/missing.type.ts';
+import type { MissingFile, MissingVerdict, MissingViolation } from '../common/missing.type.ts';
 
 const FILLED = { status: 'open' };
 const UNLISTED = { status: 'paid' };
+const ABSENT_PARAMS = { missingProperty: 'status' };
+const ABSENT_STATUS: MissingViolation = {
+  instancePath: '',
+  keyword: 'required',
+  params: ABSENT_PARAMS,
+  message: "must have required property 'status'"
+};
 
 describe('FEATURE: missing fill check', (): void => {
   describe('GIVEN the invoice missing projection', (): void => {
@@ -21,7 +28,7 @@ describe('FEATURE: missing fill check', (): void => {
     });
 
     it('WHEN the fill satisfies it THEN is valid without details', (): void => {
-      const expected: MissingVerdict = { valid: true, details: '' };
+      const expected: MissingVerdict = { valid: true, details: '', errors: [] };
       const check = missingCheck(missing);
 
       const verdict = check(FILLED);
@@ -36,6 +43,23 @@ describe('FEATURE: missing fill check', (): void => {
 
       expect(verdict.valid).toBe(false);
       expect(verdict.details).toMatch(/^\/status: /);
+    });
+
+    it('WHEN the fill breaks it THEN lists each error with its pointer, keyword, params and message', (): void => {
+      const check = missingCheck(missing);
+
+      const verdict = check({});
+
+      expect(verdict.errors).toStrictEqual([ABSENT_STATUS]);
+    });
+
+    it('WHEN the fill breaks it THEN its errors survive a structured clone unchanged', (): void => {
+      const check = missingCheck(missing);
+      const verdict = check(UNLISTED);
+
+      const cloned = structuredClone(verdict);
+
+      expect(cloned).toStrictEqual(verdict);
     });
   });
 

@@ -63,6 +63,25 @@ describe('FEATURE: merging chunked CLI answers', (): void => {
     });
   });
 
+  describe('GIVEN list answers for a list fixture', (): void => {
+    it('WHEN merged THEN merges them index by index and keeps each chunk element', (): void => {
+      const first = [{ status: 'draft' }];
+      const second = [undefined, undefined, { status: 'open' }];
+
+      const merged = mergeAnswers(first, second);
+
+      expect(merged).toStrictEqual([{ status: 'draft' }, undefined, { status: 'open' }]);
+    });
+
+    it('WHEN the first is the empty start of a run THEN the list replaces it', (): void => {
+      const list = [{ status: 'open' }];
+
+      const merged = mergeAnswers({}, list);
+
+      expect(merged).toStrictEqual(list);
+    });
+  });
+
   describe('GIVEN the same scalar in both', (): void => {
     it('WHEN merged THEN the later answer wins', (): void => {
       const first = { total: 1 };

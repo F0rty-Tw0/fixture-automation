@@ -1,7 +1,12 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { AiFillProgressEvent, AiPromptBody, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
+import type {
+  AiFillProgressEvent,
+  AiFillResultEvent,
+  AiPromptBody,
+  AiPromptResult
+} from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
@@ -15,11 +20,13 @@ import { studioEngineMock } from '../test/mocks/studio-engine.mock.ts';
 import { streamOf } from '../test/utils/stream.spec.util.ts';
 
 const FIXTURE = { id: 'in_1' };
+const POPULATED = { status: 'open' };
 const CONTEXT: AiFillContext = {
   specId: 'spec-1',
   endpointId: 'GET /v1/invoices',
   fixture: FIXTURE,
   missing: MISSING_FILE_STUB,
+  complete: undefined,
   scenario: 'overdue',
   tool: 'claude',
   model: undefined
@@ -108,8 +115,11 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
         vi.mocked(session.promptStreaming).mockReturnValue(streamOf(['{"status":', '"open"}']));
       });
 
-      it('WHEN filled THEN resolves the parsed answer', async (): Promise<void> => {
-        await expect(provider.fill(CONTEXT, options)).resolves.toStrictEqual({ status: 'open' });
+      it('WHEN filled THEN resolves the parsed answer, credited to AI', async (): Promise<void> => {
+        const sources = { status: 'ai' } as const;
+        const expected: AiFillResultEvent = { type: 'result', populated: POPULATED, sources, notes: [] };
+
+        await expect(provider.fill(CONTEXT, options)).resolves.toStrictEqual(expected);
       });
 
       it('WHEN filled THEN starts with the system prompt and constrains the answer to the schema', async (): Promise<void> => {
@@ -146,7 +156,7 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
         const answer = await provider.fill(CONTEXT, options);
         const retryOptions = vi.mocked(session.promptStreaming).mock.lastCall?.[1];
 
-        expect(answer).toStrictEqual({ status: 'open' });
+        expect(answer.populated).toStrictEqual(POPULATED);
         expect(session.promptStreaming).toHaveBeenCalledTimes(2);
         expect(retryOptions).not.toHaveProperty('responseConstraint');
       });
@@ -167,16 +177,20 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
     describe('GIVEN a model that measures prompts against a 1000-token context window', (): void => {
       const GAP_PATHS = ['customer', 'error.customer', 'error.source'];
       const GAP_MISSING = { ...MISSING_FILE_STUB, paths: GAP_PATHS };
-      const GAP_CONTEXT: AiFillContext = { ...CONTEXT, missing: GAP_MISSING };
+      const SAMPLED_ERROR = { customer: 'cus_sampled', source: 'src_sampled' };
+      const SAMPLED = { customer: 'cus_sampled', error: SAMPLED_ERROR };
+      const GAP_CONTEXT: AiFillContext = { ...CONTEXT, missing: GAP_MISSING, complete: SAMPLED };
       const MERGED_ERROR = { customer: 'cus_2', source: 'src_1' };
       const ANSWERS: Record<string, string> = {
         customer: '{"customer":"cus_1"}',
+        'customer,error.customer': '{"customer":"cus_1","error":{"customer":"cus_2"}}',
         'error.customer,error.source': '{"error":{"customer":"cus_2","source":"src_1"}}',
         'error.customer': '{"error":{"customer":"cus_2"}}',
         'error.source': '{"error":{"source":"src_1"}}'
       };
       let clones: LanguageModelSession[];
       let promptTokens: Record<string, number>;
+      let failingInputs: Set<string>;
 
       const promptKey = (paths: string[] | undefined): string => paths?.join(',') ?? 'whole';
 
@@ -190,7 +204,14 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
 
       const cloneSession = async (): Promise<LanguageModelSession> => {
         const clone = languageModelSessionMock();
-        const answer = (input: string): ReadableStream<string> => streamOf([ANSWERS[input] ?? '{"status":"open"}']);
+        const answerTextOf = (input: string): string => {
+          const isFailing = failingInputs.has(input);
+
+          if (isFailing) return 'Sorry, I cannot answer that.';
+
+          return ANSWERS[input] ?? '{"status":"open"}';
+        };
+        const answer = (input: string): ReadableStream<string> => streamOf([answerTextOf(input)]);
 
         vi.mocked(clone.promptStreaming).mockImplementation(answer);
         clones.push(clone);
@@ -203,6 +224,7 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
       beforeEach((): void => {
         clones = [];
         promptTokens = {};
+        failingInputs = new Set();
         const measured = languageModelSessionMock();
 
         session = { ...measured, contextWindow: 1000, contextUsage: 10, measureContextUsage: vi.fn(measure), clone: vi.fn(cloneSession) };
@@ -213,7 +235,7 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
       it('WHEN the whole fixture fits THEN answers it in one prompt, in a clone of the session', async (): Promise<void> => {
         const answer = await provider.fill(GAP_CONTEXT, options);
 
-        expect(answer).toStrictEqual({ status: 'open' });
+        expect(answer.populated).toMatchObject(POPULATED);
         expect(requestedPaths()).toStrictEqual([undefined]);
         expect(clones).toHaveLength(1);
         expect(session.promptStreaming).not.toHaveBeenCalled();
@@ -233,17 +255,51 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
         const answer = await provider.fill(GAP_CONTEXT, options);
 
         expect(requestedPaths()).toStrictEqual([undefined, GAP_PATHS, ['customer', 'error.customer'], ['customer'], ['error.customer'], ['error.source']]);
-        expect(answer).toStrictEqual({ customer: 'cus_1', error: MERGED_ERROR });
+        expect(answer.populated).toStrictEqual({ customer: 'cus_1', error: MERGED_ERROR });
+        expect(answer.sources).toStrictEqual({ customer: 'ai', 'error.customer': 'ai', 'error.source': 'ai' });
       });
 
-      it('WHEN one missing path alone is too large THEN suggests the local CLI and destroys every session', async (): Promise<void> => {
+      it('WHEN one missing path alone is too large THEN fills the rest and takes the sampler value for it', async (): Promise<void> => {
         promptTokens = { whole: 900, 'customer,error.customer,error.source': 900, 'customer,error.customer': 900, customer: 900 };
 
-        const error = await rejectionOf(provider.fill(GAP_CONTEXT, options));
+        const answer = await provider.fill(GAP_CONTEXT, options);
 
-        expect(error).toHaveProperty('message', 'This fixture is too large for the on-device model.');
-        expect(clones).toHaveLength(0);
+        expect(answer.populated).toStrictEqual({ customer: 'cus_sampled', error: MERGED_ERROR });
+        expect(answer.sources).toStrictEqual({ customer: 'sampler', 'error.customer': 'ai', 'error.source': 'ai' });
+        expect(answer.notes?.[0]).toContain('failed on 1 missing fields (This fixture is too large for the on-device model.)');
         expect(session.destroy).toHaveBeenCalledTimes(1);
+      });
+
+      it('WHEN the second half answers with prose THEN keeps the first half and samples the second', async (): Promise<void> => {
+        const error = { customer: 'cus_2', source: 'src_sampled' };
+
+        promptTokens = { whole: 900, 'customer,error.customer,error.source': 900 };
+        failingInputs = new Set(['error.source']);
+
+        const answer = await provider.fill(GAP_CONTEXT, options);
+        const statusLines = progress.filter((event) => event.stream === 'status').map((event) => event.text);
+
+        expect(answer.sources).toStrictEqual({ customer: 'ai', 'error.customer': 'ai', 'error.source': 'sampler' });
+        expect(answer.populated).toStrictEqual({ customer: 'cus_1', error });
+        expect(statusLines).toContain(answer.notes?.[0]);
+        expect(clones.every((clone) => vi.mocked(clone.destroy).mock.calls.length === 1)).toBe(true);
+      });
+
+      it('WHEN the fill is cancelled while a half fails THEN rejects instead of sampling', async (): Promise<void> => {
+        const controller = new AbortController();
+        const cancellable: AiRunOptions = { ...options, signal: controller.signal };
+        const cancelOnCustomer = async (input: string): Promise<number> => {
+          if (input === 'customer') controller.abort();
+
+          return measure(input);
+        };
+
+        promptTokens = { whole: 900, 'customer,error.customer,error.source': 900, 'customer,error.customer': 900 };
+        failingInputs = new Set(['customer']);
+        session = { ...session, measureContextUsage: vi.fn(cancelOnCustomer) };
+        vi.mocked(factory.create).mockResolvedValue(session);
+
+        await expect(provider.fill(GAP_CONTEXT, cancellable)).rejects.toThrow('not JSON');
       });
 
       it('WHEN a chunk answer is not JSON THEN rejects and destroys its clone', async (): Promise<void> => {
@@ -272,6 +328,15 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
 
       expect(error).toHaveProperty('message', 'This fixture is too large for the on-device model.');
       expect(error).toHaveProperty('fix', 'Turn off "Use on-device Chrome AI" to fill it with the local CLI instead.');
+    });
+
+    it('GIVEN an answer wrapped in a Markdown fence WHEN filled THEN reads the JSON inside', async (): Promise<void> => {
+      vi.mocked(factory.create).mockResolvedValue(session);
+      vi.mocked(session.promptStreaming).mockReturnValue(streamOf(['```json\n{"status":"open"}\n```']));
+
+      const answer = await provider.fill(CONTEXT, options);
+
+      expect(answer.populated).toStrictEqual(POPULATED);
     });
 
     it('GIVEN an answer that is not JSON WHEN filled THEN rejects and still destroys the session', async (): Promise<void> => {

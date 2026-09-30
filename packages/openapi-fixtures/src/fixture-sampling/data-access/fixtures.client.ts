@@ -6,6 +6,16 @@ import { FixtureError } from '../../shared/fixture-error/common/fixture.error.ts
 import type { OpenApiSpec } from '../../shared/openapi-document/common/openapi.type.ts';
 import type { FixtureFactory, SampleOptions, SchemaMap } from '../common/fixture-sampling.type.ts';
 
+/** The openapi-sampler value of `components.schemas[name]`, whatever its JSON type; an unknown name fails with a suggestion. */
+export const schemaSample = (spec: OpenApiSpec, name: string, options: SampleOptions = {}): unknown => {
+  const schemas = spec.components?.schemas ?? {};
+  const schema = schemas[name];
+
+  if (!schema) throw new FixtureError(`schema not found: ${name}`, schemaSuggestion(Object.keys(schemas), name));
+
+  return sample(schema, options, spec);
+};
+
 /**
  * Deterministic fixtures from `components.schemas`. Pass the generated `components` type:
  *   const fx = fixtures<components>(spec);
@@ -19,12 +29,7 @@ export function fixtures<TComponents extends SchemaMap = SchemaMap>(
 
 export function fixtures(spec: OpenApiSpec, options: SampleOptions = {}): FixtureFactory {
   const fixture: FixtureFactory = (name, overrides = {}): Record<string, unknown> => {
-    const schemas = spec.components?.schemas ?? {};
-    const schema = schemas[name];
-
-    if (!schema) throw new FixtureError(`schema not found: ${name}`, schemaSuggestion(Object.keys(schemas), name));
-
-    const sampled = sample(schema, options, spec);
+    const sampled = schemaSample(spec, name, options);
 
     if (!isRecord(sampled)) throw new Error(`sample did not produce an object for schema: ${name}`);
 

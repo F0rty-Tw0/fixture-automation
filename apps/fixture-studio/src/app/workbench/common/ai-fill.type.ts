@@ -1,4 +1,12 @@
-import type { AiFillProgressEvent, AiTool, MergeBody, MissingFile } from '@fixture-automation/fixture-studio-api/contract';
+import type {
+  AiFillProgressEvent,
+  AiFillResultEvent,
+  AiTool,
+  FillSource,
+  MergeBody,
+  MergeResult,
+  MissingFile
+} from '@fixture-automation/fixture-studio-api/contract';
 
 /** Chrome's `LanguageModel.availability()` states; also used for "is this provider usable". */
 export type AiAvailability = 'available' | 'downloadable' | 'downloading' | 'unavailable';
@@ -17,6 +25,8 @@ export type AiFillContext = {
   readonly endpointId: string;
   readonly fixture: unknown;
   readonly missing: MissingFile;
+  /** The diff's `completeJson`, parsed: the schema sampler's value for every missing path, when the model gives none. */
+  readonly complete: unknown;
   readonly scenario: string | undefined;
   readonly tool: AiTool;
   readonly model: string | undefined;
@@ -34,8 +44,8 @@ type AiProgressListener = {
 
 export type AiRunOptions = AiDownloadOptions & AiProgressListener;
 
-/** The signature both providers share: resolves to the populated missing properties, ready for `merge`. */
-type AiFill = (context: AiFillContext, options: AiRunOptions) => Promise<unknown>;
+/** The signature both providers share: resolves to the populated missing properties, ready for `merge`, and their sources. */
+type AiFill = (context: AiFillContext, options: AiRunOptions) => Promise<AiFillResultEvent>;
 
 /** Chrome's built-in Prompt API: the only provider with an availability to probe up front. */
 export type ChromeAiProvider = {
@@ -63,4 +73,21 @@ export type AiRunRequest = {
 export type MergeRequest = {
   readonly specId: string;
   readonly body: MergeBody;
+  /** The answer whose `populated` is in `body`, kept so the merge and what produced it are shown together. */
+  readonly answer: AiFillResultEvent;
 };
+
+/** A merge together with the answer it merged: sources, notes and filled values always describe the merge on screen. */
+export type MergedFill = {
+  readonly answer: AiFillResultEvent;
+  readonly merge: MergeResult;
+};
+
+/** One path a fill targets, and where its value came from. */
+export type FilledPath = {
+  readonly path: string;
+  readonly source: FillSource;
+};
+
+/** What a salvage needs from the fill context: the paths to answer and the sampler's complete fixture. */
+export type SalvageSource = Pick<AiFillContext, 'complete' | 'missing'>;

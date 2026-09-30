@@ -2,10 +2,10 @@ import type { AiFixtureOptions, AiMissingRequest, MissingValidator, MissingVerdi
 
 import { chunkedFill } from './ai-chunked-fill.ts';
 import type { AiFillBody, MissingFile } from '../../contract/common/studio-api.type.ts';
-import type { SpecCompute, ValidateMissingTask } from '../../spec-compute/common/spec-compute.type.ts';
+import type { SalvageMissingTask, SpecCompute, ValidateMissingTask } from '../../spec-compute/common/spec-compute.type.ts';
 import { computeInWorker } from '../../spec-compute/domain-logic/spec-compute.ts';
 import type { SpecStore } from '../../specs/common/specs.type.ts';
-import type { AiFillJob, ChunkedFillRun, FillRun } from '../common/ai.type.ts';
+import type { AiFillJob, ChunkedFillRun, FillOutcome, FillRun, MissingSalvager } from '../common/ai.type.ts';
 import { missingScenario } from '../utils/ai-prompt.util.ts';
 import { endpointMissing } from '../utils/endpoint-missing.util.ts';
 
@@ -18,6 +18,17 @@ const workerValidator = (compute: SpecCompute, signal: AbortSignal): MissingVali
   };
 
   return validate;
+};
+
+/** Salvages a failed chunk in a spec worker, since it validates against the same possibly backtracking projection. */
+const workerSalvager = (compute: SpecCompute, signal: AbortSignal): MissingSalvager => {
+  const salvage = async (missing: MissingFile, candidates: unknown[], context: string): Promise<FillOutcome> => {
+    const task: SalvageMissingTask = { name: 'salvage-missing', missing, candidates, context };
+
+    return computeInWorker(task, { ...compute, signal });
+  };
+
+  return salvage;
 };
 
 /** The fill run, chunked when its prompt is too big for one answer; it releases its CLI slot however it ends. */
@@ -37,7 +48,8 @@ const fillJob = (run: FillRun, schemaName: string, body: AiFillBody): AiFillJob 
       await validate(body.missing, undefined);
 
       const enrich = ai.fill(options);
-      const fill: ChunkedFillRun = { enrich, schemaName, request, signal, onProgress };
+      const salvage = workerSalvager(compute, signal);
+      const fill: ChunkedFillRun = { enrich, salvage, tool: body.tool, schemaName, request, signal, onProgress };
 
       return await chunkedFill(fill);
     } finally {

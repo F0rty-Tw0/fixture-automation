@@ -46,6 +46,12 @@
   --fs-verb-delete: light-dark(oklch(52% 0.19 25deg), oklch(72% 0.16 25deg));
   --fs-verb-other: var(--fs-ink-muted);
 
+  // Fix highlights in compare and fill results: a broken value, and what filled a missing or broken one.
+  --fs-fix-broken: var(--fs-verb-put);
+  --fs-fix-ai: var(--fs-verb-patch);
+  --fs-fix-sampler: var(--fs-verb-post);
+  --fs-fix-unfilled: var(--fs-danger);
+
   // Syntax colors for CodeMirror's `tok-*` classes.
   --fs-code-bg: var(--fs-surface);
   --fs-code-gutter: var(--fs-surface-sunken);

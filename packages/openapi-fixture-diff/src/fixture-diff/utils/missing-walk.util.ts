@@ -20,16 +20,33 @@ const isRefilled = (owner: Record<string, unknown>, candidate: ReplaceCandidate,
   return input.isReplaceable(candidate);
 };
 
+/** A present value `requiredOnly` skips is still offered to `isReplaceable`, so the caller can record it as broken; it is never refilled or walked. */
+const offerSkipped = (owner: Record<string, unknown>, key: string, schema: SpecSchema, input: WalkInput): void => {
+  const isPresent = Object.hasOwn(owner, key);
+
+  if (!isPresent) return;
+
+  const path = childPath(input.path, key);
+  const candidate: ReplaceCandidate = { path, key, schema, value: owner[key] };
+
+  input.isReplaceable(candidate);
+};
+
 const propertyEntries = (source: SpecSchema, value: Record<string, unknown>, input: WalkInput, walk: WalkFunction): MissingEntry[] => {
   const properties = source.properties ?? {};
   const required = source.required ?? [];
   const entries: MissingEntry[] = [];
 
   for (const [key, definition] of Object.entries(properties)) {
+    if (!isSchema(definition)) continue;
+
     const isRequired = required.includes(key);
     const isSkipped = input.requiredOnly && !isRequired;
 
-    if (isSkipped || !isSchema(definition)) continue;
+    if (isSkipped) {
+      offerSkipped(value, key, definition, input);
+      continue;
+    }
 
     const names = referencedNames(definition, input.schemas);
     const isCycle = names.some((name) => input.ancestry.includes(name));
@@ -88,7 +105,8 @@ const itemEntries = (schema: SpecSchema, value: unknown[], input: WalkInput, wal
  * `ancestry` — terminates the same way the `openapi-sampler` does: it is neither walked nor
  * reported missing. `additionalProperties` and `patternProperties` are ignored.
  *
- * A present property value that `isReplaceable` flags is reported like an absent one and never entered.
+ * A present property value that `isReplaceable` flags is reported like an absent one and never entered. Under
+ * `requiredOnly` a present optional value is offered to `isReplaceable` too, but only so the caller can record it.
  */
 export const missingEntries = (input: WalkInput): MissingEntry[] => {
   const schema = resolveSchema(input.schema, input.schemas);

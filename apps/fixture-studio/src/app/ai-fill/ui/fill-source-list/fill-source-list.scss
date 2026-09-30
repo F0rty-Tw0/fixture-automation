@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.sources {
+  min-width: 0;
+}
+
+.sources__summary {
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+}
+
+.sources__counts {
+  margin-inline-start: var(--fs-space-2);
+  font-weight: 400;
+  color: var(--fs-ink-muted);
+}
+
+.sources__list {
+  display: grid;
+  gap: var(--fs-space-1);
+  max-height: min(40vh, 16rem);
+  padding: 0;
+  margin: var(--fs-space-2) 0 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.sources__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-1) var(--fs-space-3);
+  align-items: baseline;
+  font-size: var(--fs-text-xs);
+}
+
+.sources__path {
+  overflow-wrap: anywhere;
+}
+
+// The same colors as the line marks in the documents, so the list and the highlights read as one key.
+.sources__source {
+  padding: 0 var(--fs-space-2);
+  font-weight: 600;
+  color: var(--fs-fix);
+  background: color-mix(in oklch, var(--fs-fix) 12%, transparent);
+  border-radius: var(--fs-radius-sm);
+}
+
+.sources__source[data-source='ai'] {
+  --fs-fix: var(--fs-fix-ai);
+}
+
+.sources__source[data-source='sampler'] {
+  --fs-fix: var(--fs-fix-sampler);
+}
+
+.sources__source[data-source='unfilled'] {
+  --fs-fix: var(--fs-fix-unfilled);
+}

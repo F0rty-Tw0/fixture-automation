@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { fillChunks } from './fill-chunks.util.ts';
 import type { MissingFile } from '../../contract/common/studio-api.type.ts';
 import { missingFixture } from '../../test/utils/studio-spec.spec.util.ts';
+import type { FillChunk } from '../common/ai.type.ts';
 
 const SCENARIO = 'An overdue invoice.';
 const INVOICE = { id: 'in_9', amount_due: 5 };
@@ -27,7 +28,11 @@ const wideMissing = (count: number): MissingFile => {
   return missing;
 };
 
-const chunkSize = (paths: string[]): number => paths.length;
+const chunkSize = (chunk: FillChunk): number => chunk.paths.length;
+
+const chunkPaths = (chunk: FillChunk): string[] => chunk.paths;
+
+const isOversized = (chunk: FillChunk): boolean => chunk.isOversized;
 
 describe('FEATURE: CLI fill chunk planning', (): void => {
   let missing: MissingFile;
@@ -40,7 +45,7 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
     it('WHEN planned THEN one chunk holds every missing path', (): void => {
       const chunks = fillChunks(INVOICE, missing, SCENARIO);
 
-      expect(chunks).toStrictEqual([['status', 'customer']]);
+      expect(chunks).toStrictEqual([{ paths: ['status', 'customer'], isOversized: false }]);
     });
   });
 
@@ -48,7 +53,8 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
     it('WHEN planned THEN the paths are halved until each chunk fits or holds one path', (): void => {
       const chunks = fillChunks(LARGE_INVOICE, missing, SCENARIO);
 
-      expect(chunks).toStrictEqual([['status'], ['customer']]);
+      expect(chunks.map(chunkPaths)).toStrictEqual([['status'], ['customer']]);
+      expect(chunks.map(isOversized)).toStrictEqual([false, false]);
     });
   });
 
@@ -58,7 +64,7 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
 
       const chunks = fillChunks(INVOICE, fourFields, LONG_SCENARIO);
 
-      expect(chunks).toStrictEqual([['f0'], ['f1'], ['f2'], ['f3']]);
+      expect(chunks.map(chunkPaths)).toStrictEqual([['f0'], ['f1'], ['f2'], ['f3']]);
     });
   });
 
@@ -69,16 +75,18 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
       const chunks = fillChunks({}, wide, SCENARIO);
 
       expect(chunks.map(chunkSize)).toStrictEqual([100, 100]);
-      expect(chunks.flat()).toStrictEqual(wide.paths);
+      expect(chunks.flatMap(chunkPaths)).toStrictEqual(wide.paths);
     });
   });
 
   describe('GIVEN one path whose own prompt exceeds the 1 MiB CLI limit', (): void => {
-    it('WHEN planned THEN throws a FixtureError naming the path', (): void => {
-      const plan = (): string[][] => fillChunks(HUGE_INVOICE, missing, SCENARIO);
+    it('WHEN planned THEN each such path is a chunk of its own marked oversized', (): void => {
+      const chunks = fillChunks(HUGE_INVOICE, missing, SCENARIO);
 
-      expect(plan).toThrow(FixtureError);
-      expect(plan).toThrow('"status"');
+      expect(chunks).toStrictEqual([
+        { paths: ['status'], isOversized: true },
+        { paths: ['customer'], isOversized: true }
+      ]);
     });
   });
 
@@ -86,7 +94,7 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
     it('WHEN planned THEN throws a FixtureError instead of halving an empty list forever', (): void => {
       const empty = wideMissing(0);
 
-      const plan = (): string[][] => fillChunks(LARGE_INVOICE, empty, SCENARIO);
+      const plan = (): FillChunk[] => fillChunks(LARGE_INVOICE, empty, SCENARIO);
 
       expect(plan).toThrow(FixtureError);
       expect(plan).toThrow('there are no missing paths to fill');
@@ -95,7 +103,7 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
 
   describe('GIVEN a fixture that is not JSON-serializable', (): void => {
     it('WHEN planned THEN throws a FixtureError', (): void => {
-      const plan = (): string[][] => fillChunks(undefined, missing, SCENARIO);
+      const plan = (): FillChunk[] => fillChunks(undefined, missing, SCENARIO);
 
       expect(plan).toThrow('the fixture is not JSON-serializable');
     });

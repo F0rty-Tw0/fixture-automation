@@ -1,4 +1,4 @@
-import type { AI_PROGRESS_STREAMS, API_PREFIX, API_ROUTES } from '@fixture-automation/fixture-studio-api/contract';
+import type { AI_PROGRESS_STREAMS, API_PREFIX, API_ROUTES, FillSource } from '@fixture-automation/fixture-studio-api/contract';
 
 // The Angular builder can't resolve the contract's runtime module, so these are copies; typing
 // each one as `typeof` its contract value turns any drift into a compile error.
@@ -24,3 +24,6 @@ export const CLI_TOOLS_URL = `${STUDIO_API_PREFIX}${STUDIO_API_ROUTES.aiTools}`;
 
 /** The contract's `AI_PROGRESS_STREAMS` (a copy, drift-checked by its type). */
 export const FILL_PROGRESS_STREAMS: typeof AI_PROGRESS_STREAMS = ['stdout', 'stderr', 'status'];
+
+/** Every `FillSource`; the contract has no runtime list of them. */
+export const FILL_SOURCES: FillSource[] = ['ai', 'sampler', 'unfilled'];

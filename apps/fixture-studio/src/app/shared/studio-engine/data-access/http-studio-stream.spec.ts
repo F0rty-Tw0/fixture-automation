@@ -1,7 +1,7 @@
 import { HttpEventType, HttpResponse } from '@angular/common/http';
 import type { HttpEvent } from '@angular/common/http';
 
-import type { AiFillProgressEvent } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillProgressEvent, AiFillResultEvent } from '@fixture-automation/fixture-studio-api/contract';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -12,6 +12,7 @@ import type { EngineStreamCall } from '../common/engine.type.ts';
 const PROGRESS_LINE = '{"type":"progress","stream":"stdout","text":"thinking"}\n';
 const RESULT_LINE = '{"type":"result","populated":{"status":"open"}}\n';
 const POPULATED = { status: 'open' };
+const RESULT: AiFillResultEvent = { type: 'result', populated: POPULATED };
 
 const partial = (partialText: string): HttpEvent<string> => {
   const event: HttpEvent<string> = { type: HttpEventType.DownloadProgress, loaded: partialText.length, partialText };
@@ -40,7 +41,7 @@ describe('FEATURE: AI fill stream reader', (): void => {
       events$.next(partial(PROGRESS_LINE.slice(0, cut)));
       events$.next(partial(PROGRESS_LINE + RESULT_LINE));
 
-      await expect(reading).resolves.toStrictEqual(POPULATED);
+      await expect(reading).resolves.toStrictEqual(RESULT);
       expect(progress).toStrictEqual([{ type: 'progress', stream: 'stdout', text: 'thinking' }]);
     });
   });
@@ -62,7 +63,7 @@ describe('FEATURE: AI fill stream reader', (): void => {
     events$.next(partial(PROGRESS_LINE));
     events$.next(new HttpResponse({ body }));
 
-    await expect(reading).resolves.toStrictEqual(POPULATED);
+    await expect(reading).resolves.toStrictEqual(RESULT);
   });
 
   it('GIVEN a stream without a result WHEN it ends THEN rejects', async (): Promise<void> => {
@@ -79,7 +80,7 @@ describe('FEATURE: AI fill stream reader', (): void => {
 
     events$.next(partial(`not json\n${RESULT_LINE}`));
 
-    await expect(reading).resolves.toStrictEqual(POPULATED);
+    await expect(reading).resolves.toStrictEqual(RESULT);
   });
 
   it('GIVEN a running stream WHEN aborted THEN unsubscribes and rejects with the reason', async (): Promise<void> => {

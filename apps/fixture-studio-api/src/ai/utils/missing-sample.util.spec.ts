@@ -23,7 +23,17 @@ describe('FEATURE: missing sample', (): void => {
     });
   });
 
-  describe('GIVEN a projection that is not an object', (): void => {
+  describe('GIVEN a list projection', (): void => {
+    it('WHEN sampled THEN is a list with one sampled element', async (): Promise<void> => {
+      const list = await missingFixture('list');
+
+      const sample = missingSample(list);
+
+      expect(sample).toStrictEqual([{ status: 'draft' }]);
+    });
+  });
+
+  describe('GIVEN a projection that is neither an object nor a list', (): void => {
     it('WHEN sampled THEN fails', (): void => {
       const shaped: MissingFile = { ...missing, schema: STRING_SCHEMA };
 

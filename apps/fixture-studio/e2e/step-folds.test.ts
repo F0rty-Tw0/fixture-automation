@@ -14,12 +14,12 @@ type FoldCase = {
 
 /** Every folding section inside a step, and whether it starts open, once the invoice is compared, filled and merged. */
 const FOLD_CASES: FoldCase[] = [
-  { step: 'Generate', summary: 'JSON fixture', isOpen: true },
   { step: 'Compare', summary: 'Your fixture beside the schema-complete one', isOpen: true },
   { step: 'Missing & broken values', summary: 'Missing paths', isOpen: true },
   { step: 'Missing & broken values', summary: 'customer', isOpen: true },
   { step: 'Missing & broken values', summary: 'Broken values', isOpen: true },
   { step: 'Fill with AI', summary: 'Model output', isOpen: true },
+  { step: 'Fill with AI', summary: 'Where each value came from', isOpen: true },
   { step: 'Fill with AI', summary: 'Merged fixture', isOpen: true },
   { step: 'Fill with AI', summary: 'Filled values', isOpen: false }
 ];

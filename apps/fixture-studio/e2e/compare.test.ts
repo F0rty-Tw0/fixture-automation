@@ -13,6 +13,8 @@ import {
   compareWithSchema,
   expectComparing,
   expectEnvelope,
+  expectHighlightLegend,
+  expectHighlightedValue,
   expectInsertedLine,
   expectSourceRejected,
   pasteFixture,
@@ -58,6 +60,12 @@ test.describe('FEATURE: compare an existing fixture', () => {
       expectMissingPaths(page, DIFF_RESULT_STUB.missingPaths));
 
     await test.step('AND the parsed fixture was sent for the diff', (): void => expect(diff.bodies).toEqual([SENT_DIFF]));
+
+    await test.step('AND the legend explains the highlights on the diff', async (): Promise<void> =>
+      expectHighlightLegend(page, ['S Generated from the schema', '+ Was missing']));
+
+    await test.step('AND the memo the schema sampler filled is highlighted', async (): Promise<void> =>
+      expectHighlightedValue(page, 'invoice.complete.json', 'memo · Was missing · Generated from the schema'));
   });
 
   test('GIVEN a TypeScript fixture, it is read as literals without running it', async ({ page }): Promise<void> => {

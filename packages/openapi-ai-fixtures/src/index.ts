@@ -2,6 +2,8 @@ export { aiFixtures } from './fixture-enrichment/domain-logic/ai-fixtures.ts';
 
 export { aiMissingFixture } from './fixture-enrichment/domain-logic/ai-missing-fixtures.ts';
 
+export { AiFillRejectedError } from './fixture-enrichment/common/ai-fill-rejected.error.ts';
+
 export { createAiProgressReporter } from './ai-fixtures-cli/data-access/ai-progress.client.ts';
 
 export { parseMissingFile } from './missing-values/utils/missing-file.util.ts';
@@ -11,6 +13,8 @@ export { missingDocument } from './missing-values/utils/missing-document.util.ts
 export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
 
 export { missingCheck } from './missing-values/utils/missing-check.util.ts';
+
+export { isListFill } from './missing-values/utils/missing-fill.util.ts';
 
 export { discoverModels } from './model-discovery/domain-logic/model-discovery.ts';
 
@@ -43,9 +47,11 @@ export type {
   AiMissingFactory,
   AiMissingRequest,
   MissingFile,
+  MissingFill,
   MissingPromptInput,
   MissingValidator,
-  MissingVerdict
+  MissingVerdict,
+  MissingViolation
 } from './missing-values/common/missing.type.ts';
 
 export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './model-discovery/common/model.type.ts';

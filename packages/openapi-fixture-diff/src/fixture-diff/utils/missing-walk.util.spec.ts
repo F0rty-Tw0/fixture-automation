@@ -62,6 +62,31 @@ describe('FEATURE: missing-field schema walk', (): void => {
     });
   });
 
+  describe('GIVEN a present optional value the caller flags', (): void => {
+    it('WHEN walking required fields only THEN it is offered to isReplaceable but never reported missing', (): void => {
+      const offered: string[] = [];
+      const isReplaceable = (candidate: ReplaceCandidate): boolean => {
+        offered.push(candidate.path);
+
+        return candidate.path === 'note';
+      };
+      const value = { ...COMPLETE_ORDER, note: 5 };
+
+      const entries = missingEntries({
+        schema: ORDER,
+        value,
+        path: '',
+        schemas: SCHEMAS,
+        requiredOnly: true,
+        ancestry: [],
+        isReplaceable
+      });
+
+      expect(entries).toStrictEqual([]);
+      expect(offered).toContain('note');
+    });
+  });
+
   describe('GIVEN a value missing a required top-level field', (): void => {
     it('WHEN walking required fields only THEN the path is the bare key', (): void => {
       const value = { customer: COMPLETE_CUSTOMER, lines: [COMPLETE_LINE] };

@@ -7,6 +7,8 @@ export const aiFillPanel = (page: Page): Locator => page.getByRole('region', { n
 
 const mergeResult = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'Merge result' });
 
+const generatedFallback = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'Generated fallback' });
+
 const providerRegion = (page: Page): Locator => aiFillPanel(page).getByRole('region', { name: 'AI provider' });
 
 export const chromeOptIn = (page: Page): Locator => aiFillPanel(page).getByRole('checkbox', { name: 'Use on-device Chrome AI' });
@@ -164,4 +166,25 @@ export const expectFillError = async (page: Page, error: ApiErrorBody): Promise<
   const lines = candidates.filter((line: string | undefined): line is string => line !== undefined);
 
   await expect(paragraphs).toContainText(lines);
+};
+
+/** A failed fill leaves the schema-complete fixture in its place, ready to export. */
+export const expectGeneratedFallback = async (page: Page, fileName: string, text: string): Promise<void> => {
+  const editor = generatedFallback(page).getByRole('textbox', { name: fileName, exact: true });
+
+  await expect(editor).toContainText(text);
+};
+
+export const expectFillNotes = async (page: Page, notes: (RegExp | string)[]): Promise<void> => {
+  const items = aiFillPanel(page).getByRole('status', { name: 'Notes from the fill' }).getByRole('listitem');
+
+  await expect(items).toHaveText(notes);
+};
+
+/** The merge lists every filled path with where its value came from, e.g. `Filled by AI`. */
+export const expectFilledSource = async (page: Page, path: string, source: string): Promise<void> => {
+  const items = mergeResult(page).getByRole('list', { name: 'Filled values by source' }).getByRole('listitem');
+  const item = items.filter({ hasText: path });
+
+  await expect(item).toContainText(source);
 };

@@ -1,8 +1,8 @@
-import type { AiFillEvent, AiProgressStream } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillEvent, AiFillResultEvent, AiProgressStream, FillSource } from '@fixture-automation/fixture-studio-api/contract';
 
 import { parseJsonOrUndefined } from '../../json/utils/json.util.ts';
 import { isRecord } from '../../json/utils/record.util.ts';
-import { FILL_PROGRESS_STREAMS } from '../common/studio-api.const.ts';
+import { FILL_PROGRESS_STREAMS, FILL_SOURCES } from '../common/studio-api.const.ts';
 
 type NdjsonSplit = {
   /** Complete, non-empty lines. */
@@ -22,12 +22,28 @@ export const splitNdjson = (buffer: string): NdjsonSplit => {
   return split;
 };
 
+const isFillSource = (value: unknown): value is FillSource => FILL_SOURCES.some((source) => source === value);
+
+const isSourceEntry = (entry: [string, unknown]): entry is [string, FillSource] => isFillSource(entry[1]);
+
+const isNote = (note: unknown): note is string => typeof note === 'string';
+
+/** `sources` and `notes` are kept only when sent, minus malformed entries: absent sources mean every value is the model's. */
 const resultEventOf = (value: Record<string, unknown>): AiFillEvent | undefined => {
-  const populated = value['populated'];
+  const { populated, sources, notes } = value;
+  const isPopulated = isRecord(populated) || Array.isArray(populated);
 
-  if (!isRecord(populated)) return undefined;
+  if (!isPopulated) return undefined;
 
-  const result: AiFillEvent = { type: 'result', populated };
+  let result: AiFillResultEvent = { type: 'result', populated };
+
+  if (isRecord(sources)) {
+    const entries = Object.entries(sources).filter(isSourceEntry);
+
+    result = { ...result, sources: Object.fromEntries(entries) };
+  }
+
+  if (Array.isArray(notes)) result = { ...result, notes: notes.filter(isNote) };
 
   return result;
 };

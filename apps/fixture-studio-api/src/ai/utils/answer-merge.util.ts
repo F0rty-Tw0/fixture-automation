@@ -1,3 +1,4 @@
+import type { MissingFill } from '@fixture-automation/openapi-ai-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
 type ValueMerge = (first: unknown, second: unknown) => unknown;
@@ -28,7 +29,13 @@ function mergedValue(first: unknown, second: unknown): unknown {
 /**
  * Combines the answers to two chunks of one fill: objects key by key, arrays index by index (the way `merge` reads
  * them), and for anything else the later answer wins. Chunks cover different paths, so real collisions don't happen.
+ * A list fill merges with a list; an empty object, the start of a chunked run, gives way to a list.
  */
-export const mergeAnswers = (first: Record<string, unknown>, second: Record<string, unknown>): Record<string, unknown> => {
-  return mergedRecord(first, second, mergedValue);
+export const mergeAnswers = (first: MissingFill, second: MissingFill): MissingFill => {
+  const merged = mergedValue(first, second);
+  const isFill = Array.isArray(merged) || isRecord(merged);
+
+  if (!isFill) return second;
+
+  return merged;
 };

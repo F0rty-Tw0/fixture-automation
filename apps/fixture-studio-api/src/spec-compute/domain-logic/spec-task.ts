@@ -2,6 +2,7 @@ import { missingCheck } from '@fixture-automation/openapi-ai-fixtures';
 import type { MissingVerdict } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
+import { missingSalvage } from '../../ai/utils/missing-salvage.util.ts';
 import { fixtureDiffResult } from '../../fixture/utils/fixture-diff-result.util.ts';
 import { fixtureEnvelope } from '../../fixture/utils/fixture-envelope.util.ts';
 import { fixtureMergeResult } from '../../fixture/utils/fixture-merge-result.util.ts';
@@ -26,6 +27,8 @@ const taskValue = async (task: SpecTask): Promise<unknown> => {
       return fixtureMergeResult(task.spec, task.schemaName, task.body);
     case 'validate-missing':
       return missingVerdict(task);
+    case 'salvage-missing':
+      return missingSalvage(task.missing, task.candidates, task.context);
   }
 };
 

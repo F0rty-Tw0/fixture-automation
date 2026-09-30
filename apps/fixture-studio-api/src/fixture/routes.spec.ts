@@ -150,13 +150,18 @@ describe('FEATURE: fixture routes', (): void => {
     });
 
     describe('GIVEN an envelope key the fixture lacks', (): void => {
-      it('WHEN diffed THEN answers 400 with the object-shape fix', async (): Promise<void> => {
+      it('WHEN diffed THEN answers 200 for the whole fixture with a warning', async (): Promise<void> => {
         const body: DiffBody = { ...DIFF_BODY, objectShape: 'data' };
 
         const response = await post('diff', body);
 
-        expect(response.statusCode).toBe(400);
-        expect(response.json<ApiErrorBody>().message).toBe('fixture has no own property "data" for object-shape');
+        const result = response.json<DiffResult>();
+
+        expect(response.statusCode).toBe(200);
+        expect(result.missingPaths).toStrictEqual(['status', 'memo', 'customer']);
+        expect(result.warnings).toStrictEqual([
+          'The fixture has no "data" property, but its top level looks like the payload, so the whole fixture was compared instead.'
+        ]);
       });
     });
 

@@ -7,6 +7,7 @@ import type { SpecSchema } from '../../schema/common/schema.type.ts';
 import { isSchema } from '../../schema/utils/schema-record.util.ts';
 import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
 import { cyclicOrder, nestedOrder, nestedSpec } from '../../test/utils/nested-spec.spec.util.ts';
+import type { BrokenEntry } from '../common/missing.type.ts';
 
 const DROPPED = ['id', 'customer.email', 'lines[1].sku'];
 const CYCLE_PATHS = ['parent.id', 'parent.created', 'parent.note', 'parent.customer', 'parent.lines'];
@@ -103,6 +104,69 @@ describe('FEATURE: missing-field diff against an OpenAPI schema', (): void => {
 
       expect(diff.paths).toStrictEqual(['body[0].id']);
       expect(diff.schema).toMatchObject(expected);
+    });
+  });
+
+  describe('GIVEN a list fixture diffed against its item schema', (): void => {
+    it('WHEN diffing required fields only THEN each element reports its own missing paths', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const second = dropPaths(await nestedOrder(), ['id', 'customer.email']);
+      const fixture = [await nestedOrder(), second];
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true });
+
+      expect(diff.paths).toStrictEqual(['[1].id', '[1].customer.email']);
+    });
+
+    it('WHEN diffing THEN the missing schema is an array of the element projection', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const fixture = [dropPaths(await nestedOrder(), ['id'])];
+      const items = { type: 'object', required: ['id'] };
+      const expected = { type: 'array', items };
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true });
+
+      expect(diff.schema).toMatchObject(expected);
+    });
+
+    it('WHEN an element holds a value of the wrong type THEN it is broken under its index', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const order = await nestedOrder();
+      const stale = { ...order, created: 'yesterday' };
+      const fixture = [order, stale];
+      const expected: BrokenEntry = { path: '[1].created', value: 'yesterday', reason: 'must be integer' };
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true });
+
+      expect(diff.broken).toStrictEqual([expected]);
+    });
+
+    it('WHEN replacing broken values THEN the baseline stays a list without that element value', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const order = await nestedOrder();
+      const stale = { ...order, created: 'yesterday' };
+      const fixture = [order, stale];
+      const undated = dropPaths(order, ['created']);
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, replacePlaceholders: true });
+
+      expect(diff.replaced).toStrictEqual(['[1].created']);
+      expect(diff.baseline).toStrictEqual([order, undated]);
+    });
+  });
+
+  describe('GIVEN a present optional value of the wrong type', (): void => {
+    it('WHEN diffing required fields only THEN it is listed as broken but neither missing nor replaced', async (): Promise<void> => {
+      const spec = await nestedSpec();
+      const order = await nestedOrder();
+      const fixture = { ...order, note: 5 };
+      const expected: BrokenEntry = { path: 'note', value: 5, reason: 'must be string,null' };
+
+      const diff = diffFixture({ spec, schemaName: 'order', fixture, requiredOnly: true, replacePlaceholders: true });
+
+      expect(diff.broken).toStrictEqual([expected]);
+      expect(diff.paths).toStrictEqual([]);
+      expect(diff.replaced).toStrictEqual([]);
     });
   });
 

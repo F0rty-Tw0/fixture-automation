@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { fillObjectShape } from './object-shape-fill.util.ts';
+import type { FillOptions } from '../common/fixture-fill.type.ts';
 
 const NO_BODY = 'fixture has no own property "body" for object-shape';
 
@@ -50,6 +51,23 @@ describe('FEATURE: object-shape fill', (): void => {
       const merged = fillObjectShape(corrupt, populated, 'body');
 
       expect(merged.filled).toStrictEqual(['body']);
+    });
+  });
+
+  describe('GIVEN keepPresent and an object shape both inputs carry', (): void => {
+    it('WHEN filling THEN a mismatched payload value is kept and only the absent key is filled', (): void => {
+      const corruptBody = { amount_due: '4200' };
+      const corrupt = { body: corruptBody };
+      const populatedBody = { amount_due: 4200, status: 'open' };
+      const populated = { body: populatedBody };
+      const options: FillOptions = { keepPresent: true };
+
+      const merged = fillObjectShape(corrupt, populated, 'body', options);
+
+      const body = { amount_due: '4200', status: 'open' };
+      const value = { body };
+
+      expect(merged).toStrictEqual({ value, filled: ['body.status'] });
     });
   });
 

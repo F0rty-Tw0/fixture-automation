@@ -6,6 +6,7 @@ import { fixtureJson } from './fixture-merge.util.ts';
 import { aiPrompt, promptBytes, trimmedPromptBytes } from '../../ai/utils/ai-prompt.util.ts';
 import type { DiffBody } from '../../contract/common/studio-api.type.ts';
 import { studioSpec } from '../../test/utils/studio-spec.spec.util.ts';
+import { listSpec } from '../test/utils/list-spec.spec.util.ts';
 import { isInsertionOnly } from '../test/utils/text-diff.spec.util.ts';
 
 const PARTIAL_INVOICE = { id: 'in_9', amount_due: 5 };
@@ -17,6 +18,17 @@ const REQUIRED_INVOICE = { id: 'in_9', amount_due: 5, status: 'open' };
 const NOTES = Array.from({ length: 400 }, (_value: unknown, index: number): string => `note ${index}`);
 const HISTORY = { notes: NOTES };
 const INVOICE_WITH_HISTORY = { ...PARTIAL_INVOICE, history: HISTORY };
+
+const INVOICES = [PARTIAL_INVOICE, REQUIRED_INVOICE];
+const DRAFT_INVOICE = { ...PARTIAL_INVOICE, status: 'draft' };
+const AMOUNT_BROKEN = { path: 'amount_due', value: '5', reason: 'must be integer' };
+const ENVELOPE_WARNING =
+  'The fixture has no "data" property, but its top level looks like the payload, so the whole fixture was compared instead.';
+const UNPLACED_WARNING =
+  'The fixture has no "data" property and nothing in it looks like the payload, so nothing was compared or filled in.';
+const DETECTED_WARNING = 'The fixture has no "data" property; "items" looks like the payload, so it was compared instead.';
+const PAGE = { page: 1 };
+const SHAPE_MISMATCH_WARNING = "The fixture is an object but the endpoint's schema describes a list, so nothing was filled in.";
 
 const diffBody = (fixture: unknown, requiredOnly: boolean, objectShape?: string, replacePlaceholders?: boolean): DiffBody => {
   const body: DiffBody = { endpointId: 'GET /v1/invoices/{id}', fixture, requiredOnly, replacePlaceholders };
@@ -160,6 +172,59 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(result.completeJson).toContain('"amount_due": 0');
       expect(isInsertionOnly(before, result.completeJson)).toBe(false);
     });
+
+    it('WHEN completed with replacePlaceholders false THEN the wrong value is kept and the text only inserts', (): void => {
+      const fixture = { ...PARTIAL_INVOICE, amount_due: '5' };
+      const before = fixtureJson(fixture);
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, true, undefined, false));
+
+      expect(result.completeJson).toContain('"amount_due": "5"');
+      expect(isInsertionOnly(before, result.completeJson)).toBe(true);
+    });
+
+    it('WHEN completed with replacePlaceholders false THEN the kept value is still listed as broken', (): void => {
+      const fixture = { ...PARTIAL_INVOICE, amount_due: '5' };
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, true, undefined, false));
+
+      expect(result.broken).toStrictEqual([AMOUNT_BROKEN]);
+    });
+  });
+
+  describe('GIVEN a list fixture for an endpoint answering a list of invoices', (): void => {
+    it('WHEN diffed THEN each element lists its own missing paths', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICES, true));
+
+      expect(result.missingPaths).toStrictEqual(['[0].status']);
+    });
+
+    it('WHEN completed THEN completeJson stays a list with every element filled and no warning', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICES, true));
+
+      const complete: unknown = JSON.parse(result.completeJson);
+
+      expect(complete).toStrictEqual([DRAFT_INVOICE, REQUIRED_INVOICE]);
+      expect(result.warnings).toStrictEqual([]);
+    });
+  });
+
+  describe('GIVEN an array component schema', (): void => {
+    it('WHEN diffed THEN the list is completed instead of failing', (): void => {
+      const result = fixtureDiffResult(listSpec(spec), 'invoiceList', diffBody([PARTIAL_INVOICE], true));
+
+      const complete: unknown = JSON.parse(result.completeJson);
+
+      expect(result.missingPaths).toStrictEqual(['[0].status']);
+      expect(complete).toStrictEqual([DRAFT_INVOICE]);
+    });
+
+    it('WHEN the fixture is an object THEN completeJson is the fixture as it is and a warning names both shapes', (): void => {
+      const result = fixtureDiffResult(listSpec(spec), 'invoiceList', diffBody(PARTIAL_INVOICE, true));
+
+      expect(result.completeJson).toBe(fixtureJson(PARTIAL_INVOICE));
+      expect(result.warnings).toStrictEqual([SHAPE_MISMATCH_WARNING]);
+    });
   });
 
   describe('GIVEN an object-shape envelope', (): void => {
@@ -176,12 +241,47 @@ describe('FEATURE: fixture diff result', (): void => {
       expect(complete).toStrictEqual({ data, meta: 1 });
     });
 
-    it('WHEN the envelope key is absent THEN fails with a fix before diffing', (): void => {
-      const fixture = { other: PARTIAL_INVOICE };
+    it('WHEN the envelope key is absent THEN the whole fixture is diffed and a warning says so', (): void => {
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(PARTIAL_INVOICE, true, 'data'));
 
-      expect((): unknown => fixtureDiffResult(spec, 'invoice', diffBody(fixture, true, 'data'))).toThrow(
-        'fixture has no own property "data" for object-shape'
-      );
+      expect(result.missingPaths).toStrictEqual(['status']);
+      expect(result.warnings).toStrictEqual([ENVELOPE_WARNING]);
+    });
+
+    it('WHEN the envelope key is absent and nothing looks like the payload THEN completeJson is the fixture unchanged', (): void => {
+      const fixture = { meta: PAGE, note: 'n' };
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, false, 'data'));
+
+      expect(result.completeJson).toBe(fixtureJson(fixture));
+    });
+
+    it('WHEN the envelope key is absent and nothing looks like the payload THEN nothing is listed to fill', (): void => {
+      const fixture = { meta: PAGE, note: 'n' };
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, false, 'data'));
+
+      expect(result).toMatchObject({ missingPaths: [], replacedPaths: [], broken: [], promptBytes: 0, warnings: [UNPLACED_WARNING] });
+      expect(result.missing.paths).toStrictEqual([]);
+    });
+
+    it('WHEN the envelope key is absent but another property holds the payload THEN that property is diffed', (): void => {
+      const fixture = { meta: PAGE, items: PARTIAL_INVOICE };
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, true, 'data'));
+
+      expect(result.missingPaths).toStrictEqual(['items.status']);
+      expect(result.warnings).toStrictEqual([DETECTED_WARNING]);
+    });
+
+    it('WHEN the envelope key is absent but another property holds the payload THEN only that property is filled', (): void => {
+      const fixture = { meta: PAGE, items: PARTIAL_INVOICE };
+      const items = { ...PARTIAL_INVOICE, status: 'draft' };
+      const expected = { meta: PAGE, items };
+
+      const result = fixtureDiffResult(spec, 'invoice', diffBody(fixture, true, 'data'));
+
+      expect(result.completeJson).toBe(fixtureJson(expected));
     });
   });
 });

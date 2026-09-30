@@ -1,8 +1,7 @@
+import type { FillOptions } from '@fixture-automation/openapi-fixture-merge';
 import { describe, expect, it } from 'vitest';
 
-import { assertEnvelope, fixtureJson, mergeFixtureValue, shapeKey } from './fixture-merge.util.ts';
-
-const SHAPE_FIX = 'clear object-shape, or name the envelope property that holds the payload';
+import { fixtureJson, mergeFixtureValue, presentShape, shapeKey } from './fixture-merge.util.ts';
 
 describe('FEATURE: fixture merge', (): void => {
   describe('SCENARIO: object-shape key', (): void => {
@@ -21,24 +20,29 @@ describe('FEATURE: fixture merge', (): void => {
 
   describe('SCENARIO: envelope check', (): void => {
     describe('GIVEN a fixture holding the envelope key', (): void => {
-      it.each<[string, string | undefined]>([
-        ['absent', undefined],
-        ['present', 'data']
-      ])('WHEN the object-shape is %s THEN it passes', (_label: string, objectShape: string | undefined): void => {
-        const fixture = { data: {} };
+      it.each<[string, string | undefined, string | undefined]>([
+        ['absent', undefined, undefined],
+        ['present', 'data', 'data']
+      ])(
+        'WHEN the object-shape is %s THEN the present shape is %s',
+        (_label: string, objectShape: string | undefined, expected: string | undefined): void => {
+          const fixture = { data: {} };
 
-        expect((): void => assertEnvelope(fixture, objectShape)).not.toThrow();
-      });
+          expect(presentShape(fixture, objectShape)).toBe(expected);
+        }
+      );
     });
 
     describe('GIVEN a fixture without the envelope key', (): void => {
-      it('WHEN checked THEN fails with the object-shape fix', (): void => {
-        const fixture = { other: {} };
-
-        expect((): void => assertEnvelope(fixture, 'data')).toThrow(
-          expect.objectContaining({ message: 'fixture has no own property "data" for object-shape', fix: SHAPE_FIX })
-        );
-      });
+      it.each<[string, unknown]>([
+        ['an object lacking it', { other: {} }],
+        ['not an object', 'not an object']
+      ])(
+        'WHEN it is %s THEN there is no present shape, so the whole fixture is the payload',
+        (_label: string, fixture: unknown): void => {
+          expect(presentShape(fixture, 'data')).toBeUndefined();
+        }
+      );
     });
   });
 
@@ -86,18 +90,29 @@ describe('FEATURE: fixture merge', (): void => {
         expect(merged).toStrictEqual({ value, filled: ['data.status'] });
       });
 
-      it.each<[string, unknown, unknown]>([
-        ['the fixture lacks it', { other: {} }, { data: {} }],
-        ['the fixture is not an object', 'not an object', { data: {} }],
-        ['the populated value lacks it', { data: {} }, {}]
-      ])('WHEN %s THEN fails with a FixtureError carrying the fix', (_label: string, fixture: unknown, populated: unknown): void => {
-        expect((): unknown => mergeFixtureValue(fixture, populated, 'data')).toThrow(
-          expect.objectContaining({
-            name: 'FixtureError',
-            message: 'fixture has no own property "data" for object-shape',
-            fix: SHAPE_FIX
-          })
-        );
+      it('WHEN the populated value lacks it THEN the populated value fills the payload inside the envelope', (): void => {
+        const fixtureData = { id: 'a' };
+        const fixture = { data: fixtureData };
+        const populated = { status: 'open' };
+
+        const merged = mergeFixtureValue(fixture, populated, 'data');
+
+        const data = { id: 'a', status: 'open' };
+        const value = { data };
+
+        expect(merged).toStrictEqual({ value, filled: ['data.status'] });
+      });
+
+      it('WHEN merged with keepPresent THEN a payload value of another type is kept', (): void => {
+        const fixtureData = { amount_due: '5' };
+        const fixture = { data: fixtureData };
+        const populatedData = { amount_due: 5 };
+        const populated = { data: populatedData };
+        const options: FillOptions = { keepPresent: true };
+
+        const merged = mergeFixtureValue(fixture, populated, 'data', options);
+
+        expect(merged).toStrictEqual({ value: fixture, filled: [] });
       });
     });
   });

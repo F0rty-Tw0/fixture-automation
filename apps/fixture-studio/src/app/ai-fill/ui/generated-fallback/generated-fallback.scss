@@ -1,0 +1,23 @@
+:host {
+  display: grid;
+  gap: var(--fs-space-3);
+  min-width: 0;
+}
+
+.fallback__text {
+  max-width: 70ch;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink);
+}
+
+.fallback__section {
+  min-width: 0;
+}
+
+.fallback__title {
+  margin-bottom: var(--fs-space-2);
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}

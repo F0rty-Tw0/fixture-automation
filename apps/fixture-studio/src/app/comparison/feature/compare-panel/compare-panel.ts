@@ -13,7 +13,9 @@ import type { FixtureDocument } from '../../../shared/document-view/common/docum
 import { DocumentView } from '../../../shared/document-view/ui/document-view/document-view.ts';
 import { jsonDocument } from '../../../shared/document-view/utils/json-document.util.ts';
 import { FileDrop } from '../../../shared/file-drop/ui/file-drop/file-drop.ts';
+import { NoticeList } from '../../../shared/notice/ui/notice-list/notice-list.ts';
 import type { FixtureView } from '../../../spec/common/generation.type.ts';
+import { FixHighlights } from '../../../workbench/domain-logic/fix-highlights.service.ts';
 import { FixtureComparison } from '../../../workbench/domain-logic/fixture-comparison.service.ts';
 
 /**
@@ -34,7 +36,8 @@ import { FixtureComparison } from '../../../workbench/domain-logic/fixture-compa
     MatLabel,
     MatOption,
     MatProgressBar,
-    MatSelect
+    MatSelect,
+    NoticeList
   ],
   templateUrl: './compare-panel.html',
   styleUrl: './compare-panel.scss'
@@ -44,6 +47,10 @@ export class ComparePanel {
 
   protected readonly comparison = inject(FixtureComparison);
   protected readonly compareForm = form(this.comparison.form);
+  protected readonly highlights = inject(FixHighlights);
+
+  /** Parts of the diff that fell back instead of failing; the diff is still shown. */
+  protected readonly warnings: Signal<string[]> = computed(() => this.comparison.result()?.warnings ?? []);
 
   /** The schema-complete fixture, shown as a diff against the existing one. */
   protected readonly completeDocument = computed((): FixtureDocument | undefined => {

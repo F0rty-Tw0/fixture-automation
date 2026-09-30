@@ -1,4 +1,5 @@
 import type {
+  AiFillResultEvent,
   AiPromptResult,
   AiToolStatus,
   AiToolsResult,
@@ -70,6 +71,11 @@ export const MERGE_RESULT_STUB: MergeResult = {
   valid: true,
   errors: []
 };
+
+const FILLED_STATUS = { status: 'open' };
+
+/** The AI's answer for `MISSING_FILE_STUB`, with no sources: every value is the model's own. */
+export const FILL_RESULT_STUB: AiFillResultEvent = { type: 'result', populated: FILLED_STATUS };
 
 const RESPONSE_SCHEMA = { type: 'object' };
 

@@ -11,6 +11,7 @@ import { isSchemaRecord } from '../../schema/utils/schema-record.util.ts';
 import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
 import { integrationFile } from '../../test/utils/integration-project.spec.util.ts';
+import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 
 vi.mock('../../agent-process/data-access/agent-process.client.ts');
 
@@ -20,8 +21,27 @@ const FILLED = { status: 'open' };
 const UNLISTED = { status: 'paid' };
 const OVERSIZED_SCHEMA = { type: 'string', description: 'x'.repeat(1024 * 1024) };
 const UNCOMPILABLE_SCHEMA = { type: 'string', pattern: '(' };
-const VALID: MissingVerdict = { valid: true, details: '' };
-const INVALID: MissingVerdict = { valid: false, details: '/status: must be paid' };
+const VALID: MissingVerdict = { valid: true, details: '', errors: [] };
+const INVALID: MissingVerdict = { valid: false, details: '/status: must be paid', errors: [] };
+const NOT_JSON = 'I could not produce the fixture.';
+const STATUS_SCHEMA = { type: 'string', enum: ['draft', 'open'] };
+const STATUS_PROPERTIES = { status: STATUS_SCHEMA };
+const STATUS_ITEM = { type: 'object', required: ['status'], properties: STATUS_PROPERTIES };
+const LIST_SCHEMA = { type: 'array', items: STATUS_ITEM };
+const LIST_ANSWER = [{ status: 'draft' }];
+const LIST_BASELINE = [{ id: 'a' }, { id: 'b', status: 'open' }];
+
+const rejection = async (filling: Promise<unknown>): Promise<AiFillRejectedError> => {
+  try {
+    await filling;
+  } catch (error: unknown) {
+    if (error instanceof AiFillRejectedError) return error;
+
+    throw error;
+  }
+
+  throw new Error('the fill did not reject');
+};
 
 const agentPrompt = (): Record<string, unknown> => {
   const [call] = vi.mocked(runAgent).mock.calls;
@@ -116,6 +136,115 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       expect(runAgent).toHaveBeenCalledTimes(2);
     });
 
+    describe('WHEN both answers break the projection', (): void => {
+      it('THEN rejects with every parsed candidate and the problem', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(UNLISTED)));
+        vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(CORRUPT)));
+
+        const enrich = aiMissingFixture(options);
+        const error = await rejection(enrich('invoice', request));
+
+        expect(error.candidates).toStrictEqual([UNLISTED, CORRUPT]);
+        expect(error.problem).toMatch(/status/);
+      });
+
+      it('THEN keeps the CLI message', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(UNLISTED)));
+
+        const enrich = aiMissingFixture(options);
+        const error = await rejection(enrich('invoice', request));
+
+        expect(error.message).toMatch(/^generated missing fields violate schema "missing": \/status/);
+      });
+    });
+
+    it('WHEN the best-ranked value breaks the projection but another value in the answer fits THEN returns that one without a repair', async (): Promise<void> => {
+      const prose = 'Before: {"status":"paid","note":"old","count":1} After: {"status":"open"}';
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', prose));
+
+      const enrich = aiMissingFixture(options);
+      const result = await enrich('invoice', request);
+
+      expect(result).toStrictEqual(FILLED);
+      expect(runAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('WHEN the repair is cancelled after a parsed first answer THEN rejects with the cancel reason, not a salvageable rejection', async (): Promise<void> => {
+      const controller = new AbortController();
+      const reason = new Error('the client disconnected');
+      const cancelled: AiFixtureOptions = { ...options, signal: controller.signal };
+      const cancelDuringRepair = async (): Promise<never> => {
+        controller.abort(reason);
+
+        return Promise.reject(new Error('claude was terminated'));
+      };
+
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(UNLISTED)));
+      vi.mocked(runAgent).mockImplementationOnce(cancelDuringRepair);
+
+      const enrich = aiMissingFixture(cancelled);
+
+      await expect(enrich('invoice', request)).rejects.toBe(reason);
+    });
+
+    it('WHEN each answer holds several JSON values THEN every one reaches the candidates, the chosen value last', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', 'Per [1]: {"status":"paid"}'));
+
+      const enrich = aiMissingFixture(options);
+      const error = await rejection(enrich('invoice', request));
+
+      expect(error.candidates).toStrictEqual([[1], UNLISTED, [1], UNLISTED]);
+    });
+
+    describe('WHEN neither answer is JSON', (): void => {
+      it('THEN rejects with no candidates and the CLI message', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', NOT_JSON));
+
+        const enrich = aiMissingFixture(options);
+        const error = await rejection(enrich('invoice', request));
+
+        expect(error.candidates).toStrictEqual([]);
+        expect(error.message).toBe('claude returned invalid JSON after 2 attempts');
+        expect(error.problem).toMatch(/JSON/);
+      });
+    });
+
+    it('WHEN the first answer breaks the projection and the repair is not JSON THEN rejects with the first candidate', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(UNLISTED)));
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', NOT_JSON));
+
+      const enrich = aiMissingFixture(options);
+      const error = await rejection(enrich('invoice', request));
+
+      expect(error.candidates).toStrictEqual([UNLISTED]);
+      expect(error.message).toBe('claude returned invalid JSON after 2 attempts');
+    });
+
+    describe('WHEN the repair run itself fails after a parsed first answer', (): void => {
+      it('THEN rejects with the first answer as a candidate and the run failure as the message', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', JSON.stringify(UNLISTED)));
+        vi.mocked(runAgent).mockRejectedValueOnce(new Error('claude exited 1'));
+
+        const enrich = aiMissingFixture(options);
+        const error = await rejection(enrich('invoice', request));
+
+        expect(error.candidates).toStrictEqual([UNLISTED]);
+        expect(error.message).toBe('claude exited 1');
+        expect(error.cause).toBeInstanceOf(Error);
+      });
+    });
+
+    it('WHEN the first run fails before any answer THEN its error propagates unchanged', async (): Promise<void> => {
+      const failure = new Error('claude exited 1');
+
+      vi.mocked(runAgent).mockRejectedValue(failure);
+
+      const enrich = aiMissingFixture(options);
+
+      await expect(enrich('invoice', request)).rejects.toBe(failure);
+    });
+
     it('WHEN a required missing key is absent THEN rejects rather than returning a partial fill', async (): Promise<void> => {
       vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', '{}'));
 
@@ -181,6 +310,48 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
         const filling = enrich('invoice', injected);
 
         await expect(filling).rejects.toThrow('validation timed out');
+      });
+    });
+
+    describe('WHEN the fixture is a list and its missing paths start at an index', (): void => {
+      let list: AiMissingRequest;
+
+      beforeEach((): void => {
+        const listMissing: MissingFile = { ...missing, paths: ['[0].status'], schema: LIST_SCHEMA };
+
+        list = { ...request, fixture: LIST_BASELINE, missing: listMissing };
+      });
+
+      it('THEN a list answer that fits the projection is returned', async (): Promise<void> => {
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(LIST_ANSWER)));
+
+        const enrich = aiMissingFixture(options);
+        const result = await enrich('invoice', list);
+
+        expect(result).toStrictEqual(LIST_ANSWER);
+      });
+
+      it('THEN a list answer wrapped in prose next to a bigger object is found without a repair', async (): Promise<void> => {
+        const prose = 'Element [1] was {"status":"x","id":"in_b"}; full answer: [{"status":"draft"}]';
+
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', prose));
+
+        const enrich = aiMissingFixture(options);
+        const result = await enrich('invoice', list);
+
+        expect(result).toStrictEqual(LIST_ANSWER);
+        expect(runAgent).toHaveBeenCalledTimes(1);
+      });
+
+      it('THEN an object answer still rejects', async (): Promise<void> => {
+        const validate = vi.fn<MissingValidator>(async (): Promise<MissingVerdict> => Promise.resolve(VALID));
+
+        vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
+
+        const enrich = aiMissingFixture(options);
+        const filling = enrich('invoice', { ...list, validate });
+
+        await expect(filling).rejects.toThrow('generated missing fields violate schema "missing": the fill must be one JSON array');
       });
     });
 

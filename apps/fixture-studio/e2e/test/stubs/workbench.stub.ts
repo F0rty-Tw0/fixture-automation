@@ -11,6 +11,7 @@ import type {
   BrokenValue,
   DiffResult,
   EnvelopeResult,
+  FillSource,
   MergeResult,
   MissingFile
 } from '@fixture-automation/fixture-studio-api/contract';
@@ -109,6 +110,14 @@ export const INVALID_MERGE_RESULT_STUB: MergeResult = {
   errors: ['customer.address: must have required property city', 'memo: must be string']
 };
 
+/** The API's own format: a JSON pointer at the parent object, whose AI-filled children keep their own marks. */
+export const PARENT_REQUIRED_MERGE_RESULT_STUB: MergeResult = {
+  mergedJson: MERGED_JSON_STUB,
+  filled: MISSING_FILE_STUB.paths,
+  valid: false,
+  errors: ["/customer: must have required property 'name'"]
+};
+
 export const AI_MODELS_STUB: AiModelsResult = { models: ['sonnet'], source: 'claude-cli' };
 
 const INSTALLED_TOOLS: AiToolStatus[] = [
@@ -156,6 +165,18 @@ export const PROGRESS_EVENT_STUB: AiFillProgressEvent = {
 };
 
 export const RESULT_EVENT_STUB: AiFillResultEvent = { type: 'result', populated: POPULATED_STUB };
+
+/** The API's salvage: claude left `customer.id` out, so the schema sampler's value stands in for it. */
+const SALVAGED_SOURCES: Record<string, FillSource> = { memo: 'ai', 'customer.id': 'sampler', 'customer.address.city': 'ai' };
+
+export const SALVAGE_NOTE_STUB: string = 'claude left customer.id out; the schema sample stands in for it.';
+
+export const SALVAGED_RESULT_EVENT_STUB: AiFillResultEvent = {
+  type: 'result',
+  populated: POPULATED_STUB,
+  sources: SALVAGED_SOURCES,
+  notes: [SALVAGE_NOTE_STUB]
+};
 
 export const ERROR_EVENT_STUB: AiFillErrorEvent = {
   type: 'error',

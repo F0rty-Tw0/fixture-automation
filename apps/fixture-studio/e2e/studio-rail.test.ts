@@ -41,7 +41,7 @@ test.describe('FEATURE: the studio rail', () => {
 
     await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
 
-    await test.step('THEN the Generate step is open, its JSON fixture section shown', async (): Promise<void> =>
+    await test.step('THEN the Generate step is open, its JSON fixture tab shown', async (): Promise<void> =>
       expectStepBodyShown(page, 'Generate', 'JSON fixture', true));
 
     await test.step('WHEN the Generate heading is pressed', async (): Promise<void> => toggleStep(page, 'Generate'));

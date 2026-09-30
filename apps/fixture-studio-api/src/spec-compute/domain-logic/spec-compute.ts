@@ -5,6 +5,7 @@ import type { MissingVerdict } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
+import type { FillOutcome } from '../../ai/common/ai.type.ts';
 import type { DiffResult, EnvelopeResult, GenerateResult, MergeResult } from '../../contract/common/studio-api.type.ts';
 import { statusError } from '../../shared/http/utils/status-error.util.ts';
 import type {
@@ -12,6 +13,7 @@ import type {
   EnvelopeTask,
   GenerateTask,
   MergeTask,
+  SalvageMissingTask,
   SpecComputeOptions,
   SpecTask,
   SpecTaskOutcome,
@@ -130,6 +132,8 @@ export function computeInWorker(task: EnvelopeTask, options: SpecComputeOptions)
 export function computeInWorker(task: MergeTask, options: SpecComputeOptions): Promise<MergeResult>;
 
 export function computeInWorker(task: ValidateMissingTask, options: SpecComputeOptions): Promise<MissingVerdict>;
+
+export function computeInWorker(task: SalvageMissingTask, options: SpecComputeOptions): Promise<FillOutcome>;
 
 export async function computeInWorker(task: SpecTask, options: SpecComputeOptions): Promise<unknown> {
   options.signal.throwIfAborted();

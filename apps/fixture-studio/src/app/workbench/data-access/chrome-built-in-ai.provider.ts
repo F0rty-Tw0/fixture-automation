@@ -1,6 +1,6 @@
 import { InjectionToken, inject } from '@angular/core';
 
-import type { AiPromptBody, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillResultEvent, AiPromptBody, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
 
 import { downloadModel } from './chrome-ai-download.client.ts';
 import { CLI_FALLBACK, answerInClone, baseSession, failure, fitsContext, status } from './chrome-ai-session.client.ts';
@@ -8,6 +8,7 @@ import type { EngineCall, StudioEngine, StudioEngineFailure } from '../../shared
 import { STUDIO_ENGINE } from '../../shared/studio-engine/common/studio-engine.token.ts';
 import type { AiAvailability, AiDownloadOptions, AiFillContext, AiRunOptions, ChromeAiProvider } from '../common/ai-fill.type.ts';
 import { mergeAnswers } from '../utils/answer-merge.util.ts';
+import { salvagedAnswer } from '../utils/answer-salvage.util.ts';
 
 /** What asking for a prompt needs; the session is created from the first prompt's system text. */
 type PromptSource = {
@@ -16,12 +17,16 @@ type PromptSource = {
   readonly options: AiRunOptions;
 };
 
-/** A fill in progress: the base session holds only the system prompt; every answer runs in a clone of it. */
+/**
+ * A fill in progress: the base session holds only the system prompt; every answer runs in a clone of it. `notes`
+ * collects what the user should know about parts that failed.
+ */
 type OnDeviceFill = {
   readonly engine: StudioEngine;
   readonly context: AiFillContext;
   readonly options: AiRunOptions;
   readonly session: LanguageModelSession;
+  readonly notes: string[];
 };
 
 const NO_API = 'This browser has no on-device Chrome AI.';
@@ -30,6 +35,18 @@ const tooLarge = (cause?: unknown): StudioEngineFailure => failure('This fixture
 
 const isQuotaError = (error: unknown): boolean => {
   return error instanceof DOMException && error.name === 'QuotaExceededError';
+};
+
+const reasonOf = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+
+  return String(error);
+};
+
+const halfFailureNote = (paths: string[], error: unknown): string => {
+  const reason = reasonOf(error);
+
+  return `The on-device model failed on ${paths.length} missing fields (${reason}); the schema's sample values stand in for them.`;
 };
 
 /** Read on every call: the Prompt API global can appear after an origin trial or flag change. */
@@ -81,9 +98,20 @@ const promptFor = async (source: PromptSource, paths: string[] | undefined): Pro
   return source.engine.aiPrompt(context.specId, body, call);
 };
 
+/** A half of a split fill failed: unless the fill was cancelled, the failure is noted for the user. */
+const noteHalfFailure = (fill: OnDeviceFill, paths: string[], error: unknown): void => {
+  if (fill.options.signal.aborted) throw error;
+
+  const note = halfFailureNote(paths, error);
+
+  fill.notes.push(note);
+  fill.options.onProgress(status(note));
+};
+
 /**
  * Answers `prompt` when it fits the context window. Otherwise the whole fixture is asked again with only the parts
  * around the missing paths, and when even that is too large, each half of the paths on its own, merging the answers.
+ * A half that fails is noted and left to the schema sampler, so the other half still counts.
  */
 const fillPaths = async (fill: OnDeviceFill, paths: string[] | undefined, prompt: AiPromptResult): Promise<unknown> => {
   const { options, session } = fill;
@@ -102,23 +130,31 @@ const fillPaths = async (fill: OnDeviceFill, paths: string[] | undefined, prompt
 
   if (paths.length <= 1) throw tooLarge();
 
-  const half = Math.ceil(paths.length / 2);
-  const firstPaths = paths.slice(0, half);
-  const secondPaths = paths.slice(half);
+  const settledHalf = async (half: string[]): Promise<unknown> => {
+    try {
+      const halfPrompt = await promptFor(fill, half);
+
+      return await fillPaths(fill, half, halfPrompt);
+    } catch (error) {
+      noteHalfFailure(fill, half, error);
+
+      return undefined;
+    }
+  };
+
+  const middle = Math.ceil(paths.length / 2);
 
   options.onProgress(status(`Splitting ${paths.length} missing fields into two prompts…`));
 
-  const firstPrompt = await promptFor(fill, firstPaths);
-  const first = await fillPaths(fill, firstPaths, firstPrompt);
-  const secondPrompt = await promptFor(fill, secondPaths);
-  const second = await fillPaths(fill, secondPaths, secondPrompt);
+  const first = await settledHalf(paths.slice(0, middle));
+  const second = await settledHalf(paths.slice(middle));
 
   return mergeAnswers(first, second);
 };
 
 /** Fills with Chrome's built-in Prompt API (Gemini Nano); nothing leaves the browser. */
 const chromeBuiltInAiProvider = (engine: StudioEngine): ChromeAiProvider => {
-  const fill = async (context: AiFillContext, options: AiRunOptions): Promise<unknown> => {
+  const fill = async (context: AiFillContext, options: AiRunOptions): Promise<AiFillResultEvent> => {
     const factory = requiredLanguageModel();
 
     await assertDownloaded(factory);
@@ -128,9 +164,12 @@ const chromeBuiltInAiProvider = (engine: StudioEngine): ChromeAiProvider => {
 
     try {
       const session = await baseSession(factory, wholePrompt.system, options);
+      const onDevice: OnDeviceFill = { ...source, session, notes: [] };
 
       try {
-        return await fillPaths({ ...source, session }, undefined, wholePrompt);
+        const answer = await fillPaths(onDevice, undefined, wholePrompt);
+
+        return salvagedAnswer(answer, context, onDevice.notes);
       } finally {
         session.destroy();
       }

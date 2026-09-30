@@ -5,7 +5,7 @@ import { claudeFixture } from '../../agent-provider/domain-logic/claude-generati
 import { codexFixture } from '../../agent-provider/domain-logic/codex-generation.ts';
 import { copilotFixture } from '../../agent-provider/domain-logic/copilot-generation.ts';
 import { geminiFixture } from '../../agent-provider/domain-logic/gemini-generation.ts';
-import { parseAgentJson } from '../../agent-provider/utils/agent-response.util.ts';
+import { readAgentJson } from '../../agent-provider/utils/agent-response.util.ts';
 import { MISSING_PROMPT_LIMIT_BYTES } from '../../missing-values/common/missing.const.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
@@ -27,8 +27,8 @@ const generateOnce = async (request: AgentRequest): Promise<string> => {
 };
 
 const parsedFixture = (response: string, request: AgentRequest, attempt: 1 | 2): AgentFixture => {
-  const value = parseAgentJson(response, request.options.tool);
-  const fixture: AgentFixture = { value, response, attempt };
+  const parsed = readAgentJson(response, request.options.tool);
+  const fixture: AgentFixture = { ...parsed, response, attempt };
 
   return fixture;
 };
@@ -54,7 +54,7 @@ const firstAttempt = async (request: AgentRequest, check: FixtureCheck | undefin
 
   try {
     const fixture = parsedFixture(response, request, 1);
-    const problem = await check?.(fixture.value);
+    const problem = await check?.(fixture.value, fixture);
 
     if (problem === undefined) return fixture;
 
@@ -108,7 +108,7 @@ export const generateFixture = async (request: AgentRequest, check?: FixtureChec
     throw new AgentJsonError(`${request.options.tool} returned invalid JSON after 2 attempts`, cause.response, { cause });
   }
 
-  const problem = await check?.(fixture.value);
+  const problem = await check?.(fixture.value, fixture);
   const checked: AgentFixture = { ...fixture, problem };
 
   return checked;

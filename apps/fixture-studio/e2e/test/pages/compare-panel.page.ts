@@ -136,3 +136,21 @@ export const expectLineOutOfView = async (page: Page, fileName: string, text: st
 
   await expect(line).not.toBeInViewport();
 };
+
+/** The legend above the diff: one entry per highlight outcome and gutter glyph on screen. */
+export const expectHighlightLegend = async (page: Page, entries: string[]): Promise<void> => {
+  const items = compareStep(page).getByRole('list', { name: 'Highlight legend' }).getByRole('listitem');
+
+  await expect(items).toHaveText(entries);
+};
+
+/**
+ * A highlighted value's lines carry its meaning as a tooltip, e.g. `memo · Was missing · Generated from the schema`;
+ * CodeMirror exposes no role for a line, so this reads the line element by its title.
+ */
+export const expectHighlightedValue = async (page: Page, fileName: string, label: string): Promise<void> => {
+  const editor = compareStep(page).getByRole('textbox', { name: fileName, exact: true });
+  const line = editor.locator(`.cm-line[title="${label}"]`);
+
+  await expect(line).toBeVisible();
+};

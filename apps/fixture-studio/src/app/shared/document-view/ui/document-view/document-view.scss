@@ -26,3 +26,51 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+
+// Explains the line marks: one swatch per outcome shown, then the gutter glyphs for what was wrong before.
+.document__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fs-space-1) var(--fs-space-4);
+  padding: 0;
+  margin: 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+  list-style: none;
+}
+
+.document__legend-item {
+  display: inline-flex;
+  gap: var(--fs-space-1);
+  align-items: center;
+}
+
+.document__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  background: color-mix(in oklch, var(--fs-fix) 14%, transparent);
+  border-left: 3px solid var(--fs-fix);
+  border-radius: var(--fs-radius-sm);
+}
+
+.document__swatch[data-outcome='broken'] {
+  --fs-fix: var(--fs-fix-broken);
+}
+
+.document__swatch[data-outcome='ai'] {
+  --fs-fix: var(--fs-fix-ai);
+}
+
+.document__swatch[data-outcome='sampler'] {
+  --fs-fix: var(--fs-fix-sampler);
+}
+
+.document__swatch[data-outcome='unfilled'] {
+  --fs-fix: var(--fs-fix-unfilled);
+}
+
+.document__glyph {
+  font-family: var(--fs-font-mono);
+  font-weight: 700;
+  color: var(--fs-ink);
+}

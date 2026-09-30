@@ -1,8 +1,11 @@
+import { AiFillRejectedError } from '@fixture-automation/openapi-ai-fixtures';
 import type { AiFixtureProgress, AiMissingRequest } from '@fixture-automation/openapi-ai-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { MOCK_AI } from './ai-mock.client.ts';
 import { missingFixture } from '../../test/utils/studio-spec.spec.util.ts';
+
+const SALVAGE_SCENARIO = 'An overdue invoice [mock:salvage]';
 
 const isStdout = (entry: AiFixtureProgress): boolean => entry.stream === 'stdout';
 
@@ -37,6 +40,22 @@ describe('FEATURE: mock AI', (): void => {
       const fill = MOCK_AI.fill({ tool: 'codex', signal: controller.signal })('invoice', request);
 
       await expect(fill).rejects.toThrow('stop');
+    });
+  });
+
+  describe('GIVEN a scenario asking the mock for a bad answer', (): void => {
+    it('WHEN run THEN rejects like a CLI answer that broke the projection, missing its first path', async (): Promise<void> => {
+      const missing = await missingFixture('customer');
+      const salvage: AiMissingRequest = { fixture: {}, missing, scenario: SALVAGE_SCENARIO };
+
+      const fill = MOCK_AI.fill({ tool: 'codex' })('invoice', salvage);
+
+      await expect(fill).rejects.toThrow(AiFillRejectedError);
+      const customer = { id: 'cus_1' };
+      const answer = { customer };
+      const candidates = [answer];
+
+      await expect(fill).rejects.toMatchObject({ candidates });
     });
   });
 

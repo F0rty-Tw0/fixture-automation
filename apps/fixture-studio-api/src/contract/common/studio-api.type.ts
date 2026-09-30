@@ -108,6 +108,8 @@ export type DiffResult = {
   readonly completeJson: string;
   /** UTF-8 size of the browser-model prompt for every missing path over the trimmed baseline, default scenario; 0 when nothing is missing. */
   readonly promptBytes: number;
+  /** Parts of the diff that fell back instead of failing it, in plain language; absent or empty when none did. */
+  readonly warnings?: string[];
 };
 
 export type EnvelopeBody = z.infer<typeof envelopeBodySchema>;
@@ -162,10 +164,24 @@ export type AiFillProgressEvent = {
   readonly text: string;
 };
 
+/**
+ * Where a missing path's value in `populated` came from: `ai` when the model's value passed the missing projection,
+ * `sampler` when salvage filled it from the schema sampler because the model's answer failed, omitted it or never
+ * arrived, `unfilled` when neither produced a schema-valid value.
+ */
+export type FillSource = 'ai' | 'sampler' | 'unfilled';
+
 export type AiFillResultEvent = {
   readonly type: 'result';
-  /** Only the missing properties; POST it to `merge` as `populated`. */
-  readonly populated: Record<string, unknown>;
+  /**
+   * Only the missing properties; POST it to `merge` as `populated`. An array for a list fixture whose missing paths
+   * start at an index (`[1].created`), an object otherwise.
+   */
+  readonly populated: Record<string, unknown> | unknown[];
+  /** Per `missing.paths` entry, where its value came from; absent means every value is the model's own. */
+  readonly sources?: Record<string, FillSource>;
+  /** Plain-language salvage notes for the user, e.g. why a chunk fell back to the sampler; absent or empty when none. */
+  readonly notes?: string[];
 };
 
 export type AiFillErrorEvent = {

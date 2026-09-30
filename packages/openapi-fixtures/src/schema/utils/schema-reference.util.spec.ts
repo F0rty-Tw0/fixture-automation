@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { referenceName } from './schema-reference.util.ts';
+import { referenceName, unresolvedReferenceFix } from './schema-reference.util.ts';
 
 describe('FEATURE: schema reference decoding', (): void => {
   describe('GIVEN a component pointer', (): void => {
@@ -23,12 +23,32 @@ describe('FEATURE: schema reference decoding', (): void => {
         'unsupported local schema reference "#/definitions/invoice"'
       );
     });
+
+    it('WHEN decoded THEN the error is a FixtureError whose fix points at components.schemas', (): void => {
+      const expected = { fix: 'point the $ref at #/components/schemas/<name>' };
+
+      expect((): string => referenceName('#/definitions/invoice')).toThrow(expect.objectContaining(expected));
+    });
   });
 
   describe('GIVEN a malformed percent escape', (): void => {
     it('WHEN decoded THEN throws naming the reference', (): void => {
       expect((): string => referenceName('#/components/schemas/%E0%A4%A')).toThrow(
         'invalid schema reference "#/components/schemas/%E0%A4%A"'
+      );
+    });
+
+    it('WHEN decoded THEN the error is a FixtureError whose fix names the bad escape', (): void => {
+      const expected = { fix: 'fix the percent escape in the $ref' };
+
+      expect((): string => referenceName('#/components/schemas/%E0%A4%A')).toThrow(expect.objectContaining(expected));
+    });
+  });
+
+  describe('GIVEN a component name the spec lacks', (): void => {
+    it('WHEN asked for a fix THEN names the component to add', (): void => {
+      expect(unresolvedReferenceFix('ghost')).toBe(
+        'add components.schemas["ghost"] to the spec, or point the $ref at an existing schema'
       );
     });
   });

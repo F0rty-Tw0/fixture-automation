@@ -13,3 +13,6 @@ export const FILE_MODE_TOOLS: Record<AiTool, boolean> = {
   copilot: false,
   antigravity: false
 };
+
+export const CODEX_DIGEST_ONLY =
+  'Codex reads no files: its read-only sandbox cannot confine reads to the scratch directory, so it gets the digest only.\n';

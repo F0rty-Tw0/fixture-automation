@@ -4,7 +4,8 @@ import { aiMissingFixture } from './ai-missing-fixtures.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
 import type { AiMissingRequest, MissingFile, MissingValidator, MissingVerdict } from '../../missing-values/common/missing.type.ts';
 import { isSchemaRecord } from '../../schema/utils/schema-record.util.ts';
-import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
+import { agentCommand } from '../../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
 import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 
@@ -67,6 +68,8 @@ const MISSING: MissingFile = {
   components: COMPONENTS
 };
 const OPTIONS: AiFixtureOptions = { tool: 'claude', timeoutMs: 10000 };
+const CODEX_DIGEST_ONLY =
+  'Codex reads no files: its read-only sandbox cannot confine reads to the scratch directory, so it gets the digest only.\n';
 const REQUEST: AiMissingRequest = { fixture: FIXTURE, missing: MISSING, scenario: SCENARIO };
 
 const answer = (value: unknown): string => agentResponse('claude', JSON.stringify(value));
@@ -180,6 +183,77 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
       const result = await aiMissingFixture(OPTIONS)('invoice', list);
 
       expect(result).toStrictEqual([{ status: 'draft' }, { status: 'open' }]);
+    });
+  });
+
+  describe('GIVEN Claude in its default file mode', (): void => {
+    beforeEach((): void => {
+      vi.mocked(runAgent).mockResolvedValue(answer(PATTERN_ANSWER));
+    });
+
+    it('WHEN the harness answers THEN the whole fixture is staged as baseline.json', async (): Promise<void> => {
+      const baseline = { path: 'baseline.json', content: JSON.stringify(FIXTURE) };
+
+      await aiMissingFixture(OPTIONS)('invoice', REQUEST);
+
+      expect(agentCommand(vi.mocked(runAgent).mock.calls).files).toStrictEqual([baseline]);
+    });
+
+    it('WHEN the harness answers THEN the prompt names the staged baseline', async (): Promise<void> => {
+      await aiMissingFixture(OPTIONS)('invoice', REQUEST);
+
+      expect(agentPrompt()['files']).toStrictEqual({ baseline: 'baseline.json' });
+    });
+  });
+
+  describe('GIVEN file mode forced off', (): void => {
+    const digestOnly: AiFixtureOptions = { ...OPTIONS, readsFiles: false };
+
+    beforeEach((): void => {
+      vi.mocked(runAgent).mockResolvedValue(answer(PATTERN_ANSWER));
+    });
+
+    it('WHEN the harness answers THEN nothing is staged', async (): Promise<void> => {
+      await aiMissingFixture(digestOnly)('invoice', REQUEST);
+
+      expect(agentCommand(vi.mocked(runAgent).mock.calls).files).toStrictEqual([]);
+    });
+
+    it('WHEN the harness answers THEN the prompt keeps its digest-only keys and restrictions', async (): Promise<void> => {
+      await aiMissingFixture(digestOnly)('invoice', REQUEST);
+
+      const prompt = agentPrompt();
+
+      expect(Object.keys(prompt)).toStrictEqual(['instructions', 'missing', 'patterns', 'digest', 'scenario']);
+      expect(prompt['instructions']).toHaveProperty(
+        'restrictions',
+        'Do not access tools, code, project files, or external resources.'
+      );
+    });
+  });
+
+  describe('GIVEN Codex asked to read files', (): void => {
+    const statuses: string[] = [];
+    const onProgress = (progress: AiFixtureProgress): void => {
+      if (progress.stream === 'status') statuses.push(progress.text);
+    };
+    const codex: AiFixtureOptions = { tool: 'codex', readsFiles: true, onProgress };
+
+    beforeEach((): void => {
+      statuses.length = 0;
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('codex', JSON.stringify(PATTERN_ANSWER)));
+    });
+
+    it('WHEN the harness answers THEN one status line says why it gets the digest only', async (): Promise<void> => {
+      await aiMissingFixture(codex)('invoice', REQUEST);
+
+      expect(statuses).toStrictEqual([CODEX_DIGEST_ONLY]);
+    });
+
+    it('WHEN the harness answers THEN the prompt names no files', async (): Promise<void> => {
+      await aiMissingFixture(codex)('invoice', REQUEST);
+
+      expect(agentPrompt()).not.toHaveProperty('files');
     });
   });
 });

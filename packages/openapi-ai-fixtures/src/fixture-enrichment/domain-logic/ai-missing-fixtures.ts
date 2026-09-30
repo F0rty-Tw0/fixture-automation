@@ -1,5 +1,6 @@
 import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
+import { CODEX_DIGEST_ONLY } from '../../agent-provider/common/agent-provider.const.ts';
 import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
 import type { MissingPattern, PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
 import { missingPatterns } from '../../missing-patterns/utils/path-pattern.util.ts';
@@ -16,12 +17,12 @@ import type {
 import { missingCheck } from '../../missing-values/utils/missing-check.util.ts';
 import { missingDocument } from '../../missing-values/utils/missing-document.util.ts';
 import { isListFill, isMissingFill } from '../../missing-values/utils/missing-fill.util.ts';
-import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
 import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
-import { patternPrompt } from '../utils/fixture-prompt.util.ts';
+import { patternRequest } from '../utils/pattern-request.util.ts';
 
 const NOT_OBJECT = 'the fill must be one JSON object';
 const NOT_LIST = 'the fill must be one JSON array';
@@ -153,6 +154,17 @@ const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: M
   return judge;
 };
 
+/** Codex asked to read files says why it gets the digest only; every other tool stays silent. */
+const reportDigestOnly = (options: AiFixtureOptions): void => {
+  const isCodexAskedToRead = options.tool === 'codex' && options.readsFiles === true;
+
+  if (!isCodexAskedToRead) return;
+
+  const progress: AiFixtureProgress = { stream: 'status', text: CODEX_DIGEST_ONLY };
+
+  options.onProgress?.(progress);
+};
+
 /**
  * Fill the fields a fixture diff reported as absent, returning only a projection-valid result; an answer still
  * unusable after the repair round rejects with an `AiFillRejectedError` holding every answer that parsed.
@@ -183,8 +195,10 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
     const validate = request.validate ?? inProcessValidator(missing);
     const { accepted, candidates, check } = fillJudge(missing, validate, patterns);
     const input: PatternPromptInput = { fixture, missing: document, patterns, scenario };
-    const prompt = patternPrompt(input);
-    const agentRequest: AgentRequest = { prompt, options };
+    const agentRequest = patternRequest(input, fixtureJson, options);
+
+    reportDigestOnly(options);
+
     const generated = await checkedFill(agentRequest, check, candidates);
     const result = accepted();
     const isShaped = isMissingFill(result, isListFill(missing.paths));

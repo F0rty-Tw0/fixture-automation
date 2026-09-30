@@ -105,7 +105,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
 
       const keys = Object.keys(agentPrompt()).toSorted();
 
-      expect(keys).toStrictEqual(['digest', 'instructions', 'missing', 'patterns', 'scenario']);
+      expect(keys).toStrictEqual(['digest', 'files', 'instructions', 'missing', 'patterns', 'scenario']);
     });
 
     it('WHEN the projection is oversized THEN rejects before invoking the harness', async (): Promise<void> => {

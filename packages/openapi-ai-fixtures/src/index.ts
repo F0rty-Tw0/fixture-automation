@@ -16,6 +16,8 @@ export { missingCheck } from './missing-values/utils/missing-check.util.ts';
 
 export { isListFill } from './missing-values/utils/missing-fill.util.ts';
 
+export { pathTree, valueAtPath, valueAtTokens } from './missing-values/utils/path-tree.util.ts';
+
 export { discoverModels } from './model-discovery/domain-logic/model-discovery.ts';
 
 export { detectAiTools } from './tool-install/data-access/ai-tool-install.client.ts';
@@ -51,7 +53,8 @@ export type {
   MissingPromptInput,
   MissingValidator,
   MissingVerdict,
-  MissingViolation
+  MissingViolation,
+  PathValue
 } from './missing-values/common/missing.type.ts';
 
 export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './model-discovery/common/model.type.ts';

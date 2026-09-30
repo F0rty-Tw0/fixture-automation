@@ -1,7 +1,7 @@
 import type { OpenApiSpec, SchemaMap } from '@fixture-automation/openapi-fixtures';
 
 import { generateFixture } from './fixture-agent.ts';
-import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
 import { prepareSchema } from '../../schema/utils/schema-context.util.ts';
 import { validationDetails } from '../../schema/utils/validation-message.util.ts';
 import type { AiFixtureFactory, AiFixtureOptions, AiFixtureRequest } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
@@ -33,7 +33,15 @@ export const aiFixtures = <TComponents extends SchemaMap = SchemaMap>(
     const prepared = prepareSchema<TComponents['schemas'][TSchemaName]>(spec, name);
     const prompt = fixturePrompt(prepared.context, fixtureJson, scenario);
     const agentRequest: AgentRequest = { prompt, options };
-    const generated = await generateFixture(agentRequest);
+    /** Plain JSON is judged below without a repair, as before; JSON dug out of prose may be the wrong span. */
+    const recoveredCheck = async (value: unknown, parsed: AgentJson): Promise<string | undefined> => {
+      const isValid = !parsed.isRecovered || prepared.validate(value);
+
+      if (isValid) return Promise.resolve(undefined);
+
+      return Promise.resolve(validationDetails(prepared.validate.errors));
+    };
+    const generated = await generateFixture(agentRequest, recoveredCheck);
     const result = generated.value;
 
     if (prepared.validate(result)) return result;

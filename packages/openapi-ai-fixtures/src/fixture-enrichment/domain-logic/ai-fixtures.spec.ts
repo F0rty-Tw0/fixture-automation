@@ -56,6 +56,14 @@ describe('FEATURE: schema-validated AI fixture enrichment', (): void => {
       }
     );
 
+    it('WHEN the answer is JSON recovered from prose that breaks the schema THEN it gets the repair round', async (): Promise<void> => {
+      const enrich = aiFixtures<TestComponents>(spec, options);
+
+      const result = await enrich('invoice', { fixture: base, scenario: 'recovered junk' });
+
+      expect(result).toStrictEqual({ id: 'in_ai', amount_due: 4200, status: 'open', memo: 'September subscription' });
+    });
+
     it('WHEN the baseline violates constraints THEN permits AI to repair it', async (): Promise<void> => {
       const invalid: TestInvoice = { ...base, amount_due: -1 };
       const enrich = aiFixtures<TestComponents>(spec, options);

@@ -39,8 +39,18 @@ export type ValidateMissingTask = {
   readonly value: unknown;
 };
 
+/** Builds the best fill it can from a failed fill's parsed answers and the sampler; it validates, so it may backtrack. */
+export type SalvageMissingTask = {
+  readonly name: 'salvage-missing';
+  readonly missing: MissingFile;
+  /** Every answer that parsed as JSON, in attempt order; empty when none did. */
+  readonly candidates: unknown[];
+  /** Opens the salvage note, e.g. `Chunk 2 of 3: claude returned text that is not JSON`. */
+  readonly context: string;
+};
+
 /** Spec-driven CPU work that runs in a worker thread, so a hostile spec cannot stall the server. */
-export type SpecTask = DiffTask | EnvelopeTask | GenerateTask | MergeTask | ValidateMissingTask;
+export type SpecTask = DiffTask | EnvelopeTask | GenerateTask | MergeTask | SalvageMissingTask | ValidateMissingTask;
 
 type SpecTaskSuccess = {
   readonly ok: true;

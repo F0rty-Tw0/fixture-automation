@@ -19,10 +19,25 @@ export type MissingFile = {
   readonly components: MissingComponents;
 };
 
-/** Whether a generated fill satisfies the missing projection; `details` is the `path: message; ...` line when it does not. */
+/** One AJV error reduced to plain data, so a verdict crosses a worker's `postMessage` unchanged. */
+export type MissingViolation = {
+  /** JSON pointer of the offending value, `''` for the root. */
+  readonly instancePath: string;
+  readonly keyword: string;
+  /** AJV's keyword parameters, e.g. `missingProperty` for `required`. */
+  readonly params: Record<string, unknown>;
+  /** AJV's message, or the keyword when AJV gave none. */
+  readonly message: string;
+};
+
+/**
+ * Whether a generated fill satisfies the missing projection; when it does not, `details` is the `path: message; ...`
+ * line and `errors` the same AJV errors as data.
+ */
 export type MissingVerdict = {
   readonly valid: boolean;
   readonly details: string;
+  readonly errors: MissingViolation[];
 };
 
 /** Judges a generated fill against its missing projection, e.g. off the caller's event loop. */
@@ -38,7 +53,10 @@ export type AiMissingRequest = {
   readonly validate?: MissingValidator;
 };
 
-export type AiMissingFactory = (name: string, request: AiMissingRequest) => Promise<Record<string, unknown>>;
+/** A fill's values: an object, or a list when the fixture is a list and its missing paths start at an index (`[1].id`). */
+export type MissingFill = Record<string, unknown> | unknown[];
+
+export type AiMissingFactory = (name: string, request: AiMissingRequest) => Promise<MissingFill>;
 
 export type MissingPromptInput = {
   /** Serialized baseline fixture. */

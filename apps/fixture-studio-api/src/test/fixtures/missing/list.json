@@ -1,0 +1,16 @@
+{
+  "schemaName": "invoice",
+  "dialect": "openapi-30",
+  "paths": ["[0].status", "[2].status"],
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["draft", "open"] }
+      }
+    }
+  },
+  "components": { "schemas": {} }
+}

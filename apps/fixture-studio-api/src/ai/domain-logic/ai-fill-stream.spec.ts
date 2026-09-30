@@ -3,25 +3,32 @@ import { FixtureError } from '@fixture-automation/openapi-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { aiFillStream } from './ai-fill-stream.ts';
-import type { AiFillJob } from '../common/ai.type.ts';
+import type { FillSource } from '../../contract/common/studio-api.type.ts';
+import type { AiFillJob, FillOutcome } from '../common/ai.type.ts';
 import { ndjsonLines, streamText } from '../test/utils/ndjson.spec.util.ts';
 
 type ProgressSink = (progress: AiFixtureProgress) => void;
 
 const POPULATED = { status: 'open' };
+const SOURCES: Record<string, FillSource> = { status: 'ai' };
+const FILLED: FillOutcome = { populated: POPULATED, sources: SOURCES, notes: [] };
+const SALVAGED_SOURCES: Record<string, FillSource> = { status: 'sampler' };
+const SALVAGE_NOTES = ['codex failed: codex exited 1; 1 value filled from the schema.'];
+const SALVAGED: FillOutcome = { populated: POPULATED, sources: SALVAGED_SOURCES, notes: SALVAGE_NOTES };
+const RESULT = { type: 'result', populated: POPULATED, sources: SOURCES, notes: [] };
 
-const progressJob = (texts: string[]): AiFillJob => {
-  const job: AiFillJob = async (_signal: AbortSignal, onProgress: ProgressSink): Promise<Record<string, unknown>> => {
+const progressJob = (texts: string[], outcome = FILLED): AiFillJob => {
+  const job: AiFillJob = async (_signal: AbortSignal, onProgress: ProgressSink): Promise<FillOutcome> => {
     for (const text of texts) onProgress({ stream: 'stderr', text });
 
-    return Promise.resolve(POPULATED);
+    return Promise.resolve(outcome);
   };
 
   return job;
 };
 
 const failingJob = (error: unknown): AiFillJob => {
-  const job: AiFillJob = async (): Promise<Record<string, unknown>> => Promise.reject(error);
+  const job: AiFillJob = async (): Promise<FillOutcome> => Promise.reject(error);
 
   return job;
 };
@@ -37,8 +44,16 @@ describe('FEATURE: AI fill stream', (): void => {
       expect(ndjsonLines(text)).toStrictEqual([
         { type: 'progress', stream: 'stderr', text: 'one\n' },
         { type: 'progress', stream: 'stderr', text: 'two\n' },
-        { type: 'result', populated: POPULATED }
+        RESULT
       ]);
+    });
+
+    it('WHEN the fill was salvaged THEN the result carries its sources and notes', async (): Promise<void> => {
+      const stream = aiFillStream(progressJob([], SALVAGED), new AbortController());
+
+      const lines = ndjsonLines(await streamText(stream));
+
+      expect(lines).toStrictEqual([{ type: 'result', populated: POPULATED, sources: SALVAGED_SOURCES, notes: SALVAGE_NOTES }]);
     });
 
     it('WHEN progress carries terminal codes THEN they are stripped and empty remainders are dropped', async (): Promise<void> => {
@@ -46,10 +61,7 @@ describe('FEATURE: AI fill stream', (): void => {
 
       const lines = ndjsonLines(await streamText(stream));
 
-      expect(lines).toStrictEqual([
-        { type: 'progress', stream: 'stderr', text: 'green\tok\n' },
-        { type: 'result', populated: POPULATED }
-      ]);
+      expect(lines).toStrictEqual([{ type: 'progress', stream: 'stderr', text: 'green\tok\n' }, RESULT]);
     });
   });
 
@@ -79,8 +91,8 @@ describe('FEATURE: AI fill stream', (): void => {
         settle = resolve;
       });
 
-      const job: AiFillJob = async (signal: AbortSignal, onProgress: ProgressSink): Promise<Record<string, unknown>> => {
-        const pending = new Promise<Record<string, unknown>>((_resolve, reject): void => {
+      const job: AiFillJob = async (signal: AbortSignal, onProgress: ProgressSink): Promise<FillOutcome> => {
+        const pending = new Promise<FillOutcome>((_resolve, reject): void => {
           const onAbort = (): void => {
             try {
               onProgress({ stream: 'stdout', text: 'late\n' });
@@ -109,8 +121,8 @@ describe('FEATURE: AI fill stream', (): void => {
 
     it('WHEN the signal aborts without a cancel THEN the stream closes without an error line', async (): Promise<void> => {
       const controller = new AbortController();
-      const job: AiFillJob = async (signal: AbortSignal): Promise<Record<string, unknown>> => {
-        const pending = new Promise<Record<string, unknown>>((_resolve, reject): void => {
+      const job: AiFillJob = async (signal: AbortSignal): Promise<FillOutcome> => {
+        const pending = new Promise<FillOutcome>((_resolve, reject): void => {
           signal.addEventListener('abort', (): void => reject(new Error('aborted')), { once: true });
         });
 

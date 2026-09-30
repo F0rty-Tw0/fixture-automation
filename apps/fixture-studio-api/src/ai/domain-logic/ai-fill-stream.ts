@@ -53,8 +53,8 @@ export const aiFillStream = (job: AiFillJob, controller: AbortController): Reada
 
   const run = async (): Promise<void> => {
     try {
-      const populated = await job(controller.signal, onProgress);
-      const event: AiFillResultEvent = { type: 'result', populated };
+      const { populated, sources, notes } = await job(controller.signal, onProgress);
+      const event: AiFillResultEvent = { type: 'result', populated, sources, notes };
 
       push(event);
     } catch (error: unknown) {

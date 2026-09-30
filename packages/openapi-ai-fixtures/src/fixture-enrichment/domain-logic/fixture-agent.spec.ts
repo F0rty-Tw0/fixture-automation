@@ -7,6 +7,7 @@ import type { AgentRequest } from '../../agent-provider/common/agent-provider.ty
 import type { AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { modelRequest } from '../../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
+import type { FixtureCheck } from '../common/agent-fixture.type.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
 
 vi.mock('../../agent-process/data-access/agent-process.client.ts');
@@ -92,7 +93,14 @@ describe('FEATURE: fixture JSON recovery', (): void => {
 
       const recovered = { id: 'recovered' };
 
-      expect(result).toStrictEqual({ value: recovered, response: corrected, attempt: 2, problem: undefined });
+      expect(result).toStrictEqual({
+        value: recovered,
+        isRecovered: false,
+        alternatives: [],
+        response: corrected,
+        attempt: 2,
+        problem: undefined
+      });
       expect(repairCall?.[0].input).toContain('/id: must be recovered');
       expect(saveFailedResponse).toHaveBeenCalledWith({ tool: 'claude' }, first, 1);
     });
@@ -123,6 +131,22 @@ describe('FEATURE: fixture JSON recovery', (): void => {
       expect(result.attempt).toBe(2);
       expect(result.problem).toBe('/id: must be recovered');
       expect(runAgent).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('GIVEN an answer recovered from prose', (): void => {
+    it('WHEN checked THEN the check learns it was recovered and sees the other candidates', async (): Promise<void> => {
+      const check = vi.fn<FixtureCheck>(async (): Promise<string | undefined> => Promise.resolve(undefined));
+      const prose = 'Per the spec [1], here it is: {"id":"in_1"}';
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', prose));
+
+      await generateFixture(modelRequest('claude'), check);
+
+      const value = { id: 'in_1' };
+      const parsed = { value, isRecovered: true, alternatives: [[1]], response: prose, attempt: 1 };
+
+      expect(check).toHaveBeenCalledWith(value, parsed);
     });
   });
 

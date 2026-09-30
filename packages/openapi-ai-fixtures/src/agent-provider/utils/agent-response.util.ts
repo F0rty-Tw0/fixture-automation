@@ -1,5 +1,7 @@
+import { finiteJson, recoveredJson } from './json-recovery.util.ts';
 import type { AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { AgentJsonError } from '../common/agent-json.error.ts';
+import type { AgentJson } from '../common/agent-provider.type.ts';
 
 const JSON_CODE_FENCE = /^[\t \r\n]*```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```[\t \r\n]*$/iu;
 
@@ -15,25 +17,31 @@ const isEnvelope = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !isArray;
 };
 
-const jsonValue = (_key: string, value: unknown): unknown => {
-  if (typeof value !== 'number') return value;
+const recovered = (text: string, tool: AiTool, cause: unknown): AgentJson => {
+  const [value, ...alternatives] = recoveredJson(text);
 
-  const isFinite = Number.isFinite(value);
+  if (value === undefined) throw new AgentJsonError(`${tool} returned invalid JSON`, text, { cause });
 
-  if (!isFinite) throw new Error('JSON number exceeds the finite JavaScript range');
+  const parsed: AgentJson = { value, isRecovered: true, alternatives };
 
-  return value;
+  return parsed;
 };
 
-export const parseAgentJson = (text: string, tool: AiTool): unknown => {
+/**
+ * The model's JSON value: plain JSON or one whole-response fence first, then the best JSON recovered from prose,
+ * several fences or an unclosed fence (see `recoveredJson`), with the other recovered values as `alternatives`.
+ * Only text holding no non-empty parseable JSON at all is an `AgentJsonError`.
+ */
+export const readAgentJson = (text: string, tool: AiTool): AgentJson => {
   const source = jsonResponseText(text);
 
   try {
-    const value: unknown = JSON.parse(source, jsonValue);
+    const value = finiteJson(source);
+    const parsed: AgentJson = { value, isRecovered: false, alternatives: [] };
 
-    return value;
+    return parsed;
   } catch (cause: unknown) {
-    throw new AgentJsonError(`${tool} returned invalid JSON`, text, { cause });
+    return recovered(text, tool, cause);
   }
 };
 
@@ -41,7 +49,7 @@ export const parseAgentEnvelope = (text: string, tool: AiTool): Record<string, u
   let value: unknown;
 
   try {
-    value = JSON.parse(text, jsonValue);
+    value = finiteJson(text);
   } catch (cause: unknown) {
     throw new Error(`${tool} returned invalid JSON`, { cause });
   }

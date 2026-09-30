@@ -5,16 +5,27 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { computeInWorker } from './spec-compute.ts';
+import type { MissingFile } from '../../contract/common/studio-api.type.ts';
 import { openApiDocument } from '../../specs/utils/openapi-document.util.ts';
 import { backtrackingDocument, backtrackingMissing, fanOutDocument } from '../../test/utils/hostile-spec.spec.util.ts';
-import { studioSpec } from '../../test/utils/studio-spec.spec.util.ts';
-import type { DiffTask, GenerateTask, MergeTask, SpecComputeOptions, ValidateMissingTask } from '../common/spec-compute.type.ts';
+import { missingFixture, studioSpec } from '../../test/utils/studio-spec.spec.util.ts';
+import type {
+  GenerateTask,
+  MergeTask,
+  SalvageMissingTask,
+  SpecComputeOptions,
+  ValidateMissingTask
+} from '../common/spec-compute.type.ts';
 import { SpecWorkers } from '../data-access/spec-workers.store.ts';
 
 const TIMEOUT_MS = 3_000;
 const TOO_EXPENSIVE = 'spec too expensive to sample/validate';
 const PARTIAL_INVOICE = { id: 'in_1', amount_due: 1 };
 const BACKTRACKING_NAME = `${'a'.repeat(34)}!`;
+const UNCOMPILABLE_NAME = { type: 'string', pattern: '(' };
+const UNCOMPILABLE_PROPERTIES = { name: UNCOMPILABLE_NAME };
+const UNCOMPILABLE_SCHEMA = { type: 'object', properties: UNCOMPILABLE_PROPERTIES };
+const INVALID_REGEX = 'Invalid regular expression: /(/u: Unterminated group';
 
 const workers = new SpecWorkers();
 
@@ -46,31 +57,42 @@ describe('FEATURE: spec compute worker', (): void => {
       expect(result).toMatchObject({ valid: true, filled: ['status'] });
     });
 
+    it('WHEN a salvage runs in the worker THEN resolves with the salvaged fill', async (): Promise<void> => {
+      const missing = await missingFixture('status');
+      const task: SalvageMissingTask = { name: 'salvage-missing', missing, candidates: [], context: 'codex failed' };
+
+      const result = await computeInWorker(task, computeOptions());
+
+      const populated = { status: 'open' };
+      const sources = { status: 'sampler' };
+      const notes = ['codex failed; 1 value filled from the schema.'];
+
+      expect(result).toStrictEqual({ populated, sources, notes });
+    });
+
     it('WHEN the task throws a FixtureError THEN rejects with it and its fix', async (): Promise<void> => {
-      const body = { endpointId: 'x', fixture: PARTIAL_INVOICE, requiredOnly: false, objectShape: 'data' };
-      const task: DiffTask = { name: 'diff', spec, schemaName: 'invoice', body };
+      const body = { endpointIds: ['GET /nope'], formats: ['json' as const], requiredOnly: false };
+      const task: GenerateTask = { name: 'generate', spec, body };
 
       const computation = computeInWorker(task, computeOptions());
 
       await expect(computation).rejects.toThrow(
-        expect.objectContaining({ name: 'FixtureError', message: 'fixture has no own property "data" for object-shape' })
+        expect.objectContaining({
+          name: 'FixtureError',
+          message: 'unknown endpoint: GET /nope',
+          fix: 'pick an endpoint from the list the spec was loaded with'
+        })
       );
     });
 
     it('WHEN the task throws another error THEN rejects with a plain Error of its message', async (): Promise<void> => {
-      const bad = { type: ['string', 'null'] };
-      const schemas = { bad };
-      const components = { schemas };
-      const upload = { openapi: '3.0.0', components };
-      const invalidSpec = openApiDocument(upload);
-      const body = { endpointId: 'x', fixture: 'a', populated: 'a' };
-      const task: MergeTask = { name: 'merge', spec: invalidSpec, schemaName: 'bad', body };
+      const missing = await missingFixture('status');
+      const uncompilable: MissingFile = { ...missing, schema: UNCOMPILABLE_SCHEMA };
+      const task: SalvageMissingTask = { name: 'salvage-missing', missing: uncompilable, candidates: [], context: 'codex failed' };
 
       const computation = computeInWorker(task, computeOptions());
 
-      await expect(computation).rejects.toThrow(
-        expect.objectContaining({ name: 'Error', message: 'OpenAPI 3.0 schema type must be a string' })
-      );
+      await expect(computation).rejects.toThrow(expect.objectContaining({ name: 'Error', message: INVALID_REGEX }));
     });
   });
 

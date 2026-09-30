@@ -2,11 +2,15 @@ import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { runSpecTask } from './spec-task.ts';
-import { openApiDocument } from '../../specs/utils/openapi-document.util.ts';
+import type { MissingFile } from '../../contract/common/studio-api.type.ts';
 import { missingFixture, studioSpec } from '../../test/utils/studio-spec.spec.util.ts';
-import type { DiffTask, GenerateTask, MergeTask, ValidateMissingTask } from '../common/spec-compute.type.ts';
+import type { DiffTask, GenerateTask, MergeTask, SalvageMissingTask, ValidateMissingTask } from '../common/spec-compute.type.ts';
 
 const PARTIAL_INVOICE = { id: 'in_1', amount_due: 1 };
+const UNCOMPILABLE_NAME = { type: 'string', pattern: '(' };
+const UNCOMPILABLE_PROPERTIES = { name: UNCOMPILABLE_NAME };
+const UNCOMPILABLE_SCHEMA = { type: 'object', properties: UNCOMPILABLE_PROPERTIES };
+const INVALID_REGEX = 'Invalid regular expression: /(/u: Unterminated group';
 
 describe('FEATURE: spec task', (): void => {
   let spec: OpenApiSpec;
@@ -56,7 +60,7 @@ describe('FEATURE: spec task', (): void => {
 
       const outcome = await runSpecTask(task);
 
-      const value = { valid: true, details: '' };
+      const value = { valid: true, details: '', errors: [] };
 
       expect(outcome).toStrictEqual({ ok: true, value });
     });
@@ -68,7 +72,27 @@ describe('FEATURE: spec task', (): void => {
 
       const outcome = await runSpecTask(task);
 
-      const value = { valid: false, details: '/status: must be equal to one of the allowed values' };
+      const params = { allowedValues: ['open'] };
+      const error = { instancePath: '/status', keyword: 'enum', params, message: 'must be equal to one of the allowed values' };
+      const errors = [error];
+      const value = { valid: false, details: '/status: must be equal to one of the allowed values', errors };
+
+      expect(outcome).toStrictEqual({ ok: true, value });
+    });
+  });
+
+  describe('GIVEN a fill answer that breaks its missing projection', (): void => {
+    it('WHEN salvage-missing runs THEN succeeds with the sampler value, its source and a note', async (): Promise<void> => {
+      const missing = await missingFixture('status');
+      const answer = { status: 'paid' };
+      const task: SalvageMissingTask = { name: 'salvage-missing', missing, candidates: [answer], context: 'codex failed' };
+
+      const outcome = await runSpecTask(task);
+
+      const populated = { status: 'open' };
+      const sources = { status: 'sampler' };
+      const notes = ['codex failed; 1 value filled from the schema.'];
+      const value = { populated, sources, notes };
 
       expect(outcome).toStrictEqual({ ok: true, value });
     });
@@ -76,26 +100,23 @@ describe('FEATURE: spec task', (): void => {
 
   describe('GIVEN a task that fails', (): void => {
     it('WHEN it throws a FixtureError THEN reports its message and fix', async (): Promise<void> => {
-      const body = { endpointId: 'x', fixture: PARTIAL_INVOICE, requiredOnly: true, objectShape: 'data' };
-      const task: DiffTask = { name: 'diff', spec, schemaName: 'invoice', body };
+      const body = { endpointIds: ['GET /nope'], formats: ['json' as const], requiredOnly: true };
+      const task: GenerateTask = { name: 'generate', spec, body };
 
       const outcome = await runSpecTask(task);
 
       expect(outcome).toMatchObject({
         ok: false,
         isFixtureError: true,
-        message: 'fixture has no own property "data" for object-shape'
+        message: 'unknown endpoint: GET /nope',
+        fix: 'pick an endpoint from the list the spec was loaded with'
       });
     });
 
     it('WHEN it throws a plain Error THEN reports its message without a fix', async (): Promise<void> => {
-      const bad = { type: ['string', 'null'] };
-      const schemas = { bad };
-      const components = { schemas };
-      const upload = { openapi: '3.0.0', components };
-      const invalidSpec = openApiDocument(upload);
-      const body = { endpointId: 'x', fixture: 'a', populated: 'a' };
-      const task: MergeTask = { name: 'merge', spec: invalidSpec, schemaName: 'bad', body };
+      const missing = await missingFixture('status');
+      const uncompilable: MissingFile = { ...missing, schema: UNCOMPILABLE_SCHEMA };
+      const task: SalvageMissingTask = { name: 'salvage-missing', missing: uncompilable, candidates: [], context: 'codex failed' };
 
       const outcome = await runSpecTask(task);
 
@@ -103,7 +124,7 @@ describe('FEATURE: spec task', (): void => {
         ok: false,
         isFixtureError: false,
         fix: undefined,
-        message: 'OpenAPI 3.0 schema type must be a string'
+        message: INVALID_REGEX
       });
     });
   });

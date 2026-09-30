@@ -31,11 +31,10 @@ const UNCOMPILABLE_SCHEMA = { type: 'object', properties: UNCOMPILABLE_PROPERTIE
 
 const LARGE_INVOICE = { id: 'in_9', amount_due: 5, memo: 'm'.repeat(300 * 1024) };
 const LARGE_DIFF_BODY: DiffBody = { ...DIFF_BODY, fixture: LARGE_INVOICE };
-const HUGE_INVOICE = { ...NESTED_INVOICE, memo: 'm'.repeat(1100 * 1024) };
 const FIRST_CHUNK = { type: 'progress', stream: 'status', text: 'Chunk 1 of 2: 1 field…\n' };
 const SECOND_CHUNK = { type: 'progress', stream: 'status', text: 'Chunk 2 of 2: 1 field…\n' };
 const CHUNK_EVENTS = [FIRST_CHUNK, SECOND_CHUNK];
-const OVERSIZE_FIX = 'fill that field by hand, or trim the fixture around it: its prompt alone exceeds the 1 MiB CLI input limit';
+const BACKTRACKING_SOURCES = { name: 'unfilled' };
 
 const isChunkStatus = (event: unknown): boolean =>
   isRecord(event) && typeof event['text'] === 'string' && event['text'].startsWith('Chunk');
@@ -105,41 +104,6 @@ describe('FEATURE: AI fill route', (): void => {
 
         expect(statuses).toStrictEqual(CHUNK_EVENTS);
         expect(merged.json<MergeResult>()).toMatchObject({ valid: true, filled: ['status', 'customer'] });
-      });
-    });
-
-    describe('GIVEN one missing field whose prompt alone exceeds 1 MiB', (): void => {
-      it('WHEN filled THEN the stream ends with the error and its fix, and no CLI starts', async (): Promise<void> => {
-        const ai = studioAiMock();
-        const enrich = vi.fn<AiMissingFactory>();
-
-        vi.mocked(ai.fill).mockReturnValue(enrich);
-        await start(ai);
-        const base = fillBody();
-        const body: AiFillBody = { ...base, fixture: HUGE_INVOICE };
-
-        const response = await post('ai-fill', body);
-
-        const events = ndjsonLines(response.body);
-
-        expect(events).toMatchObject([{ type: 'error', fix: OVERSIZE_FIX }]);
-        expect(response.body).toContain('missing path \\"customer.address\\" alone');
-        expect(enrich).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('GIVEN a fill that fails', (): void => {
-      it('WHEN filled THEN the stream ends with an error line', async (): Promise<void> => {
-        const ai = studioAiMock();
-        const failing: AiMissingFactory = async (): Promise<Record<string, unknown>> => Promise.reject(new Error('codex exited 1'));
-
-        vi.mocked(ai.fill).mockReturnValue(failing);
-        await start(ai);
-
-        const response = await post('ai-fill', fillBody());
-
-        expect(response.statusCode).toBe(200);
-        expect(ndjsonLines(response.body)).toStrictEqual([{ type: 'error', message: 'codex exited 1' }]);
       });
     });
 
@@ -268,7 +232,7 @@ describe('FEATURE: AI fill route', (): void => {
     });
 
     describe('GIVEN a missing pattern that backtracks catastrophically', (): void => {
-      it('WHEN the fill matches it THEN validation leaves the event loop free and the stream ends with the 422 error', async (): Promise<void> => {
+      it('WHEN the fill matches it THEN validation leaves the event loop free and the result says why the field is unfilled', async (): Promise<void> => {
         const ai = studioAiMock();
         let isValidating = false;
         const backtrackingFill: AiMissingFactory = async (_name, request): Promise<Record<string, unknown>> => {
@@ -293,7 +257,8 @@ describe('FEATURE: AI fill route', (): void => {
 
         expect(health.statusCode).toBe(400);
         expect(fillAtHealth).toBe('pending');
-        expect(ndjsonLines(response.body)).toMatchObject([{ type: 'error', message: TOO_EXPENSIVE }]);
+        expect(ndjsonLines(response.body).at(-1)).toMatchObject({ type: 'result', populated: {}, sources: BACKTRACKING_SOURCES });
+        expect(response.body).toContain(TOO_EXPENSIVE);
         expect(response.body).toContain('STUDIO_COMPUTE_TIMEOUT_MS');
         expect(Date.now() - started).toBeLessThan(COMPUTE_TIMEOUT_MS + 10_000);
       });

@@ -1,6 +1,5 @@
-import type { MissingViolation } from '@fixture-automation/openapi-ai-fixtures';
-
-import { pathPointer } from './fill-path.util.ts';
+import { pathPointer } from './path-pointer.util.ts';
+import type { MissingViolation } from '../common/missing.type.ts';
 
 type MissingPointer = {
   readonly path: string;
@@ -43,6 +42,12 @@ const pathsFor = (pointer: string, missing: MissingPointer[]): string[] => {
   return below.map((entry: MissingPointer): string => entry.path);
 };
 
+const errorPaths = (error: MissingViolation, missing: MissingPointer[]): string[] => {
+  const pointer = errorPointer(error);
+
+  return pathsFor(pointer, missing);
+};
+
 const missingPointer = (path: string): MissingPointer => {
   const entry: MissingPointer = { path, pointer: pathPointer(path) };
 
@@ -60,12 +65,23 @@ export const violatedPaths = (errors: MissingViolation[], paths: string[]): Set<
   const flagged = new Set<string>();
 
   for (const error of errors.filter(isLocated)) {
-    const pointer = errorPointer(error);
-
-    for (const path of pathsFor(pointer, missing)) flagged.add(path);
+    for (const path of errorPaths(error, missing)) flagged.add(path);
   }
 
   const ordered = paths.filter((path: string): boolean => flagged.has(path));
 
   return new Set(ordered);
+};
+
+/** The errors of an AJV verdict that flag at least one of `paths`, as `violatedPaths` locates them, in error order. */
+export const violatingErrors = (errors: MissingViolation[], paths: string[]): MissingViolation[] => {
+  const missing = paths.map(missingPointer);
+
+  const flagsPath = (error: MissingViolation): boolean => {
+    const flagged = errorPaths(error, missing);
+
+    return flagged.length > 0;
+  };
+
+  return errors.filter(isLocated).filter(flagsPath);
 };

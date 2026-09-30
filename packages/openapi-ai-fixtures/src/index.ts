@@ -10,13 +10,19 @@ export { parseMissingFile } from './missing-values/utils/missing-file.util.ts';
 
 export { missingDocument } from './missing-values/utils/missing-document.util.ts';
 
-export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
+export { missingPrompt, missingPromptBytes, patternPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
+
+export { missingPatterns, pathPattern } from './missing-patterns/utils/path-pattern.util.ts';
+
+export { baselineContext } from './missing-patterns/utils/baseline-context.util.ts';
 
 export { missingCheck } from './missing-values/utils/missing-check.util.ts';
 
 export { isListFill } from './missing-values/utils/missing-fill.util.ts';
 
 export { pathTree, valueAtPath, valueAtTokens } from './missing-values/utils/path-tree.util.ts';
+
+export { violatedPaths } from './missing-values/utils/violation-paths.util.ts';
 
 export { discoverModels } from './model-discovery/domain-logic/model-discovery.ts';
 
@@ -56,6 +62,8 @@ export type {
   MissingViolation,
   PathValue
 } from './missing-values/common/missing.type.ts';
+
+export type { MissingPattern, PatternPromptInput } from './missing-patterns/common/missing-pattern.type.ts';
 
 export type { ModelDiscovery, ModelDiscoveryOptions, ModelSelection } from './model-discovery/common/model.type.ts';
 

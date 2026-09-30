@@ -1,8 +1,13 @@
-import { MISSING_SCENARIO, missingDocument, missingPrompt, missingPromptBytes } from '@fixture-automation/openapi-ai-fixtures';
+import {
+  MISSING_SCENARIO,
+  baselineContext,
+  missingDocument,
+  missingPrompt,
+  missingPromptBytes
+} from '@fixture-automation/openapi-ai-fixtures';
 import type { MissingPromptInput } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-import { baselineContext } from './baseline-context.util.ts';
 import { missingChunk } from './missing-chunk.util.ts';
 import { responseSchema } from './response-schema.util.ts';
 import type { AiPromptResult, MissingFile } from '../../contract/common/studio-api.type.ts';
@@ -41,7 +46,7 @@ const promptResult = (baseline: unknown, missing: MissingFile, scenario: string 
 };
 
 /**
- * The prompt `aiMissingFixture` sends a CLI, plus a response schema, for a model the browser runs itself.
+ * The per-path prompt for the on-device model the browser runs, plus a response schema.
  * With `paths`, only those missing paths are asked for and the baseline keeps only their context, so a small
  * on-device model can fill the gaps chunk by chunk.
  */

@@ -1,13 +1,15 @@
+import { fillJudge, wrongShapeOf } from './fill-judge.ts';
 import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
-import type { AgentJson, AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import type { PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
+import { missingPatterns } from '../../missing-patterns/utils/path-pattern.util.ts';
 import { MISSING_SCHEMA_NAME } from '../../missing-values/common/missing.const.ts';
 import type {
   AiMissingFactory,
   AiMissingRequest,
   MissingFile,
   MissingFill,
-  MissingPromptInput,
   MissingValidator,
   MissingVerdict
 } from '../../missing-values/common/missing.type.ts';
@@ -19,10 +21,7 @@ import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
 import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
-import { missingPrompt } from '../utils/fixture-prompt.util.ts';
-
-const NOT_OBJECT = 'the fill must be one JSON object';
-const NOT_LIST = 'the fill must be one JSON array';
+import { patternPrompt } from '../utils/fixture-prompt.util.ts';
 
 /** Compiles before the CLI runs, so a projection AJV cannot compile fails without spending a generation. */
 const inProcessValidator = (missing: MissingFile): MissingValidator => {
@@ -68,87 +67,10 @@ const checkedFill = async (request: AgentRequest, check: FixtureCheck, candidate
   }
 };
 
-type FillJudge = {
-  readonly check: FixtureCheck;
-  /** Every parsed value, each answer's alternatives before its chosen value, in attempt order. */
-  readonly candidates: unknown[];
-  /** The value the last passing `check` accepted: the chosen one, or an alternative from the same answer. */
-  readonly accepted: () => unknown;
-};
-
-const isArrayValue = (value: unknown): boolean => Array.isArray(value);
-
-const isNotArrayValue = (value: unknown): boolean => !Array.isArray(value);
-
-/** Why a value does not fill the projection's shape: a list for a list fill, an object otherwise. */
-const wrongShapeOf = (missing: MissingFile): string => {
-  const isList = isListFill(missing.paths);
-
-  return isList ? NOT_LIST : NOT_OBJECT;
-};
-
-/** The alternatives worth trying, best first; a list fill tries the lists among them before anything else. */
-const preferredAlternatives = (alternatives: unknown[], isList: boolean): unknown[] => {
-  if (!isList) return alternatives;
-
-  const lists = alternatives.filter(isArrayValue);
-  const others = alternatives.filter(isNotArrayValue);
-
-  return [...lists, ...others];
-};
-
 /**
- * Judges each parsed answer against the projection. When the parser's best-ranked value fails, another JSON value
- * from the same answer that fits is accepted instead, so a correct answer next to a bigger or differently shaped one
- * costs no repair run.
- */
-const fillJudge = (missing: MissingFile, validate: MissingValidator): FillJudge => {
-  const isList = isListFill(missing.paths);
-  const wrongShape = wrongShapeOf(missing);
-  const candidates: unknown[] = [];
-  let accepted: unknown;
-
-  const problemOf = async (value: unknown): Promise<string | undefined> => {
-    const verdict = await validate(missing, value);
-    const isShaped = isMissingFill(value, isList);
-    const isValidFill = verdict.valid && isShaped;
-
-    if (isValidFill) return undefined;
-
-    return verdict.details || wrongShape;
-  };
-
-  const check = async (value: unknown, parsed: AgentJson): Promise<string | undefined> => {
-    candidates.push(...parsed.alternatives, value);
-
-    const problem = await problemOf(value);
-
-    if (problem === undefined) {
-      accepted = value;
-
-      return undefined;
-    }
-
-    for (const alternative of preferredAlternatives(parsed.alternatives, isList)) {
-      const alternativeProblem = await problemOf(alternative);
-
-      if (alternativeProblem !== undefined) continue;
-
-      accepted = alternative;
-
-      return undefined;
-    }
-
-    return problem;
-  };
-  const judge: FillJudge = { check, candidates, accepted: (): unknown => accepted };
-
-  return judge;
-};
-
-/**
- * Fill the fields a fixture diff reported as absent, returning only a projection-valid result; an answer still
- * unusable after the repair round rejects with an `AiFillRejectedError` holding every answer that parsed.
+ * Fill the fields a fixture diff reported as absent, returning only the missing paths, each valid against the
+ * projection; an answer still unusable after the repair round rejects with an `AiFillRejectedError` holding every
+ * answer that parsed.
  * The diff's `missing.json` is self-contained, so the OpenAPI document is never loaded here.
  */
 export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory => {
@@ -170,11 +92,13 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
 
     if (typeof fixtureJson !== 'string') throw new Error('the existing fixture must be JSON-serializable');
 
+    const fixture: unknown = JSON.parse(fixtureJson);
     const document = missingDocument(missing);
+    const patterns = missingPatterns(missing.paths);
     const validate = request.validate ?? inProcessValidator(missing);
-    const { accepted, candidates, check } = fillJudge(missing, validate);
-    const input: MissingPromptInput = { fixtureJson, missing: document, scenario };
-    const prompt = missingPrompt(input);
+    const { accepted, candidates, check } = fillJudge(missing, validate, patterns);
+    const input: PatternPromptInput = { fixture, missing: document, patterns, scenario };
+    const prompt = patternPrompt(input);
     const agentRequest: AgentRequest = { prompt, options };
     const generated = await checkedFill(agentRequest, check, candidates);
     const result = accepted();

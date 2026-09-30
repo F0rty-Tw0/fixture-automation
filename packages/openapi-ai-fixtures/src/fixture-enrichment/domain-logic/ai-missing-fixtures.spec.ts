@@ -72,7 +72,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       request = { fixture: CORRUPT, missing, scenario: SCENARIO };
     });
 
-    it('WHEN the harness returns only the absent keys THEN returns the validated fill', async (): Promise<void> => {
+    it('WHEN the harness returns only the absent keys in the concrete shape instead of by pattern THEN returns the validated fill', async (): Promise<void> => {
       vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const enrich = aiMissingFixture(options);
@@ -81,7 +81,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       expect(result).toStrictEqual(FILLED);
     });
 
-    it('WHEN the harness answers THEN the prompt carries the pruned document and the corrupt baseline', async (): Promise<void> => {
+    it('WHEN the harness answers THEN the prompt carries the pruned document and the corrupt baseline as its digest', async (): Promise<void> => {
       vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', JSON.stringify(FILLED)));
 
       const enrich = aiMissingFixture(options);
@@ -91,7 +91,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
       const prompt = agentPrompt();
       const document = missingDocument(missing);
 
-      expect(prompt['baseline']).toStrictEqual(CORRUPT);
+      expect(prompt['digest']).toStrictEqual(CORRUPT);
       expect(prompt['missing']).toStrictEqual(document);
       expect(prompt['scenario']).toBe(SCENARIO);
     });
@@ -105,7 +105,7 @@ describe('FEATURE: AI fill of diffed missing fields', (): void => {
 
       const keys = Object.keys(agentPrompt()).toSorted();
 
-      expect(keys).toStrictEqual(['baseline', 'instructions', 'missing', 'scenario']);
+      expect(keys).toStrictEqual(['digest', 'instructions', 'missing', 'patterns', 'scenario']);
     });
 
     it('WHEN the projection is oversized THEN rejects before invoking the harness', async (): Promise<void> => {

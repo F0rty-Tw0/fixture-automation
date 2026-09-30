@@ -1,9 +1,9 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { MOCK_AI } from '../ai/data-access/ai-mock.client.ts';
-import type { DiffResult, GenerateResult, LoadedSpec, MergeResult } from '../contract/common/studio-api.type.ts';
-import { stripeInvoiceDocument, studioServer } from '../test/utils/studio-spec.spec.util.ts';
+import { MOCK_AI } from '../../ai/data-access/ai-mock.client.ts';
+import type { DiffResult, GenerateResult, LoadedSpec, MergeResult } from '../../contract/common/studio-api.type.ts';
+import { stripeInvoiceDocument, studioServer } from '../../test/utils/studio-spec.spec.util.ts';
 
 const WATCH_REPORT_VARIABLE = 'WATCH_REPORT_DEPENDENCIES';
 const ENDPOINT_ID = 'GET /v1/invoices/{invoice}';

@@ -1,10 +1,10 @@
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { BrokenEntry, FixtureDiffRequest } from './common/missing.type.ts';
-import { diffFixture } from './domain-logic/fixture-diff.ts';
-import { generatedAccount, placeholderSpec, realAccount } from './test/utils/placeholder-spec.spec.util.ts';
-import { dropPaths } from '../shared/fixture-path/utils/drop-path.util.ts';
+import { diffFixture } from './fixture-diff.ts';
+import { dropPaths } from '../../shared/fixture-path/utils/drop-path.util.ts';
+import type { BrokenEntry, FixtureDiffRequest } from '../common/missing.type.ts';
+import { generatedAccount, placeholderSpec, realAccount } from '../test/utils/placeholder-spec.spec.util.ts';
 
 const SAMPLER_DEFAULTS = [
   'id',

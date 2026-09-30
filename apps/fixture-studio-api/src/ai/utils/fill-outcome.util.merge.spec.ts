@@ -1,13 +1,13 @@
 import type { MissingFill } from '@fixture-automation/openapi-ai-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import type { FillOutcome } from './common/ai.type.ts';
-import { aiOutcome, mergedOutcome } from './utils/fill-outcome.util.ts';
-import { missingSalvage } from './utils/missing-salvage.util.ts';
-import type { MergeResult, MissingFile } from '../contract/common/studio-api.type.ts';
-import { fixtureMergeResult } from '../fixture/utils/fixture-merge-result.util.ts';
-import { openApiDocument } from '../specs/utils/openapi-document.util.ts';
-import { missingFixture } from '../test/utils/studio-spec.spec.util.ts';
+import { aiOutcome, mergedOutcome } from './fill-outcome.util.ts';
+import { missingSalvage } from './missing-salvage.util.ts';
+import type { MergeResult, MissingFile } from '../../contract/common/studio-api.type.ts';
+import { fixtureMergeResult } from '../../fixture/utils/fixture-merge-result.util.ts';
+import { openApiDocument } from '../../specs/utils/openapi-document.util.ts';
+import { missingFixture } from '../../test/utils/studio-spec.spec.util.ts';
+import type { FillOutcome } from '../common/ai.type.ts';
 
 type MergedFill = {
   readonly value: unknown;

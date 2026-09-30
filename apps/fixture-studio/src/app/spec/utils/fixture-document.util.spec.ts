@@ -31,7 +31,13 @@ describe('FEATURE: fixture views', (): void => {
     });
 
     it('WHEN mapped THEN lists only the present formats, named after the schema', (): void => {
-      const json: FixtureDocument = { format: 'json', label: 'JSON fixture', fileName: 'InvoiceList.json', content: '{}', language: 'json' };
+      const json: FixtureDocument = {
+        format: 'json',
+        label: 'JSON fixture',
+        fileName: 'InvoiceList.json',
+        content: '{}',
+        language: 'json'
+      };
       const types: FixtureDocument = {
         format: 'types',
         label: 'Types',

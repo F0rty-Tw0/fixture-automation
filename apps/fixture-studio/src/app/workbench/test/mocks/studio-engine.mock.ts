@@ -2,7 +2,6 @@ import { vi } from 'vitest';
 
 import type { StudioEngine } from '../../../shared/studio-engine/common/engine.type.ts';
 
-
 export const studioEngineMock = (): StudioEngine => {
   const engine: StudioEngine = {
     loadSpec: vi.fn(),

@@ -6,7 +6,13 @@ import type { DiffRequest } from '../common/comparison.type.ts';
 
 const FIXTURE = { id: 'in_1' };
 
-const BODY: DiffBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, requiredOnly: false, objectShape: undefined, replacePlaceholders: true };
+const BODY: DiffBody = {
+  endpointId: 'GET /v1/invoices',
+  fixture: FIXTURE,
+  requiredOnly: false,
+  objectShape: undefined,
+  replacePlaceholders: true
+};
 
 const REQUEST: DiffRequest = { specId: 'spec-1', body: BODY };
 

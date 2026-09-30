@@ -34,7 +34,9 @@ describe('FEATURE: fixture source reader', (): void => {
     });
 
     it('GIVEN a .ts file WHEN read THEN reads its literal', async (): Promise<void> => {
-      await expect(parseFixtureSource("export const A = { id: 'x' } as const;", 'a.ts', false)).resolves.toStrictEqual(read({ id: 'x' }));
+      await expect(parseFixtureSource("export const A = { id: 'x' } as const;", 'a.ts', false)).resolves.toStrictEqual(
+        read({ id: 'x' })
+      );
     });
   });
 

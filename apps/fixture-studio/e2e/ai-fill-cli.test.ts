@@ -48,7 +48,12 @@ import { apiRoute } from './test/utils/route.spec.util.ts';
 
 const SENT_FILL = { endpointId: INVOICE_ENDPOINT_STUB.id, fixture: PARTIAL_INVOICE_STUB, missing: MISSING_FILE_STUB, tool: 'claude' };
 
-const SENT_MERGE = { endpointId: INVOICE_ENDPOINT_STUB.id, fixture: PARTIAL_INVOICE_STUB, populated: POPULATED_STUB, original: PARTIAL_INVOICE_STUB };
+const SENT_MERGE = {
+  endpointId: INVOICE_ENDPOINT_STUB.id,
+  fixture: PARTIAL_INVOICE_STUB,
+  populated: POPULATED_STUB,
+  original: PARTIAL_INVOICE_STUB
+};
 
 const FILLED_COUNT = MISSING_FILE_STUB.paths.length;
 

@@ -58,8 +58,7 @@ test.describe('FEATURE: the change map beside a diff', () => {
     await test.step('THEN it is the third, near the end', async (): Promise<void> =>
       expectChangeLabel(page, 'Change 3 of 3, line 294'));
 
-    await test.step('AND the editor scrolled to it', async (): Promise<void> =>
-      expectLineInView(page, COMPLETE_FILE, '"added_end"'));
+    await test.step('AND the editor scrolled to it', async (): Promise<void> => expectLineInView(page, COMPLETE_FILE, '"added_end"'));
 
     await test.step('WHEN the previous change is asked for', async (): Promise<void> => previousChange(page));
 

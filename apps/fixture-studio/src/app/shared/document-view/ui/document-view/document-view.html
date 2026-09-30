@@ -1,38 +1,33 @@
 <fs-copy-export-bar [content]="document().content" [fileName]="document().fileName" />
 @if (original() !== undefined) {
-  <div class="document__sides">
-    <span>Existing fixture</span>
-    <span>{{ document().label }}</span>
-  </div>
-}
-@if (legendOutcomes().length > 0) {
-  <ul aria-label="Highlight legend" class="document__legend">
-    @for (outcome of legendOutcomes(); track outcome) {
-      <li class="document__legend-item">
-        <span [attr.data-outcome]="outcome" aria-hidden="true" class="document__swatch"></span>
-        @if (outcomeMarkers[outcome]; as marker) {
-          <span aria-hidden="true" class="document__glyph">{{ marker }}</span>
-        }
-        {{ outcomeLabels[outcome] }}
-      </li>
-    }
-    @for (origin of legendOrigins(); track origin) {
-      <li class="document__legend-item">
-        <span aria-hidden="true" class="document__glyph">{{ originMarkers[origin] }}</span>
-        {{ originLabels[origin] }}
-      </li>
-    }
-  </ul>
-}
-@defer (on immediate) {
-  <fs-code-view
-    [doc]="document().content"
-    [highlights]="highlights()"
-    [label]="document().fileName"
-    [language]="document().language"
-    [original]="original()"
-    [originalHighlights]="originalHighlights()"
-    />
+<div class="document__sides">
+  <span>Existing fixture</span>
+  <span>{{ document().label }}</span>
+</div>
+} @if (legendOutcomes().length > 0) {
+<ul aria-label="Highlight legend" class="document__legend">
+  @for (outcome of legendOutcomes(); track outcome) {
+  <li class="document__legend-item">
+    <span [attr.data-outcome]="outcome" aria-hidden="true" class="document__swatch"></span>
+    @if (outcomeMarkers[outcome]; as marker) {
+    <span aria-hidden="true" class="document__glyph">{{ marker }}</span>
+    } {{ outcomeLabels[outcome] }}
+  </li>
+  } @for (origin of legendOrigins(); track origin) {
+  <li class="document__legend-item">
+    <span aria-hidden="true" class="document__glyph">{{ originMarkers[origin] }}</span>
+    {{ originLabels[origin] }}
+  </li>
+  }
+</ul>
+} @defer (on immediate) {
+<fs-code-view
+  [doc]="document().content"
+  [highlights]="highlights()"
+  [label]="document().fileName"
+  [language]="document().language"
+  [original]="original()"
+  [originalHighlights]="originalHighlights()" />
 } @placeholder {
-  <div class="document__placeholder">Opening editor…</div>
+<div class="document__placeholder">Opening editor…</div>
 }

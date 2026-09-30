@@ -5,7 +5,12 @@ import { fillStatus, missingStatus } from './step-status.util.ts';
 import { DIFF_RESULT_STUB, MERGE_RESULT_STUB } from '../../test/stubs/studio.stub.ts';
 
 const BROKEN_MEMO = { path: 'memo', value: 'string', reason: 'openapi-sampler placeholder' };
-const WITH_BROKEN: DiffResult = { ...DIFF_RESULT_STUB, missingPaths: ['status', 'memo'], replacedPaths: ['memo'], broken: [BROKEN_MEMO] };
+const WITH_BROKEN: DiffResult = {
+  ...DIFF_RESULT_STUB,
+  missingPaths: ['status', 'memo'],
+  replacedPaths: ['memo'],
+  broken: [BROKEN_MEMO]
+};
 const NOTHING_MISSING: DiffResult = { ...DIFF_RESULT_STUB, missingPaths: [] };
 const INVALID_MERGE: MergeResult = { ...MERGE_RESULT_STUB, valid: false, errors: ['status: must be string'] };
 

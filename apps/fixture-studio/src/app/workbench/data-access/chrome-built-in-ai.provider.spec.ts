@@ -151,7 +151,9 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
           throw rejection;
         };
 
-        vi.mocked(session.promptStreaming).mockImplementationOnce(reject).mockReturnValueOnce(streamOf(['{"status":"open"}']));
+        vi.mocked(session.promptStreaming)
+          .mockImplementationOnce(reject)
+          .mockReturnValueOnce(streamOf(['{"status":"open"}']));
 
         const answer = await provider.fill(CONTEXT, options);
         const retryOptions = vi.mocked(session.promptStreaming).mock.lastCall?.[1];
@@ -227,7 +229,13 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
         failingInputs = new Set();
         const measured = languageModelSessionMock();
 
-        session = { ...measured, contextWindow: 1000, contextUsage: 10, measureContextUsage: vi.fn(measure), clone: vi.fn(cloneSession) };
+        session = {
+          ...measured,
+          contextWindow: 1000,
+          contextUsage: 10,
+          measureContextUsage: vi.fn(measure),
+          clone: vi.fn(cloneSession)
+        };
         vi.mocked(factory.create).mockResolvedValue(session);
         vi.mocked(engine.aiPrompt).mockImplementation(promptFor);
       });
@@ -254,7 +262,14 @@ describe('FEATURE: Chrome built-in AI provider', (): void => {
 
         const answer = await provider.fill(GAP_CONTEXT, options);
 
-        expect(requestedPaths()).toStrictEqual([undefined, GAP_PATHS, ['customer', 'error.customer'], ['customer'], ['error.customer'], ['error.source']]);
+        expect(requestedPaths()).toStrictEqual([
+          undefined,
+          GAP_PATHS,
+          ['customer', 'error.customer'],
+          ['customer'],
+          ['error.customer'],
+          ['error.source']
+        ]);
         expect(answer.populated).toStrictEqual({ customer: 'cus_1', error: MERGED_ERROR });
         expect(answer.sources).toStrictEqual({ customer: 'ai', 'error.customer': 'ai', 'error.source': 'ai' });
       });

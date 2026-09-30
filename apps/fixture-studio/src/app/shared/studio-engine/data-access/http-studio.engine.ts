@@ -67,7 +67,11 @@ export class HttpStudioEngine implements StudioEngine {
   }
 
   public async cliFill(specId: string, body: AiFillBody, call: EngineStreamCall): Promise<AiFillResultEvent> {
-    const events$ = this.http.post(specActionUrl(specId, 'aiFill'), body, { observe: 'events', reportProgress: true, responseType: 'text' });
+    const events$ = this.http.post(specActionUrl(specId, 'aiFill'), body, {
+      observe: 'events',
+      reportProgress: true,
+      responseType: 'text'
+    });
 
     return readFillStream(events$, call);
   }

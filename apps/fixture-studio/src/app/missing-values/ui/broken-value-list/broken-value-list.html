@@ -4,16 +4,16 @@
     <span [class.broken__count--none]="rows().length === 0" class="broken__count">{{ rows().length }}</span>
   </summary>
   @if (rows().length > 0) {
-    <ul aria-label="Broken values" class="broken__list">
-      @for (row of rows(); track row.path) {
-        <li class="broken__row">
-          <code class="broken__path">{{ row.path }}</code>
-          <code [attr.title]="row.preview" class="broken__value">{{ row.preview }}</code>
-          <span class="broken__reason">{{ row.reason }}</span>
-        </li>
-      }
-    </ul>
+  <ul aria-label="Broken values" class="broken__list">
+    @for (row of rows(); track row.path) {
+    <li class="broken__row">
+      <code class="broken__path">{{ row.path }}</code>
+      <code [attr.title]="row.preview" class="broken__value">{{ row.preview }}</code>
+      <span class="broken__reason">{{ row.reason }}</span>
+    </li>
+    }
+  </ul>
   } @else {
-    <p class="broken__none">No broken values: every present value fits the schema.</p>
+  <p class="broken__none">No broken values: every present value fits the schema.</p>
   }
 </details>

@@ -42,7 +42,12 @@ import {
 import { expectSentBodies } from './test/utils/recording-route.spec.util.ts';
 import { apiRoute } from './test/utils/route.spec.util.ts';
 
-const SENT_DIFF = { endpointId: INVOICE_ENDPOINT_STUB.id, fixture: PARTIAL_INVOICE_STUB, requiredOnly: false, replacePlaceholders: true };
+const SENT_DIFF = {
+  endpointId: INVOICE_ENDPOINT_STUB.id,
+  fixture: PARTIAL_INVOICE_STUB,
+  requiredOnly: false,
+  replacePlaceholders: true
+};
 
 const BROKEN_TS_MESSAGE = "Line 5: a function call can't be read without running the file; use plain literals.";
 

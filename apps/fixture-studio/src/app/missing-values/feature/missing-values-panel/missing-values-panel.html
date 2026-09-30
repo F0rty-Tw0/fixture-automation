@@ -1,30 +1,30 @@
 <fs-missing-path-list [envelope]="envelope()" [paths]="absentPaths()" />
 
 @if (result().broken.length > 0) {
-  <fs-broken-value-list [values]="result().broken" />
+<fs-broken-value-list [values]="result().broken" />
 
-  <mat-radio-group
-    [disabled]="comparison.isComparing()"
-    [value]="brokenChoice()"
-    aria-label="What to do with broken values"
-    class="missing-step__choice"
-    (change)="choose($event.value)">
-    <mat-radio-button value="fix">Fix broken values: AI fill rewrites them along with the missing ones</mat-radio-button>
-    <mat-radio-button value="keep">Keep broken values as they are</mat-radio-button>
-  </mat-radio-group>
-  <p class="missing-step__note">
-    Fixing needs no AI: the schema's sample values already stand in for broken and missing values in the complete fixture. AI fill
-    swaps those samples for realistic values.
-  </p>
+<mat-radio-group
+  [disabled]="comparison.isComparing()"
+  [value]="brokenChoice()"
+  aria-label="What to do with broken values"
+  class="missing-step__choice"
+  (change)="choose($event.value)">
+  <mat-radio-button value="fix">Fix broken values: AI fill rewrites them along with the missing ones</mat-radio-button>
+  <mat-radio-button value="keep">Keep broken values as they are</mat-radio-button>
+</mat-radio-group>
+<p class="missing-step__note">
+  Fixing needs no AI: the schema's sample values already stand in for broken and missing values in the complete fixture. AI fill swaps
+  those samples for realistic values.
+</p>
 }
 
 <div class="missing-step__actions">
   @if (result().missingPaths.length > 0) {
-    <button matButton="filled" type="button" (click)="continued.emit()">Continue to AI fill</button>
-    <span class="missing-step__count">
-      {{ result().missingPaths.length }} {{ result().missingPaths.length === 1 ? 'value' : 'values' }} to fill
-    </span>
+  <button matButton="filled" type="button" (click)="continued.emit()">Continue to AI fill</button>
+  <span class="missing-step__count">
+    {{ result().missingPaths.length }} {{ result().missingPaths.length === 1 ? 'value' : 'values' }} to fill
+  </span>
   } @else {
-    <p class="missing-step__done">Nothing to fill: the fixture already has every value the schema asks for.</p>
+  <p class="missing-step__done">Nothing to fill: the fixture already has every value the schema asks for.</p>
   }
 </div>

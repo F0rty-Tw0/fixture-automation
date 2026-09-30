@@ -1,26 +1,26 @@
 @if (changes().length > 0) {
-  <div class="code-view__changes">
-    <span aria-live="polite" class="code-view__change-label">{{ changeLabel() }}</span>
-    <button mat-button type="button" (click)="previousChange()">Previous change</button>
-    <button mat-button type="button" (click)="nextChange()">Next change</button>
-  </div>
+<div class="code-view__changes">
+  <span aria-live="polite" class="code-view__change-label">{{ changeLabel() }}</span>
+  <button mat-button type="button" (click)="previousChange()">Previous change</button>
+  <button mat-button type="button" (click)="nextChange()">Next change</button>
+</div>
 }
 <div class="code-view__frame">
   <div #editor class="code-view__editor"></div>
   @if (isDiff()) {
-    <!-- A pointer shortcut only: the Previous/Next change buttons are the keyboard and screen-reader way through the changes. -->
-    <button aria-hidden="true" class="code-view__map" tabindex="-1" type="button" (click)="pickAt($event)">
-      <svg class="code-view__marks" preserveAspectRatio="none" viewBox="0 0 10 100">
-        @for (mark of changes(); track $index) {
-          <rect
-            [attr.height]="mark.height"
-            [attr.y]="mark.top"
-            [class.code-view__mark--current]="$index === current()"
-            class="code-view__mark"
-            width="10"
-            x="0" />
-        }
-      </svg>
-    </button>
+  <!-- A pointer shortcut only: the Previous/Next change buttons are the keyboard and screen-reader way through the changes. -->
+  <button aria-hidden="true" class="code-view__map" tabindex="-1" type="button" (click)="pickAt($event)">
+    <svg class="code-view__marks" preserveAspectRatio="none" viewBox="0 0 10 100">
+      @for (mark of changes(); track $index) {
+      <rect
+        [attr.height]="mark.height"
+        [attr.y]="mark.top"
+        [class.code-view__mark--current]="$index === current()"
+        class="code-view__mark"
+        width="10"
+        x="0" />
+      }
+    </svg>
+  </button>
   }
 </div>

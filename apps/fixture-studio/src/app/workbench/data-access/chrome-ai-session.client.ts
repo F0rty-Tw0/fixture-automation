@@ -90,7 +90,11 @@ const answerSession = async (base: LanguageModelSession, signal: AbortSignal): P
 };
 
 /** The model's session, created with the system prompt; creating it may download the model first. */
-export const baseSession = async (factory: LanguageModelFactory, system: string, options: AiRunOptions): Promise<LanguageModelSession> => {
+export const baseSession = async (
+  factory: LanguageModelFactory,
+  system: string,
+  options: AiRunOptions
+): Promise<LanguageModelSession> => {
   const systemPrompt: LanguageModelPrompt = { role: 'system', content: system };
   const initialPrompts = [systemPrompt];
   const monitor = downloadMonitor(options.onDownload);

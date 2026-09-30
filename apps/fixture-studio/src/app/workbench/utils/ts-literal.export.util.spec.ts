@@ -12,7 +12,11 @@ const expressionText = (text: string): string | undefined => {
 describe('FEATURE: fixture expression lookup', (): void => {
   it.each([
     ['an export default', "export const A = 1;\nexport default { id: 'x' };", "{ id: 'x' }"],
-    ['an export default of a same-file const, over an earlier exported const', "export const SCHEMA = 'Invoice';\nconst invoice = { id: 'x' };\nexport default invoice;", "{ id: 'x' }"],
+    [
+      'an export default of a same-file const, over an earlier exported const',
+      "export const SCHEMA = 'Invoice';\nconst invoice = { id: 'x' };\nexport default invoice;",
+      "{ id: 'x' }"
+    ],
     ['an export default of an unknown identifier', 'export default invoice;', 'invoice'],
     ['an exported const after a local one', 'const a = 1;\nexport const B = 2;', '2'],
     ['only a local const', 'const a = [1];', '[1]']

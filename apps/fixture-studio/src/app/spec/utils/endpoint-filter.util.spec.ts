@@ -8,7 +8,13 @@ import type { EndpointFilter } from '../common/spec.type.ts';
 
 const invoices: Endpoint = { ...ENDPOINT_STUB };
 const createInvoice: Endpoint = { ...ENDPOINT_STUB, id: 'POST /v1/invoices', method: 'POST', summary: 'Create an invoice' };
-const customer: Endpoint = { ...ENDPOINT_STUB, id: 'GET /v1/customers', path: '/v1/customers', summary: undefined, tags: ['Customers'] };
+const customer: Endpoint = {
+  ...ENDPOINT_STUB,
+  id: 'GET /v1/customers',
+  path: '/v1/customers',
+  summary: undefined,
+  tags: ['Customers']
+};
 const health: Endpoint = { ...ENDPOINT_STUB, id: 'DELETE /health', method: 'DELETE', path: '/health', summary: 'Ping', tags: [] };
 const endpoints = [health, invoices, createInvoice, customer];
 

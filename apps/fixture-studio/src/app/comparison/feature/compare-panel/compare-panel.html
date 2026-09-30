@@ -19,64 +19,48 @@
 </section>
 
 @if (comparison.readingName(); as name) {
-  <p class="compare__reading" role="status">
-    Reading <code>{{ name }}</code>…
-  </p>
-  <mat-progress-bar aria-label="Reading fixture" mode="indeterminate" />
-}
-
-@if (comparison.sourceError(); as message) {
-  <p class="compare__source-error" role="alert">{{ message }}</p>
-}
-
-@if (comparison.existing(); as existing) {
-  <div class="compare__run">
-    <p class="compare__loaded">
-      Comparing <span class="compare__name">{{ existing.name }}</span>
-    </p>
-    <div class="compare__options">
-      <mat-form-field appearance="outline" class="compare__shape" subscriptSizing="dynamic">
-        <mat-label>Envelope property</mat-label>
-        <mat-select [formField]="compareForm.objectShape" (selectionChange)="compare()">
-          <mat-option value="">None — the fixture is the payload</mat-option>
-          @for (candidate of envelopeOptions(); track candidate) {
-            <mat-option [value]="candidate">{{ candidate }}</mat-option>
-          }
-        </mat-select>
-        <mat-hint>Detected from the fixture's top-level keys</mat-hint>
-      </mat-form-field>
-      <button
-        [disabled]="comparison.isComparing()"
-        [matButton]="isCurrent() ? 'outlined' : 'filled'"
-        class="compare__submit"
-        type="button"
-        (click)="compare()">
-        Compare with schema
-      </button>
-    </div>
+<p class="compare__reading" role="status">Reading <code>{{ name }}</code>…</p>
+<mat-progress-bar aria-label="Reading fixture" mode="indeterminate" />
+} @if (comparison.sourceError(); as message) {
+<p class="compare__source-error" role="alert">{{ message }}</p>
+} @if (comparison.existing(); as existing) {
+<div class="compare__run">
+  <p class="compare__loaded">Comparing <span class="compare__name">{{ existing.name }}</span></p>
+  <div class="compare__options">
+    <mat-form-field appearance="outline" class="compare__shape" subscriptSizing="dynamic">
+      <mat-label>Envelope property</mat-label>
+      <mat-select [formField]="compareForm.objectShape" (selectionChange)="compare()">
+        <mat-option value="">None — the fixture is the payload</mat-option>
+        @for (candidate of envelopeOptions(); track candidate) {
+        <mat-option [value]="candidate">{{ candidate }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>Detected from the fixture's top-level keys</mat-hint>
+    </mat-form-field>
+    <button
+      [disabled]="comparison.isComparing()"
+      [matButton]="isCurrent() ? 'outlined' : 'filled'"
+      class="compare__submit"
+      type="button"
+      (click)="compare()">
+      Compare with schema
+    </button>
   </div>
-}
-
-@if (comparison.isComparing()) {
-  <mat-progress-bar aria-label="Comparing" mode="indeterminate" />
-}
-
-@if (comparison.error(); as error) {
-  <fs-api-error-notice [error]="error" />
-}
-
-@if (warnings().length > 0) {
-  <fs-notice-list [lines]="warnings()" heading="Parts of the compare fell back; the result below is still complete" />
-}
-
-@if (completeDocument(); as document) {
-  <details class="compare__diff" open>
-    <summary class="compare__diff-summary">Your fixture beside the schema-complete one</summary>
-    <fs-document-view
-      [document]="document"
-      [highlights]="highlights.complete()"
-      [original]="comparison.existing()?.pretty"
-      [originalHighlights]="highlights.existing()"
-      class="compare__diff-view" />
-  </details>
+</div>
+} @if (comparison.isComparing()) {
+<mat-progress-bar aria-label="Comparing" mode="indeterminate" />
+} @if (comparison.error(); as error) {
+<fs-api-error-notice [error]="error" />
+} @if (warnings().length > 0) {
+<fs-notice-list [lines]="warnings()" heading="Parts of the compare fell back; the result below is still complete" />
+} @if (completeDocument(); as document) {
+<details class="compare__diff" open>
+  <summary class="compare__diff-summary">Your fixture beside the schema-complete one</summary>
+  <fs-document-view
+    [document]="document"
+    [highlights]="highlights.complete()"
+    [original]="comparison.existing()?.pretty"
+    [originalHighlights]="highlights.existing()"
+    class="compare__diff-view" />
+</details>
 }

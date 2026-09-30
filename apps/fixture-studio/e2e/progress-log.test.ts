@@ -28,7 +28,12 @@ const SECOND_CHUNK = 'Chunk 2 of 2: 1 field…';
 
 const OUTPUT_EVENTS = MOCK_OUTPUT.map(stdoutEvent);
 
-const CHUNKED_NDJSON = ndjsonOf([statusEvent(`${FIRST_CHUNK}\n`), ...OUTPUT_EVENTS, statusEvent(`${SECOND_CHUNK}\n`), ...OUTPUT_EVENTS]);
+const CHUNKED_NDJSON = ndjsonOf([
+  statusEvent(`${FIRST_CHUNK}\n`),
+  ...OUTPUT_EVENTS,
+  statusEvent(`${SECOND_CHUNK}\n`),
+  ...OUTPUT_EVENTS
+]);
 
 const OUTPUT_BLOCK = MOCK_OUTPUT.join('');
 
@@ -80,7 +85,8 @@ test.describe('FEATURE: the AI progress log', () => {
 
     await test.step('AND the CLI streams 120 status lines', async (): Promise<void> => cliStream.write(MANY_NDJSON));
 
-    await test.step('THEN the log scrolls inside its box, at the newest line', async (): Promise<void> => expectLogFollowsNewest(page));
+    await test.step('THEN the log scrolls inside its box, at the newest line', async (): Promise<void> =>
+      expectLogFollowsNewest(page));
 
     await test.step('WHEN the CLI streams one more line', async (): Promise<void> =>
       cliStream.write(ndjsonOf([statusEvent(LAST_LINE)])));

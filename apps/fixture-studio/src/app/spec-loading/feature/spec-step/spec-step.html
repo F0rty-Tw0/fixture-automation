@@ -4,12 +4,12 @@
       <mat-label>Spec URL</mat-label>
       <input [formField]="sourceForm.url" autocomplete="url" matInput placeholder="https://api.example.com/openapi.json" type="url" />
       @if (sourceForm.url().touched() && sourceForm.url().invalid()) {
-        <mat-error>{{ sourceForm.url().errors()[0]?.message }}</mat-error>
+      <mat-error>{{ sourceForm.url().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
     <button [disabled]="isLoading()" class="source__submit" mat-flat-button type="submit">Load spec</button>
     @if (isLoading()) {
-      <mat-progress-bar aria-label="Loading spec" class="source__progress" mode="indeterminate" />
+    <mat-progress-bar aria-label="Loading spec" class="source__progress" mode="indeterminate" />
     }
   </form>
 
@@ -19,9 +19,7 @@
 </div>
 
 @if (fileError(); as message) {
-  <p class="source__file-error" role="alert">{{ message }}</p>
-}
-
-@if (error(); as apiError) {
-  <fs-api-error-notice [error]="apiError" />
+<p class="source__file-error" role="alert">{{ message }}</p>
+} @if (error(); as apiError) {
+<fs-api-error-notice [error]="apiError" />
 }

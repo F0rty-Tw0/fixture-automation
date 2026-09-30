@@ -100,7 +100,13 @@ describe('FEATURE: fixture comparison', (): void => {
         await settle();
 
         const fixture = { data: PAYLOAD };
-        const expectedBody = { endpointId: 'GET /v1/invoices', fixture, requiredOnly: false, objectShape: 'data', replacePlaceholders: false };
+        const expectedBody = {
+          endpointId: 'GET /v1/invoices',
+          fixture,
+          requiredOnly: false,
+          objectShape: 'data',
+          replacePlaceholders: false
+        };
 
         expect(engine.diff).toHaveBeenCalledWith('spec-1', expectedBody, expect.anything());
         expect(comparison.result()).toStrictEqual(DIFF_RESULT_STUB);
@@ -253,7 +259,11 @@ describe('FEATURE: fixture comparison', (): void => {
       comparison.setReplacePlaceholders(ENDPOINT_ID, false);
       await settle();
 
-      expect(engine.diff).toHaveBeenLastCalledWith('spec-1', expect.objectContaining({ replacePlaceholders: false }), expect.anything());
+      expect(engine.diff).toHaveBeenLastCalledWith(
+        'spec-1',
+        expect.objectContaining({ replacePlaceholders: false }),
+        expect.anything()
+      );
     });
   });
 });

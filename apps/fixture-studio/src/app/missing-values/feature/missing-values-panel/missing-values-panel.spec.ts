@@ -20,7 +20,12 @@ import { provideFixtureWorkbench } from '../../../workbench/domain-logic/fixture
 const STUDIO_ENGINE = provideHttpStudioEngine();
 
 const BROKEN_MEMO: BrokenValue = { path: 'memo', value: 'string', reason: 'openapi-sampler placeholder' };
-const WITH_BROKEN: DiffResult = { ...DIFF_RESULT_STUB, missingPaths: ['status', 'memo'], replacedPaths: ['memo'], broken: [BROKEN_MEMO] };
+const WITH_BROKEN: DiffResult = {
+  ...DIFF_RESULT_STUB,
+  missingPaths: ['status', 'memo'],
+  replacedPaths: ['memo'],
+  broken: [BROKEN_MEMO]
+};
 const NOTHING_MISSING: DiffResult = { ...DIFF_RESULT_STUB, missingPaths: [] };
 
 describe('FEATURE: MissingValuesPanel', (): void => {

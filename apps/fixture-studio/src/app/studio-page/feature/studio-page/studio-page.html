@@ -2,7 +2,7 @@
   <span aria-hidden="true" class="masthead__mark"></span>
   <h1 class="masthead__name">Fixture Studio</h1>
   @if (browser.loadedSpec(); as spec) {
-    <span class="masthead__spec">{{ spec.title }} <span class="masthead__version">v{{ spec.version }}</span></span>
+  <span class="masthead__spec">{{ spec.title }} <span class="masthead__version">v{{ spec.version }}</span></span>
   }
 </header>
 
@@ -13,9 +13,9 @@
 
   <fs-studio-step [state]="steps().endpoints" [status]="endpointsStatus()" heading="Endpoints" headingId="step-endpoints">
     @if (browser.loadedSpec()) {
-      <fs-endpoints-step />
+    <fs-endpoints-step />
     } @else {
-      <p class="rail__waiting">Load a spec to list its operations here.</p>
+    <p class="rail__waiting">Load a spec to list its operations here.</p>
     }
   </fs-studio-step>
 
@@ -24,21 +24,21 @@
   </fs-studio-step>
 
   @for (view of generation.views(); track view.endpointId) {
-    <fs-endpoint-steps [index]="$index" [view]="view" />
+  <fs-endpoint-steps [index]="$index" [view]="view" />
   } @empty {
-    <fs-studio-step [state]="steps().compare" heading="Compare" headingId="step-compare" status="Waiting for fixtures">
-      <p class="rail__waiting">Generate an endpoint above, then compare a fixture you already have with its schema.</p>
-    </fs-studio-step>
-    <fs-studio-step [state]="steps().missing" heading="Missing & broken values" headingId="step-missing" status="Waiting for a compare">
-      <p class="rail__waiting">A compare lists the values your fixture misses and the ones that are broken.</p>
-    </fs-studio-step>
-    <fs-studio-step
-      [isLast]="true"
-      [state]="steps().fill"
-      heading="Fill with AI"
-      headingId="step-fill"
-      status="Waiting for missing values">
-      <p class="rail__waiting">AI fill writes the missing values, then merges and validates the result.</p>
-    </fs-studio-step>
+  <fs-studio-step [state]="steps().compare" heading="Compare" headingId="step-compare" status="Waiting for fixtures">
+    <p class="rail__waiting">Generate an endpoint above, then compare a fixture you already have with its schema.</p>
+  </fs-studio-step>
+  <fs-studio-step [state]="steps().missing" heading="Missing & broken values" headingId="step-missing" status="Waiting for a compare">
+    <p class="rail__waiting">A compare lists the values your fixture misses and the ones that are broken.</p>
+  </fs-studio-step>
+  <fs-studio-step
+    [isLast]="true"
+    [state]="steps().fill"
+    heading="Fill with AI"
+    headingId="step-fill"
+    status="Waiting for missing values">
+    <p class="rail__waiting">AI fill writes the missing values, then merges and validates the result.</p>
+  </fs-studio-step>
   }
 </main>

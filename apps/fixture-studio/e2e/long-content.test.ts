@@ -19,7 +19,8 @@ test.describe('FEATURE: long missing and broken lists', () => {
 
     await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
 
-    await test.step('AND the partial invoice is picked', async (): Promise<void> => pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+    await test.step('AND the partial invoice is picked', async (): Promise<void> =>
+      pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
 
     await test.step('THEN the step counts every missing and broken value', async (): Promise<void> =>
       expectStepStatus(page, 'Missing & broken values', '2000 missing · 500 broken'));

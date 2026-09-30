@@ -5,10 +5,10 @@
   </summary>
   <ul aria-label="Filled values by source" class="sources__list">
     @for (filled of paths(); track filled.path) {
-      <li class="sources__item">
-        <code class="sources__path">{{ filled.path }}</code>
-        <span [attr.data-source]="filled.source" class="sources__source">{{ labels[filled.source] }}</span>
-      </li>
+    <li class="sources__item">
+      <code class="sources__path">{{ filled.path }}</code>
+      <span [attr.data-source]="filled.source" class="sources__source">{{ labels[filled.source] }}</span>
+    </li>
     }
   </ul>
 </details>

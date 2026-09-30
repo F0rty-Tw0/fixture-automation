@@ -1,5 +1,5 @@
 @for (line of lines(); track $index) {
-  <div [attr.data-stream]="line.stream" class="log__line">{{ line.text }}</div>
+<div [attr.data-stream]="line.stream" class="log__line">{{ line.text }}</div>
 } @empty {
-  <div class="log__empty">Output appears here while the model works.</div>
+<div class="log__empty">Output appears here while the model works.</div>
 }

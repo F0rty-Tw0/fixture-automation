@@ -96,7 +96,13 @@ const INSTALLED_TOOLS: AiToolStatus[] = [
 /** Every CLI installed, no mock: the install check stays out of the way. */
 export const CLI_TOOLS_RESULT_STUB: AiToolsResult = { tools: INSTALLED_TOOLS, mock: false };
 
-const JSON_DOCUMENT: FixtureDocument = { format: 'json', label: 'JSON fixture', fileName: 'invoice.json', content: '{}', language: 'json' };
+const JSON_DOCUMENT: FixtureDocument = {
+  format: 'json',
+  label: 'JSON fixture',
+  fileName: 'invoice.json',
+  content: '{}',
+  language: 'json'
+};
 
 export const FIXTURE_VIEW_STUB: FixtureView = {
   endpointId: 'GET /v1/invoices',

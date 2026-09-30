@@ -19,7 +19,6 @@ import type {
   MergeResult
 } from '@fixture-automation/fixture-studio-api/contract';
 
-
 /** Every engine call is cancellable; aborting rejects the call and stops its work. */
 export type EngineCall = {
   readonly signal: AbortSignal;

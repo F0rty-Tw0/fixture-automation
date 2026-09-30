@@ -17,7 +17,8 @@ const firstInitializer = (statements: ts.VariableStatement[]): ts.Expression | u
 /** The initializer of the top-level variable called `name`, if this file declares one. */
 const declaredValue = (source: ts.SourceFile, name: string): ts.Expression | undefined => {
   const variables = source.statements.filter(ts.isVariableStatement);
-  const isNamed = (declaration: ts.VariableDeclaration): boolean => ts.isIdentifier(declaration.name) && declaration.name.text === name;
+  const isNamed = (declaration: ts.VariableDeclaration): boolean =>
+    ts.isIdentifier(declaration.name) && declaration.name.text === name;
 
   return declarationsOf(variables).find(isNamed)?.initializer;
 };

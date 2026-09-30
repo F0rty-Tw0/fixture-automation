@@ -1,4 +1,11 @@
-import type { BrokenValue, DiffResult, Endpoint, GenerateResult, GeneratedFixture, LoadedSpec } from '@fixture-automation/fixture-studio-api/contract';
+import type {
+  BrokenValue,
+  DiffResult,
+  Endpoint,
+  GenerateResult,
+  GeneratedFixture,
+  LoadedSpec
+} from '@fixture-automation/fixture-studio-api/contract';
 
 import { test } from './mocked-api.fixture.ts';
 import { DIFF_ROUTE, ENVELOPE_ROUTE, GENERATE_ROUTE } from './test/common/playwright.const.ts';
@@ -31,7 +38,13 @@ const LINES = Array.from({ length: 4000 }, (_value: unknown, index: number): str
 
 const wideJson = JSON.stringify({ id: 'in_123', note: WIDE_VALUE, lines: LINES }, undefined, 2);
 
-const WIDE_FIXTURE: GeneratedFixture = { endpointId: WIDE_ENDPOINT.id, schemaName: 'invoice', json: wideJson, stub: undefined, types: undefined };
+const WIDE_FIXTURE: GeneratedFixture = {
+  endpointId: WIDE_ENDPOINT.id,
+  schemaName: 'invoice',
+  json: wideJson,
+  stub: undefined,
+  types: undefined
+};
 
 const WIDE_RESULT: GenerateResult = { fixtures: [WIDE_FIXTURE] };
 
@@ -39,7 +52,11 @@ const WIDE_MISSING_PATHS = [`${LONG_SEGMENT}.${LONG_SEGMENT}`, 'memo'];
 
 const WIDE_MISSING = { ...MISSING_FILE_STUB, paths: WIDE_MISSING_PATHS };
 
-const WIDE_BROKEN: BrokenValue = { path: LONG_SEGMENT, value: WIDE_VALUE, reason: `must be shorter than 50 characters ${LONG_SEGMENT}` };
+const WIDE_BROKEN: BrokenValue = {
+  path: LONG_SEGMENT,
+  value: WIDE_VALUE,
+  reason: `must be shorter than 50 characters ${LONG_SEGMENT}`
+};
 
 const placeholderAt = (index: number): BrokenValue => {
   const broken: BrokenValue = { path: `lines[${index}]`, value: 'string', reason: 'openapi-sampler placeholder' };

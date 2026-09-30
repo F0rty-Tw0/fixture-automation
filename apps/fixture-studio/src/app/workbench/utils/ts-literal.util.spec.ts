@@ -51,7 +51,7 @@ describe('FEATURE: TypeScript literal reader', (): void => {
     });
 
     it('GIVEN a non-exported const before an exported one WHEN read THEN takes the exported one', (): void => {
-      const source = "const local = { a: 1 };\nexport const FIXTURE = { b: 2 };";
+      const source = 'const local = { a: 1 };\nexport const FIXTURE = { b: 2 };';
 
       expect(valueOf(source)).toStrictEqual({ b: 2 });
     });

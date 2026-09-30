@@ -31,7 +31,8 @@ type OnDeviceFill = {
 
 const NO_API = 'This browser has no on-device Chrome AI.';
 
-const tooLarge = (cause?: unknown): StudioEngineFailure => failure('This fixture is too large for the on-device model.', CLI_FALLBACK, cause);
+const tooLarge = (cause?: unknown): StudioEngineFailure =>
+  failure('This fixture is too large for the on-device model.', CLI_FALLBACK, cause);
 
 const isQuotaError = (error: unknown): boolean => {
   return error instanceof DOMException && error.name === 'QuotaExceededError';
@@ -89,7 +90,12 @@ const availability = async (): Promise<AiAvailability> => {
 /** The prompt for `paths` with a baseline trimmed to them, or, without `paths`, for the whole fixture. */
 const promptFor = async (source: PromptSource, paths: string[] | undefined): Promise<AiPromptResult> => {
   const { context, options } = source;
-  let body: AiPromptBody = { endpointId: context.endpointId, fixture: context.fixture, missing: context.missing, scenario: context.scenario };
+  let body: AiPromptBody = {
+    endpointId: context.endpointId,
+    fixture: context.fixture,
+    missing: context.missing,
+    scenario: context.scenario
+  };
 
   if (paths !== undefined) body = { ...body, paths };
 

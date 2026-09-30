@@ -1,16 +1,14 @@
 @if (merge().valid) {
-  <p class="merge__badge merge__badge--valid">Valid against the schema · {{ merge().filled.length }} values filled</p>
+<p class="merge__badge merge__badge--valid">Valid against the schema · {{ merge().filled.length }} values filled</p>
 } @else {
-  <p class="merge__badge merge__badge--invalid">{{ merge().errors.length }} schema errors</p>
-  <ul aria-label="Schema errors" class="merge__errors">
-    @for (error of merge().errors; track $index) {
-      <li class="merge__error">{{ error }}</li>
-    }
-  </ul>
-}
-
-@if (filledPaths().length > 0) {
-  <fs-fill-source-list [paths]="filledPaths()" />
+<p class="merge__badge merge__badge--invalid">{{ merge().errors.length }} schema errors</p>
+<ul aria-label="Schema errors" class="merge__errors">
+  @for (error of merge().errors; track $index) {
+  <li class="merge__error">{{ error }}</li>
+  }
+</ul>
+} @if (filledPaths().length > 0) {
+<fs-fill-source-list [paths]="filledPaths()" />
 }
 
 <details class="merge__section" open>

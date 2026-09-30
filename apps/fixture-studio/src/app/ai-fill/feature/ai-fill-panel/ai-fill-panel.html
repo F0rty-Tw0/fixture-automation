@@ -3,61 +3,49 @@
     Fills with
     <span class="fill__chip">{{ fill.provider() === 'chrome' ? 'On-device Chrome AI' : 'Local CLI' }}</span>
     @if (fill.provider() === 'cli' && fill.isMockAi()) {
-      <span class="fill__chip fill__chip--mock">Mock AI — no CLI runs</span>
+    <span class="fill__chip fill__chip--mock">Mock AI — no CLI runs</span>
     }
   </p>
   <p class="fill__explain">{{ providerExplanation() }}</p>
   @if (onDevice.isOffered()) {
-    <div class="fill__opt-in">
-      <mat-checkbox [checked]="onDevice.isChromeOptedIn()" class="fill__opt-in-check" (change)="onOptInChange($event.checked)">
-        Use on-device Chrome AI
-      </mat-checkbox>
-      <div class="fill__opt-in-detail">
-        <span class="fill__availability">Chrome AI: {{ availabilityLabel() }}</span>
-        <p class="fill__opt-in-hint">
-          Off by default. On-device means Gemini Nano runs inside Chrome: nothing leaves this machine. The model downloads once, when
-          you ask for it.
-        </p>
-      </div>
+  <div class="fill__opt-in">
+    <mat-checkbox [checked]="onDevice.isChromeOptedIn()" class="fill__opt-in-check" (change)="onOptInChange($event.checked)">
+      Use on-device Chrome AI
+    </mat-checkbox>
+    <div class="fill__opt-in-detail">
+      <span class="fill__availability">Chrome AI: {{ availabilityLabel() }}</span>
+      <p class="fill__opt-in-hint">
+        Off by default. On-device means Gemini Nano runs inside Chrome: nothing leaves this machine. The model downloads once, when you
+        ask for it.
+      </p>
     </div>
+  </div>
 
-    @if (onDevice.isChromeOptedIn()) {
-      <div class="fill__model">
-        @switch (onDevice.state()) {
-          @case ('checking') {
-            <p class="fill__model-text">Asking Chrome about the on-device model…</p>
-          }
-          @case ('unavailable') {
-            <p class="fill__note">Chrome AI can't run in this browser, so the local CLI fills instead.</p>
-          }
-          @case ('needs-download') {
-            <p class="fill__model-text">No on-device model on this machine yet. Download it once, then fill the missing values here.</p>
-            <button class="fill__model-action" mat-stroked-button type="button" (click)="downloadModel()">Download model</button>
-          }
-          @case ('downloading') {
-            @let percent = downloadPercent();
-            <span class="fill__download-label">
-              Downloading the on-device model{{ percent === undefined ? '…' : ` · ${percent}%` }}
-            </span>
-            <mat-progress-bar
-              [mode]="percent === undefined ? 'indeterminate' : 'determinate'"
-              [value]="percent ?? 0"
-              aria-label="Model download" />
-            @if (!onDevice.isDownloading()) {
-              <button class="fill__model-action" mat-button type="button" (click)="recheckModel()">Check again</button>
-            }
-          }
-          @case ('ready') {
-            <p class="fill__model-text">The on-device model is ready.</p>
-          }
-        }
-        @if (onDevice.downloadError(); as error) {
-          <fs-api-error-notice [error]="error" />
-        }
-      </div>
+  @if (onDevice.isChromeOptedIn()) {
+  <div class="fill__model">
+    @switch (onDevice.state()) { @case ('checking') {
+    <p class="fill__model-text">Asking Chrome about the on-device model…</p>
+    } @case ('unavailable') {
+    <p class="fill__note">Chrome AI can't run in this browser, so the local CLI fills instead.</p>
+    } @case ('needs-download') {
+    <p class="fill__model-text">No on-device model on this machine yet. Download it once, then fill the missing values here.</p>
+    <button class="fill__model-action" mat-stroked-button type="button" (click)="downloadModel()">Download model</button>
+    } @case ('downloading') { @let percent = downloadPercent();
+    <span class="fill__download-label"> Downloading the on-device model{{ percent === undefined ? '…' : ` · ${percent}%` }} </span>
+    <mat-progress-bar
+      [mode]="percent === undefined ? 'indeterminate' : 'determinate'"
+      [value]="percent ?? 0"
+      aria-label="Model download" />
+    @if (!onDevice.isDownloading()) {
+    <button class="fill__model-action" mat-button type="button" (click)="recheckModel()">Check again</button>
+    } } @case ('ready') {
+    <p class="fill__model-text">The on-device model is ready.</p>
+    } } @if (onDevice.downloadError(); as error) {
+    <fs-api-error-notice [error]="error" />
     }
-  } @else {
-    <p class="fill__note">This fixture is too large for on-device Chrome AI, so the local CLI fills it.</p>
+  </div>
+  } } @else {
+  <p class="fill__note">This fixture is too large for on-device Chrome AI, so the local CLI fills it.</p>
   }
 </section>
 
@@ -71,80 +59,73 @@
   </mat-form-field>
 
   @if (fill.provider() === 'cli') {
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>CLI</mat-label>
-      <mat-select [formField]="aiForm.tool" class="fill__cli">
-        @for (option of fill.toolOptions(); track option.tool) {
-          <mat-option [disabled]="!option.installed" [value]="option.tool">
-            {{ option.tool }}{{ option.installed ? '' : ' — not installed' }}
-          </mat-option>
-        }
-      </mat-select>
-      @if (fill.isNoCliInstalled()) {
-        <mat-hint class="fill__hint--problem">No AI CLI found on PATH</mat-hint>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>CLI</mat-label>
+    <mat-select [formField]="aiForm.tool" class="fill__cli">
+      @for (option of fill.toolOptions(); track option.tool) {
+      <mat-option [disabled]="!option.installed" [value]="option.tool">
+        {{ option.tool }}{{ option.installed ? '' : ' — not installed' }}
+      </mat-option>
       }
-    </mat-form-field>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Model</mat-label>
-      <mat-select [formField]="aiForm.model">
-        <mat-option value="">CLI default</mat-option>
-        @for (model of fill.modelOptions(); track model) {
-          <mat-option [value]="model">{{ model }}</mat-option>
-        }
-      </mat-select>
-      @if (fill.models.isLoading()) {
-        <mat-hint>Discovering models…</mat-hint>
-      } @else if (fill.modelsError(); as error) {
-        <mat-hint class="fill__hint--problem">
-          {{ error.message }}
-          <button class="fill__retry" mat-button type="button" (click)="retryModels()">Retry</button>
-        </mat-hint>
+    </mat-select>
+    @if (fill.isNoCliInstalled()) {
+    <mat-hint class="fill__hint--problem">No AI CLI found on PATH</mat-hint>
+    }
+  </mat-form-field>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Model</mat-label>
+    <mat-select [formField]="aiForm.model">
+      <mat-option value="">CLI default</mat-option>
+      @for (model of fill.modelOptions(); track model) {
+      <mat-option [value]="model">{{ model }}</mat-option>
       }
-    </mat-form-field>
+    </mat-select>
+    @if (fill.models.isLoading()) {
+    <mat-hint>Discovering models…</mat-hint>
+    } @else if (fill.modelsError(); as error) {
+    <mat-hint class="fill__hint--problem">
+      {{ error.message }}
+      <button class="fill__retry" mat-button type="button" (click)="retryModels()">Retry</button>
+    </mat-hint>
+    }
+  </mat-form-field>
   }
 
   <div class="fill__actions">
     <button [disabled]="!fill.canRun()" mat-flat-button type="submit">Fill missing values</button>
     @if (fill.isRunning()) {
-      <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
     }
   </div>
 </form>
 
 @if (fill.isRunning() || fill.log().length > 0) {
-  <details class="fill__section" open>
-    <summary class="fill__section-title">Model output</summary>
-    <fs-progress-log [lines]="fill.log()" />
-  </details>
-}
-
-@if (outcome.notes().length > 0) {
-  <fs-notice-list [lines]="outcome.notes()" heading="Notes from the fill" />
-}
-
-@if (fill.mergeResult(); as merge) {
-  <fs-merge-result
-    [fileName]="`${view().schemaName}.json`"
-    [filledPaths]="outcome.filledPaths()"
-    [highlights]="highlights.merged()"
-    [merge]="merge"
-    [original]="existingPretty()"
-    [originalHighlights]="highlights.existing()" />
+<details class="fill__section" open>
+  <summary class="fill__section-title">Model output</summary>
+  <fs-progress-log [lines]="fill.log()" />
+</details>
+} @if (outcome.notes().length > 0) {
+<fs-notice-list [lines]="outcome.notes()" heading="Notes from the fill" />
+} @if (fill.mergeResult(); as merge) {
+<fs-merge-result
+  [fileName]="`${view().schemaName}.json`"
+  [filledPaths]="outcome.filledPaths()"
+  [highlights]="highlights.merged()"
+  [merge]="merge"
+  [original]="existingPretty()"
+  [originalHighlights]="highlights.existing()" />
 } @else if (fallbackDocument(); as document) {
-  <fs-generated-fallback
-    [document]="document"
-    [highlights]="highlights.complete()"
-    [original]="existingPretty()"
-    [originalHighlights]="highlights.existing()"
-    [warnings]="diffWarnings()" />
-}
-@for (error of errors(); track $index) {
-  <fs-api-error-notice [error]="error" />
-}
-
-@if (filledDocument(); as document) {
-  <details class="fill__section">
-    <summary class="fill__section-title">Filled values</summary>
-    <fs-document-view [document]="document" />
-  </details>
+<fs-generated-fallback
+  [document]="document"
+  [highlights]="highlights.complete()"
+  [original]="existingPretty()"
+  [originalHighlights]="highlights.existing()"
+  [warnings]="diffWarnings()" />
+} @for (error of errors(); track $index) {
+<fs-api-error-notice [error]="error" />
+} @if (filledDocument(); as document) {
+<details class="fill__section">
+  <summary class="fill__section-title">Filled values</summary>
+  <fs-document-view [document]="document" />
+</details>
 }

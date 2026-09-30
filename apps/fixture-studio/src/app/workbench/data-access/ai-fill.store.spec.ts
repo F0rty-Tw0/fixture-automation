@@ -31,7 +31,14 @@ const CONTEXT: AiFillContext = {
 const CLI_RUN: AiRunRequest = { provider: 'cli', context: CONTEXT, objectShape: 'data' };
 const CHROME_RUN: AiRunRequest = { ...CLI_RUN, provider: 'chrome' };
 const EXPECTED_MERGE: MergeBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, populated: POPULATED, objectShape: 'data' };
-const EXPECTED_FILL: AiFillBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, missing: MISSING_FILE_STUB, tool: 'claude', model: undefined, scenario: undefined };
+const EXPECTED_FILL: AiFillBody = {
+  endpointId: 'GET /v1/invoices',
+  fixture: FIXTURE,
+  missing: MISSING_FILE_STUB,
+  tool: 'claude',
+  model: undefined,
+  scenario: undefined
+};
 const OTHER_FIXTURE = { id: 'in_2' };
 const OTHER_DIFF: DiffBody = { endpointId: 'GET /v1/invoices', fixture: OTHER_FIXTURE, requiredOnly: false };
 const OTHER_COMPARE: DiffRequest = { specId: 'spec-1', body: OTHER_DIFF };

@@ -22,7 +22,12 @@ const STUDIO_ENGINE = provideHttpStudioEngine();
 const CREATE_INVOICE: Endpoint = { ...ENDPOINT_STUB, id: 'POST /v1/invoices', method: 'POST' };
 const SPEC: LoadedSpec = { ...LOADED_SPEC_STUB, endpoints: [ENDPOINT_STUB, CREATE_INVOICE] };
 const LIST_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, json: '{}', stub: 'export const INVOICE_LIST_STUB = {};' };
-const CREATE_FIXTURE: GeneratedFixture = { ...GENERATED_FIXTURE_STUB, endpointId: CREATE_INVOICE.id, schemaName: 'Invoice', json: '{}' };
+const CREATE_FIXTURE: GeneratedFixture = {
+  ...GENERATED_FIXTURE_STUB,
+  endpointId: CREATE_INVOICE.id,
+  schemaName: 'Invoice',
+  json: '{}'
+};
 const RESULT: GenerateResult = { fixtures: [LIST_FIXTURE, CREATE_FIXTURE] };
 
 const ENDPOINT_TABS = MatTabGroupHarness.with({ selector: '.workspace__tabs' });

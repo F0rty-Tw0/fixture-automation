@@ -32,7 +32,9 @@ describe('FEATURE: CLI install check', (): void => {
   });
 
   it('GIVEN a failed check WHEN asked again THEN checks again', async (): Promise<void> => {
-    vi.mocked(engine.cliTools).mockRejectedValueOnce(new Error('The Fixture Studio API did not answer.')).mockResolvedValue(CLI_TOOLS_RESULT_STUB);
+    vi.mocked(engine.cliTools)
+      .mockRejectedValueOnce(new Error('The Fixture Studio API did not answer.'))
+      .mockResolvedValue(CLI_TOOLS_RESULT_STUB);
 
     await rejectionOf(store.tools());
 

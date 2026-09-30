@@ -47,7 +47,12 @@ const AVAILABILITY_CASES: AvailabilityCase[] = [
 
 const SENT_PROMPT = { endpointId: INVOICE_ENDPOINT_STUB.id, fixture: PARTIAL_INVOICE_STUB, missing: MISSING_FILE_STUB };
 
-const SENT_MERGE = { endpointId: INVOICE_ENDPOINT_STUB.id, fixture: PARTIAL_INVOICE_STUB, populated: POPULATED_STUB, original: PARTIAL_INVOICE_STUB };
+const SENT_MERGE = {
+  endpointId: INVOICE_ENDPOINT_STUB.id,
+  fixture: PARTIAL_INVOICE_STUB,
+  populated: POPULATED_STUB,
+  original: PARTIAL_INVOICE_STUB
+};
 
 const CONSTRAINED_PROMPT = { input: AI_PROMPT_STUB.prompt, hasResponseConstraint: true };
 
@@ -120,8 +125,7 @@ test.describe('FEATURE: AI fill with on-device Chrome AI', () => {
 
     await test.step('THEN the opt-in is still checked', async (): Promise<void> => expect(chromeOptIn(page)).toBeChecked());
 
-    await test.step('AND the provider is on-device Chrome AI', async (): Promise<void> =>
-      expectProvider(page, 'On-device Chrome AI'));
+    await test.step('AND the provider is on-device Chrome AI', async (): Promise<void> => expectProvider(page, 'On-device Chrome AI'));
   });
 
   test('GIVEN a model still to download, it is downloaded on its own, then the missing values are filled', async ({

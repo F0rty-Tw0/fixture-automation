@@ -4,7 +4,13 @@
   (dragleave)="onDragLeave()"
   (dragover)="onDragOver($event)"
   (drop)="onDrop($event)">
-  <input [accept]="accept()" [attr.aria-description]="hint()" [attr.aria-label]="heading()" class="drop__file" type="file" (change)="onPicked($event)" />
+  <input
+    [accept]="accept()"
+    [attr.aria-description]="hint()"
+    [attr.aria-label]="heading()"
+    class="drop__file"
+    type="file"
+    (change)="onPicked($event)" />
   <span class="drop__title">{{ heading() }}</span>
   <span class="drop__hint">{{ hint() }}</span>
 </label>

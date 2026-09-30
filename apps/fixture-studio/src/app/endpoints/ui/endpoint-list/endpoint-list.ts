@@ -12,7 +12,7 @@ import type { EndpointGroup } from '../../../spec/common/spec.type.ts';
   selector: 'fs-endpoint-list',
   imports: [MatCheckbox, MethodBadge],
   templateUrl: './endpoint-list.html',
-  styleUrl: './endpoint-list.scss',
+  styleUrl: './endpoint-list.scss'
 })
 export class EndpointList {
   public readonly groups = input.required<EndpointGroup[]>();

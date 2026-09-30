@@ -1,28 +1,28 @@
 @for (group of groups(); track group.tag) {
-  <section [attr.aria-label]="group.tag" class="endpoint-list__group">
-    <h3 class="endpoint-list__tag">
-      {{ group.tag }}
-      <span class="endpoint-list__tag-count">{{ group.endpoints.length }}</span>
-    </h3>
-    <ul class="endpoint-list__rows">
-      @for (endpoint of group.endpoints; track endpoint.id) {
-        <li
-          [attr.title]="endpoint.unsupportedReason"
-          [class.endpoint-list__row--unsupported]="endpoint.schemaName === null"
-          class="endpoint-list__row">
-          <mat-checkbox
-            [checked]="selectedIds().has(endpoint.id)"
-            [disabled]="endpoint.schemaName === null"
-            class="endpoint-list__check"
-            (change)="toggled.emit(endpoint.id)">
-            <span class="endpoint-list__label">
-              <fs-method-badge [method]="endpoint.method" />
-              <span class="endpoint-list__path">{{ endpoint.path }}</span>
-              <span class="endpoint-list__summary">{{ endpoint.unsupportedReason ?? endpoint.summary }}</span>
-            </span>
-          </mat-checkbox>
-        </li>
-      }
-    </ul>
-  </section>
+<section [attr.aria-label]="group.tag" class="endpoint-list__group">
+  <h3 class="endpoint-list__tag">
+    {{ group.tag }}
+    <span class="endpoint-list__tag-count">{{ group.endpoints.length }}</span>
+  </h3>
+  <ul class="endpoint-list__rows">
+    @for (endpoint of group.endpoints; track endpoint.id) {
+    <li
+      [attr.title]="endpoint.unsupportedReason"
+      [class.endpoint-list__row--unsupported]="endpoint.schemaName === null"
+      class="endpoint-list__row">
+      <mat-checkbox
+        [checked]="selectedIds().has(endpoint.id)"
+        [disabled]="endpoint.schemaName === null"
+        class="endpoint-list__check"
+        (change)="toggled.emit(endpoint.id)">
+        <span class="endpoint-list__label">
+          <fs-method-badge [method]="endpoint.method" />
+          <span class="endpoint-list__path">{{ endpoint.path }}</span>
+          <span class="endpoint-list__summary">{{ endpoint.unsupportedReason ?? endpoint.summary }}</span>
+        </span>
+      </mat-checkbox>
+    </li>
+    }
+  </ul>
+</section>
 }

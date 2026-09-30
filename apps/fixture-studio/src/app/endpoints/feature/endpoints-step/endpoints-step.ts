@@ -29,7 +29,19 @@ const generateOptionsSchema = (path: SchemaPathTree<GenerateOptions>): void => {
 /** Step two: filter the spec's endpoints, pick some, choose formats, and generate. */
 @Component({
   selector: 'fs-endpoints-step',
-  imports: [EndpointList, FormField, MatButton, MatCheckbox, MatFormField, MatInput, MatLabel, MatOption, MatProgressBar, MatSelect, MatSlideToggle],
+  imports: [
+    EndpointList,
+    FormField,
+    MatButton,
+    MatCheckbox,
+    MatFormField,
+    MatInput,
+    MatLabel,
+    MatOption,
+    MatProgressBar,
+    MatSelect,
+    MatSlideToggle
+  ],
   templateUrl: './endpoints-step.html',
   styleUrl: './endpoints-step.scss'
 })

@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { rm, writeFile } from 'node:fs/promises';
+import { readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { MockSettledResult } from 'vitest';
 
 import { aiMissingFixture } from './ai-missing-fixtures.ts';
-import type { AgentCommand } from '../../agent-process/common/agent-process.type.ts';
+import type { AgentCommand, AgentProcess } from '../../agent-process/common/agent-process.type.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
 import type { AiMissingRequest, MissingFile } from '../../missing-values/common/missing.type.ts';
 import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
@@ -18,9 +18,35 @@ type AgentProcessModule = {
   readonly runAgent: (command: AgentCommand, options: AiFixtureOptions) => Promise<string>;
 };
 
+type AgentLifecycleModule = {
+  readonly runAgentProcess: (process: AgentProcess, options: AiFixtureOptions) => Promise<string>;
+};
+
+/** Every attempt's scratch directory listing, taken after the agent exits and before `runAgent` removes it. */
+const scratchListings = vi.hoisted((): string[][] => []);
+
 vi.mock('../../agent-process/data-access/agent-process.client.ts', async (importOriginal): Promise<AgentProcessModule> => {
   const actual = await importOriginal<AgentProcessModule>();
   const recorded: AgentProcessModule = { runAgent: vi.fn(actual.runAgent) };
+
+  return recorded;
+});
+
+vi.mock('../../agent-process/data-access/agent-process-lifecycle.client.ts', async (importOriginal): Promise<AgentLifecycleModule> => {
+  const actual = await importOriginal<AgentLifecycleModule>();
+
+  const listed = async (process: AgentProcess, options: AiFixtureOptions): Promise<string> => {
+    try {
+      const output = await actual.runAgentProcess(process, options);
+
+      return output;
+    } finally {
+      const entries = await readdir(process.scratchDirectory, { recursive: true });
+
+      scratchListings.push(entries.toSorted());
+    }
+  };
+  const recorded: AgentLifecycleModule = { runAgentProcess: listed };
 
   return recorded;
 });
@@ -150,6 +176,18 @@ describe.skipIf(!LIVE_TOOL)('FEATURE: live file-mode fill (AI_LIVE_TOOL)', (): v
 
     it('WHEN the agent answers THEN the fill carries the inside marker read from baseline.json', (): void => {
       expect(JSON.stringify(run.fill)).toContain(INSIDE_MARKER);
+    });
+
+    it('WHEN the agent exits THEN its scratch directory holds only the staged files', (): void => {
+      const stagedPaths = (command: AgentCommand): string[] => {
+        const files = command.files ?? [];
+
+        return files.map((file): string => file.path).toSorted();
+      };
+      const staged = recordedCommands().map(stagedPaths);
+
+      expect(scratchListings.length).toBeGreaterThan(0);
+      expect(scratchListings).toStrictEqual(staged);
     });
 
     it('WHEN the agent answers THEN the fill does not carry the outside marker', (): void => {

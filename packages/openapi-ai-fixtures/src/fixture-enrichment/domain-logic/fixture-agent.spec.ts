@@ -5,7 +5,7 @@ import { runAgent } from '../../agent-process/data-access/agent-process.client.t
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
 import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
 import type { AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
-import { modelRequest } from '../../test/utils/agent-model.spec.util.ts';
+import { fileRequest, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
 import type { FixtureCheck } from '../common/agent-fixture.type.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
@@ -236,6 +236,33 @@ describe('FEATURE: fixture JSON recovery', (): void => {
       await expect(result).rejects.toBe(failure);
       expect(saveFailedResponse).toHaveBeenCalledWith(options, '{"id":', 1);
       expect(runAgent).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('GIVEN a request that stages files and a malformed first answer', (): void => {
+    beforeEach((): void => {
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', '{"id":'));
+      vi.mocked(runAgent).mockResolvedValueOnce(agentResponse('claude', '{"id":"recovered"}'));
+    });
+
+    it('WHEN generating THEN the first attempt stages the files', async (): Promise<void> => {
+      const request = fileRequest('claude');
+
+      await generateFixture(request);
+
+      const [firstCall] = vi.mocked(runAgent).mock.calls;
+
+      expect(firstCall?.[0].files).toStrictEqual(request.files);
+    });
+
+    it('WHEN generating THEN the repair attempt stages the same files', async (): Promise<void> => {
+      const request = fileRequest('claude');
+
+      await generateFixture(request);
+
+      const [, repairCall] = vi.mocked(runAgent).mock.calls;
+
+      expect(repairCall?.[0].files).toStrictEqual(request.files);
     });
   });
 });

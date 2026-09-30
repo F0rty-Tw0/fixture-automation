@@ -94,7 +94,7 @@ export const generateFixture = async (request: AgentRequest, check?: FixtureChec
 
   request.options.signal?.throwIfAborted();
 
-  const correction: AgentRequest = { prompt, options: request.options };
+  const correction: AgentRequest = { ...request, prompt };
   const correctedResponse = await generateOnce(correction);
   let fixture: AgentFixture;
 

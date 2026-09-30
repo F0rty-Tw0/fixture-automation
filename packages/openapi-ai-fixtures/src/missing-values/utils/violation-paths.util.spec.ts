@@ -1,7 +1,7 @@
-import type { MissingViolation } from '@fixture-automation/openapi-ai-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { violatedPaths } from './violation-paths.util.ts';
+import type { MissingViolation } from '../common/missing.type.ts';
 
 const PATHS = ['id', 'customer.email', 'lines[0].sku', 'lines[1].tax', 'lines[2].quantity'];
 const LINE_PATHS = ['lines[0].sku', 'lines[1].tax', 'lines[2].quantity'];

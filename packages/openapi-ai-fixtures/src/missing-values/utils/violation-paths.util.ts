@@ -1,6 +1,5 @@
-import type { MissingViolation } from '@fixture-automation/openapi-ai-fixtures';
-
-import { pathPointer } from './fill-path.util.ts';
+import { pathPointer } from './path-pointer.util.ts';
+import type { MissingViolation } from '../common/missing.type.ts';
 
 type MissingPointer = {
   readonly path: string;

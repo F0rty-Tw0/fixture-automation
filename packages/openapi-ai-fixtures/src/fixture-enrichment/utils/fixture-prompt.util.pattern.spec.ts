@@ -17,6 +17,8 @@ const PROJECTION = { type: 'object', properties: PROJECTION_PROPERTIES };
 const MINIFIED_NOTE = { type: 'string', description: 'Free text', pattern: '^a  b$' };
 const AUTHORITY_RULE = 'The schema is authoritative. The result must conform to it even when the scenario or baseline conflicts.';
 const RESTRICTIONS_RULE = 'Do not access tools, code, project files, or external resources.';
+const FILE_RESTRICTIONS_RULE =
+  '`files.baseline` is the complete baseline fixture as JSON in your working directory; `digest` is its trimmed view. You may read and search only the files listed in `files`: search them (grep) before reading, and never read a large file whole. Do not write files, run commands, or access the network or any other file.';
 const OVERSIZE_RULE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
 const PATTERN_RESPONSE_RULE =
@@ -110,6 +112,33 @@ describe('FEATURE: pattern prompt payload', (): void => {
       const bytes = patternPromptBytes(input);
 
       expect(bytes).toBe(Buffer.byteLength(patternPrompt(input), 'utf8'));
+    });
+  });
+
+  describe('GIVEN an invoice staged as a baseline file', (): void => {
+    const staged = (): PatternPromptInput => {
+      const invoice = invoiceInput(LINE_COUNT, PROJECTION);
+      const input: PatternPromptInput = { ...invoice, baselineFile: 'baseline.json' };
+
+      return input;
+    };
+
+    it('WHEN building the prompt THEN lists the file between the digest and the scenario', (): void => {
+      const prompt = parsedPrompt(staged());
+
+      expect(Object.keys(prompt)).toStrictEqual(['instructions', 'missing', 'patterns', 'digest', 'files', 'scenario']);
+    });
+
+    it('WHEN building the prompt THEN names the staged baseline', (): void => {
+      const prompt = parsedPrompt(staged());
+
+      expect(prompt['files']).toStrictEqual({ baseline: 'baseline.json' });
+    });
+
+    it('WHEN building the prompt THEN allows reading only the listed files', (): void => {
+      const prompt = parsedPrompt(staged());
+
+      expect(prompt['instructions']).toHaveProperty('restrictions', FILE_RESTRICTIONS_RULE);
     });
   });
 

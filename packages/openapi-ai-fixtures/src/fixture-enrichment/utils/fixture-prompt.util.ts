@@ -6,6 +6,8 @@ import type { MissingPromptInput } from '../../missing-values/common/missing.typ
 
 const AUTHORITY = 'The schema is authoritative. The result must conform to it even when the scenario or baseline conflicts.';
 const RESTRICTIONS = 'Do not access tools, code, project files, or external resources.';
+const FILE_RESTRICTIONS =
+  '`files.baseline` is the complete baseline fixture as JSON in your working directory; `digest` is its trimmed view. You may read and search only the files listed in `files`: search them (grep) before reading, and never read a large file whole. Do not write files, run commands, or access the network or any other file.';
 const FIXTURE_BASELINE =
   'Use the baseline fixture as an editable starting point; its values are not immutable. Return the complete fixture: keep every baseline key the schema allows, populate every key the schema requires but the baseline lacks, and correct any value whose type or enum casing does not match the schema. Every array must keep exactly its baseline length, edited index by index; never add, drop, or reorder elements.';
 const MISSING_RESPONSE =
@@ -47,11 +49,16 @@ type PatternCount = {
   readonly count: number;
 };
 
+type PatternPromptFiles = {
+  readonly baseline: string;
+};
+
 type PatternPromptPayload = {
   readonly instructions: MissingPromptInstructions;
   readonly missing: unknown;
   readonly patterns: PatternCount[];
   readonly digest: unknown;
+  readonly files?: PatternPromptFiles;
   readonly scenario: string;
 };
 
@@ -119,13 +126,26 @@ const patternCount = (pattern: MissingPattern): PatternCount => {
 
 /** The digest, like the missing baseline, never comes back in the answer, so its strings are minified too. */
 const patternPromptText = (input: PatternPromptInput): string => {
-  const { scenario } = input;
+  const { baselineFile, scenario } = input;
   const missing = minifiedSchemaProse(input.missing);
   const patterns = input.patterns.map(patternCount);
   const trimmed = patternDigest(input.fixture, input.patterns);
   const digest = minifiedStrings(trimmed);
-  const instructions: MissingPromptInstructions = { authority: AUTHORITY, response: PATTERN_RESPONSE, restrictions: RESTRICTIONS };
-  const prompt: PatternPromptPayload = { instructions, missing, patterns, digest, scenario };
+
+  if (baselineFile === undefined) {
+    const instructions: MissingPromptInstructions = { authority: AUTHORITY, response: PATTERN_RESPONSE, restrictions: RESTRICTIONS };
+    const prompt: PatternPromptPayload = { instructions, missing, patterns, digest, scenario };
+
+    return JSON.stringify(prompt);
+  }
+
+  const instructions: MissingPromptInstructions = {
+    authority: AUTHORITY,
+    response: PATTERN_RESPONSE,
+    restrictions: FILE_RESTRICTIONS
+  };
+  const files: PatternPromptFiles = { baseline: baselineFile };
+  const prompt: PatternPromptPayload = { instructions, missing, patterns, digest, files, scenario };
 
   return JSON.stringify(prompt);
 };

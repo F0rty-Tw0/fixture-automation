@@ -1,12 +1,13 @@
-import { isListFill, missingCheck } from '@fixture-automation/openapi-ai-fixtures';
+import { isListFill, missingCheck, pathTree, valueAtPath } from '@fixture-automation/openapi-ai-fixtures';
+import type { PathValue } from '@fixture-automation/openapi-ai-fixtures';
 
 import { normalizedAnswer } from './answer-shape.util.ts';
-import { pathTree, sampleAtPath, valueAtPath } from './fill-path.util.ts';
+import { sampleAtPath } from './fill-path.util.ts';
 import { missingSample } from './missing-sample.util.ts';
 import { salvageNote } from './salvage-note.util.ts';
 import { violatedPaths } from './violation-paths.util.ts';
 import type { FillSource, MissingFile } from '../../contract/common/studio-api.type.ts';
-import type { FillOutcome, PathValue } from '../common/ai.type.ts';
+import type { FillOutcome } from '../common/ai.type.ts';
 
 type SourcedValue = {
   readonly path: string;

@@ -52,6 +52,39 @@ export const expectStepFold = async (page: Page, heading: string, isExpanded: bo
   await expect(controlsBody).toPass(FOLD_WAIT);
 };
 
+type Edges = { readonly left: number; readonly top: number; readonly bottom: number };
+
+const edgesOf = async (locator: Locator): Promise<Edges> => {
+  const measure = (element: Element): Edges => {
+    const { left, top, bottom } = element.getBoundingClientRect();
+    const edges: Edges = { left, top, bottom };
+
+    return edges;
+  };
+
+  return locator.evaluate(measure);
+};
+
+/**
+ * On a wide screen a folded step leaves the rail column: its header moves into the body column, heading and status on one
+ * row. Measured against the folded body, which keeps its box in that column.
+ */
+export const expectFoldedStepInBodyColumn = async (page: Page, heading: string): Promise<void> => {
+  const toggle = stepToggle(page, heading);
+  const header = step(page, heading).locator(':scope > header');
+  const bodyId = await toggle.getAttribute('aria-controls');
+  const body = page.locator(`[id="${bodyId ?? ''}"]`);
+  const [headerEdges, toggleEdges, statusEdges, bodyEdges] = await Promise.all([
+    edgesOf(header),
+    edgesOf(toggle),
+    edgesOf(header.getByRole('paragraph')),
+    edgesOf(body)
+  ]);
+
+  expect(headerEdges.left).toBeCloseTo(bodyEdges.left, 0);
+  expect(statusEdges.top).toBeLessThan(toggleEdges.bottom);
+};
+
 /** The line under a step's heading: the endpoint for Compare, counts and progress for the later steps. */
 export const expectStepStatus = async (page: Page, heading: string, status: string): Promise<void> => {
   const header = step(page, heading).locator('header').getByRole('paragraph');

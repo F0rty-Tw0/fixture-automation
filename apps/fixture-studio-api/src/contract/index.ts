@@ -39,6 +39,7 @@ export type {
   Endpoint,
   EnvelopeBody,
   EnvelopeResult,
+  FillSource,
   FixtureFormat,
   GenerateBody,
   GeneratedFixture,

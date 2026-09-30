@@ -71,6 +71,8 @@ Ask a local coding harness to enrich a fixture, then validate the answer against
   --ts <types-file>       write a typed .ts stub; requires an out-file
   --executable <path>     absolute path to the harness binary
   --timeout <ms>          harness timeout in milliseconds (default 900000: 15 minutes)
+  --no-read-files         with --missing, send the digest only instead of staging baseline.json
+                          for the harness to read
   --list-models           print the models the harness offers (default timeout 120000ms)
   -h, --help              print this help
 

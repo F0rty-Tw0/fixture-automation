@@ -56,8 +56,9 @@ The parsed fixture, including a corrected response, subsequently undergoes local
 A missing-field fill (`aiMissingFixture`, the CLI `--missing` fill, the wizard and studio) can stage the whole baseline
 as `baseline.json` in the run's scratch directory and let the agent read and search it, on top of the inline digest.
 The prompt then gains `"files": { "baseline": "baseline.json" }` and its `restrictions` instruction says the agent may
-read and search only the listed files (search first, never read a large file whole) and must not write files, run
-commands, or use the network. Without file mode the prompt carries the digest only and forbids every tool.
+read and search only the listed files (search first, then read only the line ranges it needs) and must not write
+files, run commands, or use the network. The file is indented JSON, one value per line, because agent search tools skip
+overlong lines and read tools page by line. Without file mode the prompt carries the digest only and forbids every tool.
 
 `FILE_MODE_TOOLS` in [agent-provider.const.ts](./src/agent-provider/common/agent-provider.const.ts) sets each tool's
 default; `AiFixtureOptions.readsFiles` overrides it. The staged file reaches both the first attempt and the repair

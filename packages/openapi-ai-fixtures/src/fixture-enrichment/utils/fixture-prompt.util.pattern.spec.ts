@@ -18,7 +18,7 @@ const MINIFIED_NOTE = { type: 'string', description: 'Free text', pattern: '^a  
 const AUTHORITY_RULE = 'The schema is authoritative. The result must conform to it even when the scenario or baseline conflicts.';
 const RESTRICTIONS_RULE = 'Do not access tools, code, project files, or external resources.';
 const FILE_RESTRICTIONS_RULE =
-  '`files.baseline` is the complete baseline fixture as JSON in your working directory; `digest` is its trimmed view. You may read and search only the files listed in `files`: search them (grep) before reading, and never read a large file whole. Do not write files, run commands, or access the network or any other file.';
+  '`files.baseline` is the complete baseline fixture as JSON in your working directory; `digest` is its trimmed view. You may read and search only the files listed in `files`: search first, then read only the line ranges you need (offset/limit), never the whole file. Do not write files, run commands, or access the network or any other file.';
 const OVERSIZE_RULE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
 const PATTERN_RESPONSE_RULE =

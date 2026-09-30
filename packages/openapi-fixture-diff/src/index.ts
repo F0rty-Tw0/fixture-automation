@@ -4,6 +4,10 @@ export { writeBaselineFile, writeMissingFiles } from './fixture-diff/domain-logi
 
 export { missingProjection } from './fixture-diff/utils/missing-projection.util.ts';
 
+export { compiledSchema, schemaViolations } from './fixture-diff/utils/payload-check.util.ts';
+
+export { isItemList } from './schema/utils/schema-list.util.ts';
+
 export { isSchema } from './schema/utils/schema-record.util.ts';
 
 export { resolveSchema } from './schema/utils/schema-resolve.util.ts';

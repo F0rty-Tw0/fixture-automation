@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
 import { deepFill } from './deep-fill.util.ts';
+import type { FillOptions } from '../common/fixture-fill.type.ts';
+import { holedArray } from '../test/utils/holed-array.spec.util.ts';
+
+const KEEP_PRESENT: FillOptions = { keepPresent: true };
+const TRAILING_HOLE = holedArray(
+  3,
+  new Map([
+    [0, 'a'],
+    [1, 'b']
+  ])
+);
+const INNER_HOLE = holedArray(
+  3,
+  new Map([
+    [0, 'a'],
+    [2, 'c']
+  ])
+);
 
 describe('FEATURE: deep fill of absent fixture fields', (): void => {
   describe('GIVEN a flat fixture missing one key', (): void => {
@@ -156,6 +174,90 @@ describe('FEATURE: deep fill of absent fixture fields', (): void => {
 
       expect(result.value).toStrictEqual(expected);
       expect(result.filled).toStrictEqual(['lines[0].status']);
+    });
+  });
+
+  describe('GIVEN fill elements past the baseline end holding a hole or undefined', (): void => {
+    it.each<[string, unknown[], unknown[], string[]]>([
+      ['a trailing hole', TRAILING_HOLE, ['a', 'b'], ['[1]']],
+      ['a hole followed by a value', INNER_HOLE, ['a'], []],
+      ['an explicit undefined followed by a value', ['a', 'b', undefined, 'd'], ['a', 'b'], ['[1]']]
+    ])(
+      'WHEN filling past %s THEN appending stops there and no element becomes null',
+      (_label: string, fill: unknown[], expected: unknown[], filled: string[]): void => {
+        const result = deepFill(['a'], fill);
+
+        expect(result.value).toStrictEqual(expected);
+        expect(result.filled).toStrictEqual(filled);
+      }
+    );
+  });
+
+  describe('GIVEN keepPresent and present values the fill would replace', (): void => {
+    it('WHEN filling THEN a type mismatch, a casing mismatch and a scalar under an object fill are all kept', (): void => {
+      const base = { amount_due: '4200', status: 'Open', customer: 'cus_1' };
+      const fillCustomer = { id: 'cus_ai' };
+      const fill = { amount_due: 4200, status: 'open', customer: fillCustomer };
+
+      const result = deepFill(base, fill, KEEP_PRESENT);
+
+      expect(result.value).toStrictEqual(base);
+      expect(result.filled).toStrictEqual([]);
+    });
+
+    it('WHEN a present array is shorter than the fill THEN no element is appended, an empty array included', (): void => {
+      const base = { tags: [], lines: ['a'] };
+      const fill = { tags: ['string'], lines: ['a', 'b'] };
+
+      const result = deepFill(base, fill, KEEP_PRESENT);
+
+      expect(result.value).toStrictEqual(base);
+      expect(result.filled).toStrictEqual([]);
+    });
+
+    it('WHEN an array element lacks a key THEN the key is still filled beside the kept value', (): void => {
+      const base = [{ amount_due: '4200' }];
+      const fillLine = { amount_due: 4200, status: 'open' };
+      const fill = [fillLine];
+      const expectedLine = { amount_due: '4200', status: 'open' };
+
+      const result = deepFill(base, fill, KEEP_PRESENT);
+
+      expect(result.value).toStrictEqual([expectedLine]);
+      expect(result.filled).toStrictEqual(['[0].status']);
+    });
+  });
+
+  describe('GIVEN a fill with holes or undefined values', (): void => {
+    it('WHEN an array slot is a hole THEN the baseline element stays and is not reported filled', (): void => {
+      const holed: unknown[] = [];
+
+      const fillElement = { b: 'string' };
+      const baseElement = { a: 1 };
+      const baseItems = ['keep-me', 7, baseElement];
+
+      holed[2] = fillElement;
+
+      const base = { items: baseItems };
+      const fill = { items: holed };
+      const kept = { a: 1, b: 'string' };
+      const items = ['keep-me', 7, kept];
+      const expected = { items };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual(expected);
+      expect(result.filled).toStrictEqual(['items[2].b']);
+    });
+
+    it('WHEN a key holds undefined THEN it neither replaces nor adds a value', (): void => {
+      const base = { id: 'in_1' };
+      const fill = { id: undefined, memo: undefined };
+
+      const result = deepFill(base, fill);
+
+      expect(result.value).toStrictEqual({ id: 'in_1' });
+      expect(result.filled).toStrictEqual([]);
     });
   });
 

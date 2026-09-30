@@ -145,18 +145,21 @@ Exit code `0`. No files are written.
 
 ## Errors
 
-| You see                                                                           | It means                                                                 | Fix                                                       |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `usage: corrupt <fixture.json> [out.json] --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`, or was missing (piped/CI run).      | Use one of those two subcommands.                         |
-| `--fixture file "<path>" does not exist`                                          | The `--fixture` path is wrong.                                           | Check the path; it resolves from the current directory.   |
-| `--fixture file "<path>" is not valid JSON: <parse error>`                        | The fixture file is not parseable JSON.                                  | Fix the file, or point at a real JSON fixture.            |
-| `schema "<name>" is unavailable`                                                  | `<name>` is not a key under `components.schemas`.                        | The message lists the available schema names; pick one.   |
-| `unknown fixture path "<path>"` + `fix: did you mean <key>?`                      | `--drop` named a key that is not in the fixture, but a close key exists. | Use the suggested key.                                    |
-| `unknown fixture path "<path>"` + `fix: available: <keys>`                        | `--drop` named a key that is not on that object.                         | Pick one of the listed keys.                              |
-| `unknown fixture path "<path>"` (no fix line)                                     | `--drop` named an array index that is out of range, or a non-object.     | Check the fixture's real shape.                           |
-| `--drop requires a comma separated list of fixture paths`                         | `--drop` was missing, or had an empty segment (`a,,b`).                  | Pass paths like `--drop id,customer.email,lines[1].sku`.  |
-| `Unknown option '<flag>'`                                                         | An unsupported flag was passed.                                          | Run `openapi-fixture-diff --help` for the full flag list. |
-| Any other error                                                                   | See the shared error format and exit codes.                              | [Root README](../../README.md#rules-every-tool-shares).   |
+| You see                                                                           | It means                                                                 | Fix                                                        |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `usage: corrupt <fixture.json> [out.json] --drop <paths>, or diff <spec-url> ...` | Command was not `corrupt` or `diff`, or was missing (piped/CI run).      | Use one of those two subcommands.                          |
+| `--fixture file "<path>" does not exist`                                          | The `--fixture` path is wrong.                                           | Check the path; it resolves from the current directory.    |
+| `--fixture file "<path>" is not valid JSON: <parse error>`                        | The fixture file is not parseable JSON.                                  | Fix the file, or point at a real JSON fixture.             |
+| `schema "<name>" is unavailable`                                                  | `<name>` is not a key under `components.schemas`.                        | The message lists the available schema names; pick one.    |
+| `schema "<name>" cannot be compiled: <reason>`                                    | The validator rejects the schema (bad `pattern`, empty `enum`, ...).     | Fix that schema in the spec.                               |
+| `unresolved schema reference "<ref>"`                                             | A `$ref` names a component the spec does not declare.                    | Add the component, or point the `$ref` at one that exists. |
+| `circular schema reference "<ref>"`                                               | `$ref`/`allOf` members include each other in a loop.                     | Break the cycle in the spec.                               |
+| `unknown fixture path "<path>"` + `fix: did you mean <key>?`                      | `--drop` named a key that is not in the fixture, but a close key exists. | Use the suggested key.                                     |
+| `unknown fixture path "<path>"` + `fix: available: <keys>`                        | `--drop` named a key that is not on that object.                         | Pick one of the listed keys.                               |
+| `unknown fixture path "<path>"` (no fix line)                                     | `--drop` named an array index that is out of range, or a non-object.     | Check the fixture's real shape.                            |
+| `--drop requires a comma separated list of fixture paths`                         | `--drop` was missing, or had an empty segment (`a,,b`).                  | Pass paths like `--drop id,customer.email,lines[1].sku`.   |
+| `Unknown option '<flag>'`                                                         | An unsupported flag was passed.                                          | Run `openapi-fixture-diff --help` for the full flag list.  |
+| Any other error                                                                   | See the shared error format and exit codes.                              | [Root README](../../README.md#rules-every-tool-shares).    |
 
 ## Library
 
@@ -187,6 +190,8 @@ const files = await writeMissingFiles(diff, 'out');
 - **Components list only reachable schemas.** `missing.json`'s `components.schemas` walks the `$ref` closure of the missing projection only; a projection referencing nothing yields `{}`.
 - **Schema cycles are never missing.** A property whose `$ref` is already being expanded up the path (e.g. `api_errors` → `payment_intent` → `api_errors`) is skipped, matching where `openapi-fixtures` stops sampling. An empty object `{}` anywhere else still means "all properties missing".
 - **Arrays diff per index.** The `missing.json` schema collapses array items into one `items` shape, but `paths` keeps the exact indices (`lines[0].sku`).
+- **A list fixture diffs per element.** An array fixture held against an object schema (a list endpoint names only its item schema) is diffed element by element: paths start at the index (`[1].id`) and the `missing.json` schema is an array of the item projection.
+- **`--required-only` still reports broken optional values.** A present optional value that breaks the schema or is a placeholder is listed as broken, but it is neither missing nor replaced, and nothing inside it is diffed.
 - **`anyOf`/`oneOf` branch choice is a heuristic.** Each branch resolves first; the branch whose properties overlap the value's keys most wins. Primitives and `null` never report missing fields.
 - **Large hub schemas can blow the 1 MiB AI input limit.** A schema reachable through a hub object (like Stripe's `account`) pulls its whole graph into `components`. Drop leaf fields only, or split hub-reaching fields across multiple `diff` runs, to keep the projection small.
 - **`additionalProperties` and `patternProperties` are ignored.** That includes placeholders under them: a sampled `{ "property1": "string" }` map stays.

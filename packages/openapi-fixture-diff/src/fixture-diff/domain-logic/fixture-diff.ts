@@ -1,5 +1,4 @@
-import { prepareSchema, schemaDialect } from '@fixture-automation/openapi-ai-fixtures';
-import type { PreparedSchema } from '@fixture-automation/openapi-ai-fixtures';
+import { schemaDialect } from '@fixture-automation/openapi-ai-fixtures';
 import { reachableSchemas } from '@fixture-automation/openapi-fixtures';
 import { selectFixtureShape } from '@fixture-automation/shared';
 
@@ -12,11 +11,13 @@ import type {
   FixtureDiffRequest,
   MissingEntry,
   ReplaceCandidate,
-  ReplaceablePredicate
+  ReplaceablePredicate,
+  SchemaViolation
 } from '../common/missing.type.ts';
 import { invalidPaths } from '../utils/invalid-path.util.ts';
 import { missingProjection } from '../utils/missing-projection.util.ts';
 import { missingEntries } from '../utils/missing-walk.util.ts';
+import { compiledSchema, payloadCheck } from '../utils/payload-check.util.ts';
 import { isPlaceholderValue } from '../utils/placeholder-value.util.ts';
 
 type PathEntry = BrokenEntry | MissingEntry;
@@ -63,14 +64,11 @@ const wrappedProjection = (objectShape: string, projection: SpecSchema): SpecSch
 };
 
 /**
- * Validates the payload once; a present value is broken when AJV flags it or it is a sampler placeholder.
+ * A present value is broken when AJV flags it or it is a sampler placeholder.
  * ponytail: AJV reports every failing anyOf/oneOf member, so a value valid in the member the walk picks can still
  * be flagged; that only costs a refill of a value that was already fine.
  */
-const brokenReasonIn = (prepared: PreparedSchema, payload: unknown, schemas: SpecSchemas): BrokenReason => {
-  prepared.validate(payload);
-
-  const violations = prepared.validate.errors ?? [];
+const brokenReasonIn = (violations: SchemaViolation[], payload: unknown, schemas: SpecSchemas): BrokenReason => {
   const invalid = invalidPaths(violations, payload);
 
   const reasonOf = (candidate: ReplaceCandidate): string | undefined => {
@@ -110,7 +108,8 @@ const wrappedBroken = (objectShape: string, entry: BrokenEntry): BrokenEntry => 
 };
 
 /**
- * Compare a fixture against its schema and project every absent property into one Missing schema.
+ * Compare a fixture against its schema and project every absent property into one Missing schema. An array payload
+ * held against a non-array schema is a list endpoint's response: each element is diffed as that schema, at `[i]`.
  * Present values that are schema-invalid or openapi-sampler placeholders are always listed in `broken`; with
  * `replacePlaceholders` they are projected too, and dropped from the returned `baseline` so a fill and merge onto
  * it replaces them.
@@ -124,17 +123,18 @@ export const diffFixture = (request: FixtureDiffRequest): FixtureDiff => {
   const objectShape = trimmedShape === '' ? undefined : trimmedShape;
   const selectedFixture = selectFixtureShape(fixture, objectShape);
   const dialect = schemaDialect(spec.openapi, spec.jsonSchemaDialect);
-  const prepared = prepareSchema(spec, schemaName);
+  const prepared = compiledSchema(spec, schemaName);
   const components = contextComponents(prepared.context);
   const sourceSchema = components.schemas[schemaName];
 
   if (sourceSchema === undefined) throw new Error(`schema "${schemaName}" is unavailable`);
 
-  const reasonOf = brokenReasonIn(prepared, selectedFixture, components.schemas);
+  const checked = payloadCheck(prepared, sourceSchema, components.schemas, selectedFixture);
+  const reasonOf = brokenReasonIn(checked.violations, selectedFixture, components.schemas);
   const recorded: BrokenEntry[] = [];
   const isReplaceable = recordingPredicate(reasonOf, recorded, replacePlaceholders === true);
   const walked = missingEntries({
-    schema: sourceSchema,
+    schema: checked.schema,
     value: selectedFixture,
     path: '',
     schemas: components.schemas,

@@ -1,6 +1,6 @@
 export { loadSpec, parseSpecUrl } from './spec-loading/domain-logic/openapi-spec.ts';
 
-export { fixtures } from './fixture-sampling/data-access/fixtures.client.ts';
+export { fixtures, schemaSample } from './fixture-sampling/data-access/fixtures.client.ts';
 
 export { printHelp } from './cli/feature/cli-help.handler.ts';
 
@@ -20,7 +20,9 @@ export { pruneSpec } from './schema/utils/prune-spec.util.ts';
 
 export { reachableSchemas } from './schema/utils/reachable-schemas.util.ts';
 
-export { referenceName } from './schema/utils/schema-reference.util.ts';
+export { referenceName, unresolvedReferenceFix } from './schema/utils/schema-reference.util.ts';
+
+export { referenceTarget } from './schema/utils/reference-target.util.ts';
 
 export { askSchemaName, resolveSchemaName, schemaTarget } from './cli/utils/schema-name.util.ts';
 
@@ -35,6 +37,8 @@ export { FixtureError } from './shared/fixture-error/common/fixture.error.ts';
 export { DEFAULT_OUT_DIR, MISSING_DIR } from './cli/common/output-paths.const.ts';
 
 export type { InputSpec, Inputs, Question } from './prompt/common/input.type.ts';
+
+export type { ReferenceTarget } from './schema/common/schema.type.ts';
 
 export type { OpenApiSpec } from './shared/openapi-document/common/openapi.type.ts';
 

@@ -1,9 +1,7 @@
 import { fillObjectShape } from '@fixture-automation/openapi-fixture-merge';
-import type { FillResult } from '@fixture-automation/openapi-fixture-merge';
+import type { FillOptions, FillResult } from '@fixture-automation/openapi-fixture-merge';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
-import { selectFixtureShape } from '@fixture-automation/shared';
-
-const SHAPE_FIX = 'clear object-shape, or name the envelope property that holds the payload';
+import { isRecord } from '@fixture-automation/shared';
 
 /** A blank `objectShape` means none, as in the merge CLI. */
 export const shapeKey = (objectShape: string | undefined): string | undefined => {
@@ -12,30 +10,43 @@ export const shapeKey = (objectShape: string | undefined): string | undefined =>
   return trimmed === '' ? undefined : trimmed;
 };
 
-/** Fails with a 400 `FixtureError` when `objectShape` names no own property of `fixture`. */
-export const assertEnvelope = (fixture: unknown, objectShape: string | undefined): void => {
-  if (objectShape === undefined) return;
+/** `objectShape` when the fixture holds it as an own property; otherwise `undefined`, so the whole fixture is the payload. */
+export const presentShape = (fixture: unknown, objectShape: string | undefined): string | undefined => {
+  if (objectShape === undefined) return undefined;
 
-  try {
-    selectFixtureShape(fixture, objectShape);
-  } catch (error: unknown) {
-    if (!(error instanceof Error)) throw error;
+  if (!isRecord(fixture)) return undefined;
 
-    throw new FixtureError(error.message, SHAPE_FIX);
-  }
+  const hasShape = Object.hasOwn(fixture, objectShape);
+
+  return hasShape ? objectShape : undefined;
 };
 
-/** The merge CLI's `fillObjectShape`, with its missing-envelope error turned into a 400 `FixtureError`; other errors pass through. */
-export const mergeFixtureValue = (fixture: unknown, populated: unknown, objectShape: string | undefined): FillResult => {
-  if (objectShape === undefined) return fillObjectShape(fixture, populated, undefined);
+/** `populated` as an envelope holding `objectShape`; a fill answering with the bare payload is wrapped in it. */
+const populatedEnvelope = (populated: unknown, objectShape: string): unknown => {
+  const envelope = { [objectShape]: populated };
 
-  try {
-    return fillObjectShape(fixture, populated, objectShape);
-  } catch (error: unknown) {
-    if (!(error instanceof Error)) throw error;
+  if (!isRecord(populated)) return envelope;
 
-    throw new FixtureError(error.message, SHAPE_FIX);
-  }
+  const hasShape = Object.hasOwn(populated, objectShape);
+
+  return hasShape ? populated : envelope;
+};
+
+/**
+ * The merge CLI's `fillObjectShape`. `objectShape` must be one `fixture` holds (see `presentShape`); a `populated`
+ * value without it is taken as the payload itself, so the merge never fails over a missing envelope.
+ */
+export const mergeFixtureValue = (
+  fixture: unknown,
+  populated: unknown,
+  objectShape: string | undefined,
+  options?: FillOptions
+): FillResult => {
+  if (objectShape === undefined) return fillObjectShape(fixture, populated, undefined, options);
+
+  const envelope = populatedEnvelope(populated, objectShape);
+
+  return fillObjectShape(fixture, envelope, objectShape, options);
 };
 
 /** Two-space JSON with a final newline, as the CLIs write fixtures. */

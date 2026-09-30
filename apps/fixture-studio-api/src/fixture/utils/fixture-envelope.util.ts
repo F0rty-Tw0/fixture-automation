@@ -3,7 +3,9 @@ import type { SpecSchema, SpecSchemas } from '@fixture-automation/openapi-fixtur
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
+import { presentShape } from './fixture-merge.util.ts';
 import type { EnvelopeResult } from '../../contract/common/studio-api.type.ts';
+import type { ShapeChoice } from '../common/fixture.type.ts';
 
 type ScoredKey = {
   readonly key: string;
@@ -85,4 +87,55 @@ export const fixtureEnvelope = (spec: OpenApiSpec, schemaName: string, fixture: 
   const result: EnvelopeResult = { candidates, detected };
 
   return result;
+};
+
+const shapeChoice = (objectShape: string | undefined, unplaced: string | undefined, warnings: string[]): ShapeChoice => {
+  const choice: ShapeChoice = { objectShape, unplaced, warnings };
+
+  return choice;
+};
+
+/** Whether the fixture's top level (or its first element) carries any of the payload's property names. */
+const rootMatches = (spec: OpenApiSpec, schemaName: string, fixture: unknown): boolean => {
+  const schemas = spec.components?.schemas ?? {};
+  const schema = schemas[schemaName];
+
+  if (schema === undefined) return false;
+
+  const names = payloadNames(schema, schemas);
+
+  return overlap(fixture, names) > 0;
+};
+
+/**
+ * The envelope a diff or merge reads the payload from: the requested one when the fixture holds it; otherwise the
+ * property `fixtureEnvelope` detects, or the whole fixture when its top level looks like the payload, each with a
+ * warning; otherwise nothing: `unplaced` names the key, so neither a diff nor a merge puts payload fields on an envelope root.
+ */
+export const payloadShape = (spec: OpenApiSpec, schemaName: string, fixture: unknown, requested: string | undefined): ShapeChoice => {
+  if (requested === undefined) return shapeChoice(undefined, undefined, []);
+
+  const present = presentShape(fixture, requested);
+
+  if (present !== undefined) return shapeChoice(present, undefined, []);
+
+  const { detected } = fixtureEnvelope(spec, schemaName, fixture);
+
+  if (detected !== undefined) {
+    const detectedWarning = `The fixture has no "${requested}" property; "${detected}" looks like the payload, so it was compared instead.`;
+
+    return shapeChoice(detected, undefined, [detectedWarning]);
+  }
+
+  const isRootPayload = rootMatches(spec, schemaName, fixture);
+
+  if (isRootPayload) {
+    const rootWarning = `The fixture has no "${requested}" property, but its top level looks like the payload, so the whole fixture was compared instead.`;
+
+    return shapeChoice(undefined, undefined, [rootWarning]);
+  }
+
+  const unplacedWarning = `The fixture has no "${requested}" property and nothing in it looks like the payload, so nothing was compared or filled in.`;
+
+  return shapeChoice(undefined, requested, [unplacedWarning]);
 };

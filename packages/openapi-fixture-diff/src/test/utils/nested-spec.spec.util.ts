@@ -5,6 +5,8 @@ import { loadSpec } from '@fixture-automation/openapi-fixtures';
 import type { OpenApiSpec } from '@fixture-automation/openapi-fixtures';
 import { isRecord } from '@fixture-automation/shared';
 
+import type { SpecSchemas } from '../../schema/common/schema.type.ts';
+
 export const nestedFile = (name: string): string => {
   const url = new URL(`../fixtures/nested/${name}`, import.meta.url);
 
@@ -36,4 +38,13 @@ export const cyclicOrder = async (): Promise<Record<string, unknown>> => {
   const value = { ...order, parent: {} };
 
   return value;
+};
+
+/** A bare spec holding only `schemas`, for cases that need their own components. */
+export const schemaSpec = (schemas: SpecSchemas, openapi = '3.0.3'): OpenApiSpec => {
+  const info = { title: 'schemas', version: '1' };
+  const components = { schemas };
+  const spec: OpenApiSpec = { openapi, info, paths: {}, components };
+
+  return spec;
 };

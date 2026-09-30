@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { firstBranch, pickBranch, referencedNames, resolveSchema } from './schema-resolve.util.ts';
 import type { SpecSchema, SpecSchemas } from '../common/schema.type.ts';
+import { countedSchemas, diamondSchemas } from '../test/utils/diamond-schemas.spec.util.ts';
 
 const TEXT: SpecSchema = { type: 'string' };
 const COUNT: SpecSchema = { type: 'integer' };
@@ -17,9 +18,17 @@ const CUSTOMER_EXTRA: SpecSchema = { type: 'object', required: ['email', 'name']
 const CUSTOMER: SpecSchema = { description: 'buyer', allOf: [PARTY_REF, true, CUSTOMER_EXTRA] };
 const SUPPLIER_PROPERTIES = { supplierId: TEXT, region: TEXT };
 const SUPPLIER: SpecSchema = { type: 'object', required: ['supplierId'], properties: SUPPLIER_PROPERTIES };
+const CYCLE_A_REF: SpecSchema = { $ref: '#/components/schemas/cycleA' };
+const CYCLE_B_REF: SpecSchema = { $ref: '#/components/schemas/cycleB' };
 const LOOP_A: SpecSchema = { $ref: '#/components/schemas/loopB' };
 const LOOP_B: SpecSchema = { $ref: '#/components/schemas/loopA' };
+const PARTY_NAME_REF: SpecSchema = { $ref: '#/components/schemas/party/properties/name' };
+const ANCHOR_REF: SpecSchema = { $ref: '#pet' };
+const LOOSE_REF: SpecSchema = { $ref: '#nowhere' };
+const ANCHOR_FIELDS = { $anchor: 'pet', type: 'object' } as const;
+const ANCHORED: SpecSchema = ANCHOR_FIELDS;
 const SCHEMAS: SpecSchemas = {
+  anchored: ANCHORED,
   party: PARTY,
   customer: CUSTOMER,
   supplier: SUPPLIER,
@@ -73,6 +82,40 @@ describe('FEATURE: schema reference and composition resolution', (): void => {
     it('WHEN resolving THEN it fails naming the repeated reference', (): void => {
       expect((): unknown => resolveSchema(LOOP_A, SCHEMAS)).toThrow('circular schema reference "#/components/schemas/loopB"');
     });
+
+    it('WHEN resolving THEN the error is a FixtureError with a fix', (): void => {
+      const expected = { fix: 'break the $ref/allOf cycle through "#/components/schemas/loopB" in the spec' };
+
+      expect((): unknown => resolveSchema(LOOP_A, SCHEMAS)).toThrow(expect.objectContaining(expected));
+    });
+  });
+
+  describe('GIVEN two components that include each other through allOf', (): void => {
+    it('WHEN resolving THEN it fails naming the repeated reference instead of overflowing the stack', (): void => {
+      const cycleA: SpecSchema = { allOf: [CYCLE_B_REF] };
+      const cycleB: SpecSchema = { allOf: [CYCLE_A_REF] };
+      const schemas: SpecSchemas = { cycleA, cycleB };
+
+      expect((): unknown => resolveSchema(cycleA, schemas)).toThrow('circular schema reference "#/components/schemas/cycleB"');
+    });
+  });
+
+  describe('GIVEN allOf diamonds twenty levels deep', (): void => {
+    it('WHEN resolving THEN each component is looked up once', (): void => {
+      const lookups = new Map<string, number>();
+      const schemas = countedSchemas(diamondSchemas(20), lookups);
+      const root = schemas['level0'];
+
+      lookups.clear();
+
+      const resolved = resolveSchema(root ?? {}, schemas);
+
+      const counts = Array.from(lookups.values());
+
+      expect(Object.keys(resolved.properties ?? {})).toStrictEqual(['name']);
+      expect(counts).toHaveLength(20);
+      expect(Math.max(...counts)).toBe(1);
+    });
   });
 
   describe('GIVEN a reference to an unknown component', (): void => {
@@ -80,10 +123,36 @@ describe('FEATURE: schema reference and composition resolution', (): void => {
       expect((): unknown => resolveSchema(GHOST_REF, SCHEMAS)).toThrow('unresolved schema reference "#/components/schemas/ghost"');
     });
 
+    it('WHEN resolving THEN the error is a FixtureError whose fix names the missing component', (): void => {
+      const expected = { fix: 'add components.schemas["ghost"] to the spec, or point the $ref at an existing schema' };
+
+      expect((): unknown => resolveSchema(GHOST_REF, SCHEMAS)).toThrow(expect.objectContaining(expected));
+    });
+
     it('WHEN collecting referenced names THEN the name is listed without expansion', (): void => {
       const names = referencedNames(GHOST_REF, SCHEMAS);
 
       expect(names).toStrictEqual(['ghost']);
+    });
+  });
+
+  describe('GIVEN references a validator resolves beyond component names', (): void => {
+    it('WHEN a pointer goes inside a component THEN resolves to the schema it selects', (): void => {
+      const resolved = resolveSchema(PARTY_NAME_REF, SCHEMAS);
+
+      expect(resolved).toBe(TEXT);
+    });
+
+    it('WHEN an anchor names a component THEN resolves to that component', (): void => {
+      const resolved = resolveSchema(ANCHOR_REF, SCHEMAS);
+
+      expect(resolved).toBe(ANCHORED);
+    });
+
+    it('WHEN an anchor names nothing THEN the reference is returned as it is for the validator', (): void => {
+      const resolved = resolveSchema(LOOSE_REF, SCHEMAS);
+
+      expect(resolved).toStrictEqual(LOOSE_REF);
     });
   });
 

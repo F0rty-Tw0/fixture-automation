@@ -30,3 +30,10 @@ export const missingOnly = (value: unknown, paths: string[]): MissingFill => {
 
   return pathTree(present, isListFill(paths));
 };
+
+/** The `paths` with no value in `value`; `null` counts as a value. */
+export const absentPaths = (value: unknown, paths: string[]): string[] => {
+  const isAbsent = (path: string): boolean => valueAtPath(value, path) === undefined;
+
+  return paths.filter(isAbsent);
+};

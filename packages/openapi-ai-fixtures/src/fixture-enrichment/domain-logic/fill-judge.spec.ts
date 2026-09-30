@@ -19,6 +19,17 @@ const MISSING: MissingFile = { schemaName: 'order', dialect: 'openapi-30', paths
 const LIST_MISSING: MissingFile = { ...MISSING, paths: ['[0].status'] };
 const PATTERNS = missingPatterns(PATHS);
 const FILL_JSON = '{"lines":[null,{"qty":2}]}';
+const NOTE_SCHEMA = { type: 'string' };
+const MIXED_PROPERTIES = { qty: QUANTITY_SCHEMA, note: NOTE_SCHEMA };
+const MIXED_ITEM = { type: 'object', required: ['qty', 'note'], properties: MIXED_PROPERTIES };
+const MIXED_LINES = { type: 'array', items: MIXED_ITEM };
+const MIXED_ORDER_PROPERTIES = { lines: MIXED_LINES };
+const MIXED_PROJECTION = { type: 'object', required: ['lines'], properties: MIXED_ORDER_PROPERTIES };
+const MIXED_PATHS = ['lines[0].qty', 'lines[1].note'];
+const MIXED_MISSING: MissingFile = { ...MISSING, paths: MIXED_PATHS, schema: MIXED_PROJECTION };
+const MIXED_PATTERNS = missingPatterns(MIXED_PATHS);
+const QTY_ONLY_LINES = [{ qty: 2 }];
+const QTY_ONLY_ANSWER = { lines: QTY_ONLY_LINES };
 
 const parsedAs = (value: unknown, alternatives: unknown[]): AgentJson => {
   const parsed: AgentJson = { value, isRecovered: alternatives.length > 0, alternatives };
@@ -96,6 +107,46 @@ describe('FEATURE: judge a pattern answer against the missing projection', (): v
       const problem = await judge.check(answer, parsedAs(answer, []));
 
       expect(problem).toBe('rejected upstream');
+    });
+  });
+
+  describe('GIVEN a quantity missing on the first line and a note on the second', (): void => {
+    it.each<[string, unknown]>([
+      ['a pattern answer', { 'lines[*].qty': [2] }],
+      ['a pattern answer with no note examples', { 'lines[*].qty': [2], 'lines[*].note': [] }],
+      ['a concrete answer', QTY_ONLY_ANSWER]
+    ])('WHEN %s leaves the note out THEN names the path with no value', async (_label: string, answer: unknown): Promise<void> => {
+      const judge = fillJudge(MIXED_MISSING, inProcess(MIXED_MISSING), MIXED_PATTERNS);
+
+      const problem = await judge.check(answer, parsedAs(answer, []));
+
+      expect(problem).toBe('no value for lines[1].note');
+    });
+
+    it('WHEN the chosen value leaves the note out but an alternative has both THEN accepts the alternative trimmed', async (): Promise<void> => {
+      const chosen = { 'lines[*].qty': [2] };
+      const lines = [{ qty: 2, note: 'extra' }, { note: 'n', qty: 9 }];
+      const alternative = { id: 'extra', lines };
+      const judge = fillJudge(MIXED_MISSING, inProcess(MIXED_MISSING), MIXED_PATTERNS);
+
+      const problem = await judge.check(chosen, parsedAs(chosen, [alternative]));
+
+      expect(problem).toBeUndefined();
+      expect(JSON.stringify(judge.accepted())).toBe('{"lines":[{"qty":2},{"note":"n"}]}');
+    });
+  });
+
+  describe('GIVEN seven missing quantities', (): void => {
+    it('WHEN the answer has none of them THEN names the first five and counts the rest', async (): Promise<void> => {
+      const paths = ['lines[0].qty', 'lines[1].qty', 'lines[2].qty', 'lines[3].qty', 'lines[4].qty', 'lines[5].qty', 'lines[6].qty'];
+      const missing: MissingFile = { ...MISSING, paths };
+      const lines: unknown[] = [];
+      const answer = { lines };
+      const judge = fillJudge(missing, inProcess(missing), missingPatterns(paths));
+
+      const problem = await judge.check(answer, parsedAs(answer, []));
+
+      expect(problem).toBe('no value for lines[0].qty, lines[1].qty, lines[2].qty, lines[3].qty, lines[4].qty and 2 more');
     });
   });
 

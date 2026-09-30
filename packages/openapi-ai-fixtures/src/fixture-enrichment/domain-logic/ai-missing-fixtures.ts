@@ -195,7 +195,7 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
     const validate = request.validate ?? inProcessValidator(missing);
     const { accepted, candidates, check } = fillJudge(missing, validate, patterns);
     const input: PatternPromptInput = { fixture, missing: document, patterns, scenario };
-    const agentRequest = patternRequest(input, fixtureJson, options);
+    const agentRequest = patternRequest(input, options);
 
     reportDigestOnly(options);
 

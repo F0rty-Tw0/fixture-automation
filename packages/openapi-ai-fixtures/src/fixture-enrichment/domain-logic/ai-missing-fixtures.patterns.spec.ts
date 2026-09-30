@@ -191,8 +191,8 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
       vi.mocked(runAgent).mockResolvedValue(answer(PATTERN_ANSWER));
     });
 
-    it('WHEN the harness answers THEN the whole fixture is staged as baseline.json', async (): Promise<void> => {
-      const baseline = { path: 'baseline.json', content: JSON.stringify(FIXTURE) };
+    it('WHEN the harness answers THEN the whole fixture is staged as indented JSON in baseline.json', async (): Promise<void> => {
+      const baseline = { path: 'baseline.json', content: JSON.stringify(FIXTURE, null, 2) };
 
       await aiMissingFixture(OPTIONS)('invoice', REQUEST);
 

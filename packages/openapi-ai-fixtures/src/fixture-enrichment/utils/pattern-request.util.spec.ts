@@ -13,7 +13,7 @@ const PROJECTION_PROPERTIES = { customer: CUSTOMER_SCHEMA };
 const PROJECTION = { type: 'object', properties: PROJECTION_PROPERTIES };
 const CUSTOMER = { name: 'Ana' };
 const FIXTURE = { id: 'in_1', customer: CUSTOMER };
-const FIXTURE_JSON = JSON.stringify(FIXTURE);
+const INDENTED_FIXTURE_JSON = JSON.stringify(FIXTURE, null, 2);
 const PATTERNS = missingPatterns(['customer.email']);
 const INPUT: PatternPromptInput = { fixture: FIXTURE, missing: PROJECTION, patterns: PATTERNS, scenario: 'Fill the email.' };
 
@@ -29,14 +29,14 @@ describe('FEATURE: pattern agent request', (): void => {
   describe('GIVEN a tool in file mode', (): void => {
     const options: AiFixtureOptions = { tool: 'claude' };
 
-    it('WHEN the request is built THEN stages the fixture JSON as baseline.json', (): void => {
-      const request = patternRequest(INPUT, FIXTURE_JSON, options);
+    it('WHEN the request is built THEN stages the fixture as indented JSON in baseline.json', (): void => {
+      const request = patternRequest(INPUT, options);
 
-      expect(request.files).toStrictEqual([{ path: 'baseline.json', content: FIXTURE_JSON }]);
+      expect(request.files).toStrictEqual([{ path: 'baseline.json', content: INDENTED_FIXTURE_JSON }]);
     });
 
     it('WHEN the request is built THEN the prompt lists the staged file', (): void => {
-      const request = patternRequest(INPUT, FIXTURE_JSON, options);
+      const request = patternRequest(INPUT, options);
 
       expect(promptKeys(request.prompt)).toContain('files');
     });
@@ -46,13 +46,13 @@ describe('FEATURE: pattern agent request', (): void => {
     const options: AiFixtureOptions = { tool: 'codex' };
 
     it('WHEN the request is built THEN stages nothing', (): void => {
-      const request = patternRequest(INPUT, FIXTURE_JSON, options);
+      const request = patternRequest(INPUT, options);
 
       expect(request).not.toHaveProperty('files');
     });
 
     it('WHEN the request is built THEN the prompt lists no files', (): void => {
-      const request = patternRequest(INPUT, FIXTURE_JSON, options);
+      const request = patternRequest(INPUT, options);
 
       expect(promptKeys(request.prompt)).not.toContain('files');
     });

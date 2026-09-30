@@ -7,8 +7,11 @@ import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.t
 
 const BASELINE_FILE = 'baseline.json';
 
-/** The pattern prompt request; in file mode the whole baseline is staged as `baseline.json` and the prompt names it. */
-export const patternRequest = (input: PatternPromptInput, fixtureJson: string, options: AiFixtureOptions): AgentRequest => {
+/**
+ * The pattern prompt request; in file mode the whole baseline is staged as `baseline.json` and the prompt names it.
+ * The file is indented because agent search tools skip overlong lines and read tools page by line.
+ */
+export const patternRequest = (input: PatternPromptInput, options: AiFixtureOptions): AgentRequest => {
   const isFileMode = readsFiles(options);
 
   if (!isFileMode) {
@@ -20,7 +23,8 @@ export const patternRequest = (input: PatternPromptInput, fixtureJson: string, o
 
   const staged: PatternPromptInput = { ...input, baselineFile: BASELINE_FILE };
   const prompt = patternPrompt(staged);
-  const baseline: AgentFile = { path: BASELINE_FILE, content: fixtureJson };
+  const content = JSON.stringify(input.fixture, null, 2);
+  const baseline: AgentFile = { path: BASELINE_FILE, content };
   const files = [baseline];
   const request: AgentRequest = { prompt, options, files };
 

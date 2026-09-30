@@ -21,6 +21,18 @@ describe('FEATURE: fixture source reader', (): void => {
       expect(parse).toStrictEqual({ kind: 'error', message: 'a.json is not valid JSON.' });
     });
 
+    it('GIVEN a .json file with comments and trailing commas WHEN read THEN reads it as an object literal', async (): Promise<void> => {
+      const text = '{\n  // the invoice\n  "id": "in_1",\n  "lines": [1, 2,],\n}\n';
+
+      await expect(parseFixtureSource(text, 'a.json', false)).resolves.toStrictEqual(read({ id: 'in_1', lines: [1, 2] }));
+    });
+
+    it('GIVEN a .json file that no reader accepts WHEN read THEN keeps the JSON error', async (): Promise<void> => {
+      const parse = await parseFixtureSource('{ "id": ', 'a.json', false);
+
+      expect(parse).toStrictEqual({ kind: 'error', message: 'a.json is not valid JSON.' });
+    });
+
     it('GIVEN a .ts file WHEN read THEN reads its literal', async (): Promise<void> => {
       await expect(parseFixtureSource("export const A = { id: 'x' } as const;", 'a.ts', false)).resolves.toStrictEqual(read({ id: 'x' }));
     });

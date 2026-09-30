@@ -1,6 +1,7 @@
 import type { AiFillProgressEvent, AiPromptResult } from '@fixture-automation/fixture-studio-api/contract';
 
 import { downloadMonitor } from './chrome-ai-download.client.ts';
+import { parseEmbeddedJson } from '../../shared/json/utils/json.util.ts';
 import type { StudioEngineFailure } from '../../shared/studio-engine/common/engine.type.ts';
 import type { AiRunOptions } from '../common/ai-fill.type.ts';
 
@@ -41,12 +42,15 @@ const readAll = async (reader: ReadableStreamDefaultReader<string>, text: string
   return readAll(reader, text + chunk.value, options);
 };
 
+/** The model's JSON, also when it wrapped it in a Markdown fence or prose. */
 const parseAnswer = (text: string): unknown => {
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    throw failure('The on-device model answered with text that is not JSON.', `Run it again, or ${CLI_FALLBACK.toLowerCase()}`, error);
+  const answer = parseEmbeddedJson(text);
+
+  if (answer === undefined) {
+    throw failure('The on-device model answered with text that is not JSON.', `Run it again, or ${CLI_FALLBACK.toLowerCase()}`);
   }
+
+  return answer;
 };
 
 /** Chrome versions without structured output reject `responseConstraint` with one of these. */

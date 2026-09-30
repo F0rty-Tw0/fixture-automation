@@ -8,6 +8,7 @@ import { EditorView } from '@codemirror/view';
 import { classHighlighter } from '@lezer/highlight';
 import { basicSetup } from 'codemirror';
 
+import { highlightExtension } from './code-view-highlight.ts';
 import type { ChangedLines, CodeLanguage } from '../../common/document-view.type.ts';
 
 export const languageExtension = (language: CodeLanguage): Extension => {
@@ -16,7 +17,10 @@ export const languageExtension = (language: CodeLanguage): Extension => {
   return javascript({ typescript: true });
 };
 
-/** A read-only editor labelled for assistive tech; its language sits in `languageSlot` so it can be swapped later. */
+/**
+ * A read-only editor labelled for assistive tech; its language sits in `languageSlot` so it can be swapped later, and
+ * it can show line highlights.
+ */
 export const editorExtensions = (label: string, language: CodeLanguage, languageSlot: Compartment): Extension[] => {
   const attributes = { 'aria-label': label, 'aria-readonly': 'true' };
 
@@ -25,7 +29,8 @@ export const editorExtensions = (label: string, language: CodeLanguage, language
     syntaxHighlighting(classHighlighter),
     EditorState.readOnly.of(true),
     EditorView.contentAttributes.of(attributes),
-    languageSlot.of(languageExtension(language))
+    languageSlot.of(languageExtension(language)),
+    highlightExtension
   ];
 };
 

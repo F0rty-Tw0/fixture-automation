@@ -19,6 +19,7 @@ const FOLD_CASES: FoldCase[] = [
   { step: 'Missing & broken values', summary: 'customer', isOpen: true },
   { step: 'Missing & broken values', summary: 'Broken values', isOpen: true },
   { step: 'Fill with AI', summary: 'Model output', isOpen: true },
+  { step: 'Fill with AI', summary: 'Where each value came from', isOpen: true },
   { step: 'Fill with AI', summary: 'Merged fixture', isOpen: true },
   { step: 'Fill with AI', summary: 'Filled values', isOpen: false }
 ];

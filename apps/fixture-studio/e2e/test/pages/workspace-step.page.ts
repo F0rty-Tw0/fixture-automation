@@ -21,8 +21,12 @@ const activePanel = (page: Page): Locator => {
 /** A format tab is named by its label, then its file name. */
 const formatTabs = (page: Page): Locator => activePanel(page).getByRole('tab');
 
+/** Waits for the switch to land, so the next step reads the new endpoint's panel, not the one it replaces. */
 export const openEndpointTab = async (page: Page, endpointId: string): Promise<void> => {
-  await workspaceRegion(page).getByRole('tab', { name: endpointId, exact: true }).click();
+  const tab = workspaceRegion(page).getByRole('tab', { name: endpointId, exact: true });
+
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
 };
 
 export const openFormatTab = async (page: Page, label: string): Promise<void> => {

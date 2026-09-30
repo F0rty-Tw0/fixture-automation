@@ -1,6 +1,12 @@
 import { expect, test } from './ai-fill.fixture.ts';
 import { expectFillEnabled, expectNotRunning } from './test/pages/ai-fill-form.page.ts';
-import { cancelFill, expectFillError, expectLogLine, fillMissingValues } from './test/pages/ai-fill-panel.page.ts';
+import {
+  cancelFill,
+  expectFillError,
+  expectGeneratedFallback,
+  expectLogLine,
+  fillMissingValues
+} from './test/pages/ai-fill-panel.page.ts';
 import { openInvoiceAiFill } from './test/pages/workbench.page.ts';
 import { NO_RESULT_ERROR_STUB } from './test/stubs/ai-fill-failure.stub.ts';
 import { PROGRESS_EVENT_STUB } from './test/stubs/workbench.stub.ts';
@@ -21,7 +27,10 @@ test.describe('FEATURE: AI fill failures', () => {
 
     await test.step('AND the CLI closes the stream', async (): Promise<void> => cliStream.end());
 
-    await test.step('THEN the notice says the stream ended without a result', async (): Promise<void> =>
+    await test.step('THEN the schema-complete fixture stands in for the fill', async (): Promise<void> =>
+      expectGeneratedFallback(page, 'invoice.json', '"memo": "string"'));
+
+    await test.step('AND the notice says the stream ended without a result', async (): Promise<void> =>
       expectFillError(page, NO_RESULT_ERROR_STUB));
 
     await test.step('AND no fill is running', async (): Promise<void> => expectNotRunning(page));

@@ -6,6 +6,7 @@ import { TestBed } from '@angular/core/testing';
 import type {
   AiFillBody,
   AiFillProgressEvent,
+  AiFillResultEvent,
   AiModelsResult,
   AiPromptBody,
   ApiErrorBody,
@@ -173,7 +174,8 @@ describe('FEATURE: HttpStudioEngine', (): void => {
     });
   });
 
-  it('GIVEN a CLI fill WHEN the stream answers THEN reports progress and resolves the populated values', async (): Promise<void> => {
+  it('GIVEN a CLI fill WHEN the stream answers THEN reports progress and resolves the result', async (): Promise<void> => {
+    const result: AiFillResultEvent = { type: 'result', populated: POPULATED };
     const progress: AiFillProgressEvent[] = [];
     const streamCall: EngineStreamCall = { signal: call.signal, onProgress: (event): number => progress.push(event) };
     const filling = engine.cliFill('spec-1', FILL_BODY, streamCall);
@@ -182,7 +184,7 @@ describe('FEATURE: HttpStudioEngine', (): void => {
 
     request.event({ type: HttpEventType.DownloadProgress, loaded: text.length, partialText: text });
 
-    await expect(filling).resolves.toStrictEqual(POPULATED);
+    await expect(filling).resolves.toStrictEqual(result);
     expect(progress.map((event) => event.text)).toStrictEqual(['started']);
     expect(request.request.reportProgress).toBe(true);
   });

@@ -1,0 +1,20 @@
+@if (warnings().length > 0) {
+  <p class="fallback__text">
+    The AI fill did not finish, so here is your fixture as far as the schema could complete it. Parts of the compare fell back, so
+    some values may still be missing or broken; check the marked lines before you export it.
+  </p>
+  <fs-notice-list [lines]="warnings()" heading="Why the compare fell back" />
+} @else {
+  <p class="fallback__text">
+    The AI fill did not finish, so here is your fixture completed from the schema: every missing value, and every broken value you
+    chose to fix, is the schema's sample. It is ready to export; fill again for realistic values.
+  </p>
+}
+<details class="fallback__section" open>
+  <summary class="fallback__title">Generated from the schema</summary>
+  <fs-document-view
+    [document]="document()"
+    [highlights]="highlights()"
+    [original]="original()"
+    [originalHighlights]="originalHighlights()" />
+</details>

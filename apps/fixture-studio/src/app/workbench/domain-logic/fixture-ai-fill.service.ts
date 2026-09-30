@@ -14,6 +14,7 @@ import type {
 import { FillProgress } from './fill-progress.service.ts';
 import { OnDeviceAi } from './on-device-ai.service.ts';
 import { toApiError } from '../../shared/api-error/utils/api-error.util.ts';
+import { parseJsonOrUndefined } from '../../shared/json/utils/json.util.ts';
 import { CLI_TOOLS } from '../common/ai-fill.const.ts';
 import type { AiFillContext, AiFillForm, AiProviderId, AiRunRequest } from '../common/ai-fill.type.ts';
 import type { DiffRequest } from '../common/comparison.type.ts';
@@ -22,7 +23,6 @@ import { CliModelsStore } from '../data-access/cli-models.store.ts';
 import { CliToolsStore } from '../data-access/cli-tools.store.ts';
 import { ComparisonStore } from '../data-access/comparison.store.ts';
 import { installedChoice, installedTools, uncheckedTool } from '../utils/cli-tools.util.ts';
-import { prettyJson } from '../utils/fixture-source.util.ts';
 
 const optionalText = (text: string): string | undefined => {
   const trimmed = text.trim();
@@ -123,12 +123,6 @@ export class FixtureAiFill {
   public readonly isMerging: Signal<boolean> = this.store.merge.isLoading;
   public readonly mergeError: Signal<ApiErrorBody | undefined> = computed(() => toApiError(this.store.merge.error()));
 
-  public readonly filledJson: Signal<string | undefined> = computed(() => {
-    if (!this.store.run.hasValue()) return undefined;
-
-    return prettyJson(this.store.run.value());
-  });
-
   public readonly mergeResult: Signal<MergeResult | undefined> = this.progress.mergeResult;
 
   /** A fill needs a diff with at least one missing or replaced path, and a settled provider. */
@@ -187,12 +181,13 @@ export class FixtureAiFill {
     if (!this.comparison.diff.hasValue()) return undefined;
 
     const form = this.form();
-    const { baseline, missing } = this.comparison.diff.value();
+    const { baseline, missing, completeJson } = this.comparison.diff.value();
     const context: AiFillContext = {
       specId: compared.specId,
       endpointId: compared.body.endpointId,
       fixture: baseline,
       missing,
+      complete: parseJsonOrUndefined(completeJson),
       scenario: optionalText(form.scenario),
       tool: form.tool,
       model: optionalText(form.model)

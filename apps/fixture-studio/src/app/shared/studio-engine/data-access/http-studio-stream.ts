@@ -1,15 +1,13 @@
 import { HttpEventType } from '@angular/common/http';
 import type { HttpEvent } from '@angular/common/http';
 
-import type { AiFillEvent, AiFillProgressEvent } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillEvent, AiFillProgressEvent, AiFillResultEvent } from '@fixture-automation/fixture-studio-api/contract';
 import { EmptyError, catchError, concatMap, filter, first, firstValueFrom, map, race, takeWhile, tap, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
 
 import { abortOf$, withEngineFailures$ } from './http-studio-call.ts';
 import type { EngineStreamCall, StudioEngineFailure } from '../common/engine.type.ts';
 import { parseFillEvent, splitNdjson } from '../utils/ndjson.util.ts';
-
-type Populated = Record<string, unknown>;
 
 type OutcomeEvent = Exclude<AiFillEvent, AiFillProgressEvent>;
 
@@ -23,10 +21,10 @@ const streamFailure = (message: string, fix: string | undefined): StudioEngineFa
 
 const isOutcome = (event: AiFillEvent): event is OutcomeEvent => event.type !== 'progress';
 
-const populatedOf = (event: OutcomeEvent): Populated => {
+const resultOf = (event: OutcomeEvent): AiFillResultEvent => {
   if (event.type === 'error') throw streamFailure(event.message, event.fix);
 
-  return event.populated;
+  return event;
 };
 
 const noResult = (error: unknown): Observable<never> => {
@@ -75,12 +73,12 @@ const fillEvents$ = (events$: Observable<HttpEvent<string>>): Observable<AiFillE
 };
 
 /** Reads an `ai-fill` NDJSON response: progress goes to `onProgress`, a `result` resolves, an `error` rejects. */
-export const readFillStream = async (events$: Observable<HttpEvent<string>>, call: EngineStreamCall): Promise<Populated> => {
+export const readFillStream = async (events$: Observable<HttpEvent<string>>, call: EngineStreamCall): Promise<AiFillResultEvent> => {
   const reportProgress = (event: AiFillEvent): void => {
     if (event.type === 'progress') call.onProgress(event);
   };
   const outcome$ = fillEvents$(withEngineFailures$(events$)).pipe(tap(reportProgress), filter(isOutcome), first());
-  const populated$ = outcome$.pipe(catchError(noResult), map(populatedOf));
+  const result$ = outcome$.pipe(catchError(noResult), map(resultOf));
 
-  return firstValueFrom(race(populated$, abortOf$(call.signal)));
+  return firstValueFrom(race(result$, abortOf$(call.signal)));
 };

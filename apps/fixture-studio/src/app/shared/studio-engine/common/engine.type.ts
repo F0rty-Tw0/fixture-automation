@@ -1,6 +1,7 @@
 import type {
   AiFillBody,
   AiFillProgressEvent,
+  AiFillResultEvent,
   AiModelsResult,
   AiPromptBody,
   AiPromptResult,
@@ -46,8 +47,8 @@ export type StudioEngine = {
   cliModels(tool: AiTool, call: EngineCall): Promise<AiModelsResult>;
   /** Which CLIs are installed where the engine runs, and whether a mock answers instead of them. */
   cliTools(call: EngineCall): Promise<AiToolsResult>;
-  /** Streams CLI progress through `onProgress` and resolves to the populated missing properties. */
-  cliFill(specId: string, body: AiFillBody, call: EngineStreamCall): Promise<Record<string, unknown>>;
+  /** Streams CLI progress through `onProgress` and resolves to the populated missing properties, with their sources. */
+  cliFill(specId: string, body: AiFillBody, call: EngineStreamCall): Promise<AiFillResultEvent>;
 };
 
 type RecoveryHint = {

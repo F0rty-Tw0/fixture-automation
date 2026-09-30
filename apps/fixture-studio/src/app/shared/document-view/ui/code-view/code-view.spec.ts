@@ -6,8 +6,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CodeView } from './code-view.ts';
 import { rangeRectsMock } from '../../../../test/mocks/browser.mock.ts';
 import { hostOf, requiredElement, textAt } from '../../../../test/utils/fixture-dom.spec.util.ts';
+import type { LineHighlight } from '../../common/document-view.type.ts';
 
 const JSON_DOC = '{\n  "id": "in_1",\n  "total": 1200\n}';
+const FILLED_TOTAL: LineHighlight = { from: 3, to: 3, origin: 'missing', outcome: 'ai', label: 'total · Was missing · Filled by AI' };
+const BROKEN_ID: LineHighlight = { from: 2, to: 2, origin: 'broken', outcome: 'broken', label: 'id · Broken in your fixture' };
 
 const editorOf = (fixture: ComponentFixture<CodeView>): HTMLElement | null => {
   const host = hostOf(fixture);
@@ -149,6 +152,52 @@ describe('FEATURE: CodeView', (): void => {
       expect(hostOf(fixture).querySelector('.cm-mergeView')).toBeNull();
       expect(hostOf(fixture).querySelector('.code-view__map')).toBeNull();
       expect(contentText(fixture)).toContain('"total": 1200');
+    });
+  });
+
+  describe('GIVEN line highlights', (): void => {
+    const highlightedLine = (selector: string): HTMLElement => {
+      const line = hostOf(fixture).querySelector<HTMLElement>(selector);
+
+      if (line === null) throw new Error(`No line matches ${selector}.`);
+
+      return line;
+    };
+
+    beforeEach(async (): Promise<void> => {
+      fixture.componentRef.setInput('highlights', [FILLED_TOTAL]);
+      await fixture.whenStable();
+    });
+
+    it('WHEN rendered THEN marks the value by its outcome and names it in the tooltip', (): void => {
+      const line = highlightedLine('.cm-line.cm-fix-ai');
+
+      expect(line.textContent).toContain('"total": 1200');
+      expect(line.title).toBe('total · Was missing · Filled by AI');
+    });
+
+    it('WHEN rendered THEN puts the origin glyph in the gutter beside it', (): void => {
+      const marker = highlightedLine('.cm-fixMarker');
+
+      expect(marker.textContent).toBe('+A');
+      expect(marker.classList).toContain('cm-fix-ai');
+    });
+
+    it('WHEN a new document arrives without highlights THEN drops the old ones', async (): Promise<void> => {
+      fixture.componentRef.setInput('doc', '{\n  "id": "in_2",\n  "total": 5\n}');
+      fixture.componentRef.setInput('highlights', []);
+      await fixture.whenStable();
+
+      expect(hostOf(fixture).querySelector('.cm-fix')).toBeNull();
+    });
+
+    it('WHEN shown beside an original with its own highlights THEN marks both sides', async (): Promise<void> => {
+      fixture.componentRef.setInput('original', '{\n  "id": "in_1"\n}');
+      fixture.componentRef.setInput('originalHighlights', [BROKEN_ID]);
+      await fixture.whenStable();
+
+      expect(highlightedLine('.cm-merge-a .cm-line.cm-fix-broken').textContent).toContain('"id": "in_1"');
+      expect(highlightedLine('.cm-merge-b .cm-line.cm-fix-ai').textContent).toContain('"total": 1200');
     });
   });
 

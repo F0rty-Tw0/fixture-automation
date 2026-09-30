@@ -12,6 +12,7 @@ const CONTEXT: AiFillContext = {
   endpointId: 'GET /v1/invoices',
   fixture: FIXTURE,
   missing: MISSING_FILE_STUB,
+  complete: undefined,
   scenario: 'overdue',
   tool: 'codex',
   model: 'gpt-5'

@@ -232,3 +232,36 @@ fs-code-view .cm-mergeView .cm-editor.cm-merge-b .cm-changedText {
 fs-code-view .cm-mergeView .cm-editor.cm-merge-b .cm-changedLineGutter {
   background: var(--fs-verb-get);
 }
+
+// Fix highlights (after the diff colors, which they replace on the lines they mark): a tint and a left rule in the
+// outcome's color, and the origin glyph (+ was missing, ! was broken) in its own gutter.
+fs-code-view .cm-fix-broken {
+  --fs-fix: var(--fs-fix-broken);
+}
+
+fs-code-view .cm-fix-ai {
+  --fs-fix: var(--fs-fix-ai);
+}
+
+fs-code-view .cm-fix-sampler {
+  --fs-fix: var(--fs-fix-sampler);
+}
+
+fs-code-view .cm-fix-unfilled {
+  --fs-fix: var(--fs-fix-unfilled);
+}
+
+fs-code-view .cm-editor .cm-content .cm-line.cm-fix {
+  background: color-mix(in oklch, var(--fs-fix) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--fs-fix);
+}
+
+fs-code-view .cm-editor .cm-fixGutter .cm-gutterElement {
+  padding: 0 var(--fs-space-1);
+}
+
+fs-code-view .cm-editor .cm-fixMarker {
+  font-weight: 700;
+  color: var(--fs-fix);
+  cursor: help;
+}

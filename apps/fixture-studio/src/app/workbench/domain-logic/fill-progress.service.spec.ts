@@ -7,7 +7,7 @@ import { FillProgress } from './fill-progress.service.ts';
 import { provideFixtureWorkbench } from './fixture-workbench.provider.ts';
 import type { StudioEngine } from '../../shared/studio-engine/common/engine.type.ts';
 import { STUDIO_ENGINE } from '../../shared/studio-engine/common/studio-engine.token.ts';
-import { MERGE_RESULT_STUB, MISSING_FILE_STUB } from '../../test/stubs/studio.stub.ts';
+import { FILL_RESULT_STUB, MERGE_RESULT_STUB, MISSING_FILE_STUB } from '../../test/stubs/studio.stub.ts';
 import { settle } from '../../test/utils/studio-http.spec.util.ts';
 import type { AiFillContext, AiRunRequest } from '../common/ai-fill.type.ts';
 import { AiFillStore } from '../data-access/ai-fill.store.ts';
@@ -19,6 +19,7 @@ const CONTEXT: AiFillContext = {
   endpointId: 'GET /v1/invoices',
   fixture: FIXTURE,
   missing: MISSING_FILE_STUB,
+  complete: undefined,
   scenario: undefined,
   tool: 'claude',
   model: undefined
@@ -46,7 +47,7 @@ describe('FEATURE: fill progress', (): void => {
   });
 
   it('GIVEN a run WHEN its answer is merged THEN exposes the merge', async (): Promise<void> => {
-    vi.mocked(engine.cliFill).mockResolvedValue({ status: 'open' });
+    vi.mocked(engine.cliFill).mockResolvedValue(FILL_RESULT_STUB);
     vi.mocked(engine.merge).mockResolvedValue(MERGE_RESULT_STUB);
 
     TestBed.inject(AiFillStore).start(CLI_RUN);

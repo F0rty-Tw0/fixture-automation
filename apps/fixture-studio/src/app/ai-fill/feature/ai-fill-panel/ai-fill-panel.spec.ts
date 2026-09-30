@@ -32,6 +32,7 @@ import { hostOf, requiredElement, textAt, textsAt } from '../../../test/utils/fi
 import { answerSpecLoad, configureStudioHttp, settle } from '../../../test/utils/studio-http.spec.util.ts';
 import { FixtureComparison } from '../../../workbench/domain-logic/fixture-comparison.service.ts';
 import { provideFixtureWorkbench } from '../../../workbench/domain-logic/fixture-workbench.provider.ts';
+import { answerPanel, mergeRequest, runButton } from '../../test/utils/ai-fill-panel.spec.util.ts';
 
 const STUDIO_ENGINE = provideHttpStudioEngine();
 const STREAM = '{"type":"progress","stream":"stdout","text":"thinking"}\n{"type":"result","populated":{"status":"open"}}\n';
@@ -45,24 +46,6 @@ const MOCK_TOOLS: AiToolsResult = { ...CLI_TOOLS_RESULT_STUB, mock: true };
 const DISCOVERY_ERROR: ApiErrorBody = { message: 'claude model discovery failed: not logged in', fix: 'log in' };
 const BAD_GATEWAY = { status: 502, statusText: 'Bad Gateway' };
 
-const runButton = (fixture: ComponentFixture<AiFillPanel>): HTMLButtonElement => {
-  const button = requiredElement(fixture, '.fill__actions button');
-
-  if (!(button instanceof HTMLButtonElement)) throw new Error('The run button is missing.');
-
-  return button;
-};
-
-/** The panel asks once its resources run; retry until the request is sent, then answer it. */
-const answerPanel = async (http: HttpTestingController, url: string, body: object): Promise<void> => {
-  const answer = (): void => {
-    TestBed.tick();
-    http.expectOne(url).flush(body);
-  };
-
-  await vi.waitFor(answer);
-};
-
 const failDiscovery = async (http: HttpTestingController): Promise<void> => {
   const fail = (): void => {
     TestBed.tick();
@@ -70,17 +53,6 @@ const failDiscovery = async (http: HttpTestingController): Promise<void> => {
   };
 
   await vi.waitFor(fail);
-};
-
-/** The merge starts once the stream's result settles; retry until it is sent. */
-const mergeRequest = async (http: HttpTestingController): Promise<TestRequest> => {
-  const expectMerge = (): TestRequest => {
-    TestBed.tick();
-
-    return http.expectOne('/api/specs/spec-1/merge');
-  };
-
-  return vi.waitFor(expectMerge);
 };
 
 describe('FEATURE: AiFillPanel', (): void => {
@@ -169,7 +141,7 @@ describe('FEATURE: AiFillPanel', (): void => {
         fixture.detectChanges();
 
         expect(textsAt(fixture, '.log__line')).toStrictEqual(['thinking']);
-        expect(textAt(fixture, '.fill__badge')).toBe('Valid against the schema · 1 values filled');
+        expect(textAt(fixture, '.merge__badge')).toBe('Valid against the schema · 1 values filled');
       });
 
       it('WHEN the merge breaks the schema THEN lists the errors', async (): Promise<void> => {
@@ -182,8 +154,8 @@ describe('FEATURE: AiFillPanel', (): void => {
         await settle();
         fixture.detectChanges();
 
-        expect(textAt(fixture, '.fill__badge')).toBe('1 schema errors');
-        expect(textsAt(fixture, '.fill__error')).toStrictEqual(['status: must be one of draft, open']);
+        expect(textAt(fixture, '.merge__badge')).toBe('1 schema errors');
+        expect(textsAt(fixture, '.merge__error')).toStrictEqual(['status: must be one of draft, open']);
       });
     });
   });

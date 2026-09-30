@@ -7,20 +7,21 @@ import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 
-import type { EnvelopeResult } from '@fixture-automation/fixture-studio-api/contract';
+import type { DiffResult, EnvelopeResult } from '@fixture-automation/fixture-studio-api/contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComparePanel } from './compare-panel.ts';
 import { provideHttpStudioEngine } from '../../../shared/studio-engine/domain-logic/studio-engine.provider.ts';
 import { SpecBrowser } from '../../../spec/domain-logic/spec-browser.service.ts';
 import { DIFF_RESULT_STUB, FIXTURE_VIEW_STUB, LOADED_SPEC_STUB } from '../../../test/stubs/studio.stub.ts';
-import { hostOf, requiredElement, textAt } from '../../../test/utils/fixture-dom.spec.util.ts';
+import { hostOf, requiredElement, textAt, textsAt } from '../../../test/utils/fixture-dom.spec.util.ts';
 import { answerSpecLoad, configureStudioHttp, settle } from '../../../test/utils/studio-http.spec.util.ts';
 import { provideFixtureWorkbench } from '../../../workbench/domain-logic/fixture-workbench.provider.ts';
 
 const STUDIO_ENGINE = provideHttpStudioEngine();
 const DETECTED_DATA: EnvelopeResult = { candidates: ['data', 'meta'], detected: 'data' };
 const NO_ENVELOPE: EnvelopeResult = { candidates: [], detected: undefined };
+const WARNED_DIFF: DiffResult = { ...DIFF_RESULT_STUB, warnings: ['The broken-value check timed out; no value was replaced.'] };
 
 const dropFile = (fixture: ComponentFixture<ComparePanel>, file: File): void => {
   const drop = new Event('drop', { cancelable: true });
@@ -147,6 +148,14 @@ describe('FEATURE: ComparePanel', (): void => {
         expect(await compare.getAppearance()).toBe('outlined');
       });
 
+      it('THEN the legend names the sampler fill the diff highlights', (): void => {
+        expect(textsAt(fixture, '.document__legend-item')).toStrictEqual(['S Generated from the schema', '+ Was missing']);
+      });
+
+      it('THEN shows no warnings', (): void => {
+        expect(hostOf(fixture).querySelector('fs-notice-list')).toBeNull();
+      });
+
       it('THEN choosing no envelope compares again with the fixture as the payload', async (): Promise<void> => {
         const select = await loader.getHarness(MatSelectHarness);
 
@@ -156,6 +165,14 @@ describe('FEATURE: ComparePanel', (): void => {
 
         expect(sent).toMatchObject({ objectShape: undefined });
       });
+    });
+
+    it('WHEN the diff fell back in parts THEN lists the warnings and still shows the diff', async (): Promise<void> => {
+      await answer(http, fixture, ENVELOPE_URL, NO_ENVELOPE);
+      await answer(http, fixture, DIFF_URL, WARNED_DIFF);
+
+      expect(textsAt(fixture, '.notices__lines li')).toStrictEqual(WARNED_DIFF.warnings);
+      expect(hostOf(fixture).querySelector('.compare__diff fs-document-view')).not.toBeNull();
     });
 
     it('WHEN the API finds no envelope THEN compares the fixture as the payload', async (): Promise<void> => {

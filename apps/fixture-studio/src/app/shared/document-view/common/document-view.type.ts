@@ -1,4 +1,4 @@
-import type { FixtureFormat } from '@fixture-automation/fixture-studio-api/contract';
+import type { FillSource, FixtureFormat } from '@fixture-automation/fixture-studio-api/contract';
 
 export type CodeLanguage = 'json' | 'typescript';
 
@@ -22,4 +22,26 @@ export type ChangeMark = {
   readonly top: number;
   readonly height: number;
   readonly line: number;
+};
+
+/** How a highlighted value ends up: broken in the existing fixture, or filled by AI, by the schema sampler, or not at all. */
+export type FixOutcome = FillSource | 'broken';
+
+/** What was wrong with a highlighted value before the fix. */
+export type FixOrigin = 'broken' | 'missing';
+
+/** A fixture path to highlight, in the diff's dotted form or as a JSON pointer. */
+export type PathHighlight = {
+  readonly path: string;
+  readonly origin: FixOrigin;
+  readonly outcome: FixOutcome;
+};
+
+/** The lines a highlighted value covers, by 1-based line numbers, and the text its tooltip reads. */
+export type LineHighlight = {
+  readonly from: number;
+  readonly to: number;
+  readonly origin: FixOrigin;
+  readonly outcome: FixOutcome;
+  readonly label: string;
 };

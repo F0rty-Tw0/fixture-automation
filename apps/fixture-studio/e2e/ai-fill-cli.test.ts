@@ -10,6 +10,8 @@ import {
   expectChosenCli,
   expectCliNotInstalled,
   expectFillError,
+  expectFillNotes,
+  expectFilledSource,
   expectLogCleared,
   expectLogLine,
   expectMergedCode,
@@ -37,7 +39,9 @@ import {
   PARTIAL_INVOICE_STUB,
   POPULATED_STUB,
   PROGRESS_EVENT_STUB,
-  RESULT_EVENT_STUB
+  RESULT_EVENT_STUB,
+  SALVAGED_RESULT_EVENT_STUB,
+  SALVAGE_NOTE_STUB
 } from './test/stubs/workbench.stub.ts';
 import { ndjsonOf } from './test/utils/ndjson.spec.util.ts';
 import { apiRoute } from './test/utils/route.spec.util.ts';
@@ -89,6 +93,26 @@ test.describe('FEATURE: AI fill with the local CLI', () => {
       expectMergedCode(page, 'invoice.json', '"memo": "Net 30"'));
 
     await test.step('AND the populated values were sent to merge', (): void => expect(merge.bodies).toEqual([SENT_MERGE]));
+  });
+
+  test('GIVEN a CLI result the API salvaged, its notes and each value source are shown', async ({ page }): Promise<void> => {
+    const fill = aiFillMock([PROGRESS_EVENT_STUB, SALVAGED_RESULT_EVENT_STUB]);
+    const routes = [apiRoute(AI_FILL_ROUTE, fill), apiRoute(MERGE_ROUTE, mergeMock())];
+    const options: AiFillOptions = { routes };
+
+    await test.step('WHEN the AI fill step of the compared invoice is opened', async (): Promise<void> =>
+      openInvoiceAiFill(page, options));
+
+    await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+
+    await test.step('THEN the merge is valid', async (): Promise<void> => expectValidMerge(page, FILLED_COUNT));
+
+    await test.step('AND the salvage note is shown', async (): Promise<void> => expectFillNotes(page, [SALVAGE_NOTE_STUB]));
+
+    await test.step('AND the memo is credited to AI', async (): Promise<void> => expectFilledSource(page, 'memo', 'Filled by AI'));
+
+    await test.step('AND the customer id is credited to the schema sampler', async (): Promise<void> =>
+      expectFilledSource(page, 'customer.id', 'Generated from the schema'));
   });
 
   test('GIVEN a line split across stream chunks, it reaches the log whole', async ({ cliStream, page }): Promise<void> => {

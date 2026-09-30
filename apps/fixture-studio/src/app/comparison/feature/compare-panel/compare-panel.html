@@ -65,9 +65,18 @@
   <fs-api-error-notice [error]="error" />
 }
 
+@if (warnings().length > 0) {
+  <fs-notice-list [lines]="warnings()" heading="Parts of the compare fell back; the result below is still complete" />
+}
+
 @if (completeDocument(); as document) {
   <details class="compare__diff" open>
     <summary class="compare__diff-summary">Your fixture beside the schema-complete one</summary>
-    <fs-document-view [document]="document" [original]="comparison.existing()?.pretty" class="compare__diff-view" />
+    <fs-document-view
+      [document]="document"
+      [highlights]="highlights.complete()"
+      [original]="comparison.existing()?.pretty"
+      [originalHighlights]="highlights.existing()"
+      class="compare__diff-view" />
   </details>
 }

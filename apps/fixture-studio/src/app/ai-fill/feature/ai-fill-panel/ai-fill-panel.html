@@ -118,38 +118,33 @@
   </details>
 }
 
-@if (fill.runError(); as error) {
-  <fs-api-error-notice [error]="error" />
-}
-
-@if (fill.mergeError(); as error) {
-  <fs-api-error-notice [error]="error" />
+@if (outcome.notes().length > 0) {
+  <fs-notice-list [lines]="outcome.notes()" heading="Notes from the fill" />
 }
 
 @if (fill.mergeResult(); as merge) {
-  <section aria-label="Merge result" class="fill__result">
-    @if (merge.valid) {
-      <p class="fill__badge fill__badge--valid">Valid against the schema · {{ merge.filled.length }} values filled</p>
-    } @else {
-      <p class="fill__badge fill__badge--invalid">{{ merge.errors.length }} schema errors</p>
-      <ul aria-label="Schema errors" class="fill__errors">
-        @for (error of merge.errors; track $index) {
-          <li class="fill__error">{{ error }}</li>
-        }
-      </ul>
-    }
+  <fs-merge-result
+    [fileName]="`${view().schemaName}.json`"
+    [filledPaths]="outcome.filledPaths()"
+    [highlights]="highlights.merged()"
+    [merge]="merge"
+    [original]="existingPretty()"
+    [originalHighlights]="highlights.existing()" />
+} @else if (fallbackDocument(); as document) {
+  <fs-generated-fallback
+    [document]="document"
+    [highlights]="highlights.complete()"
+    [original]="existingPretty()"
+    [originalHighlights]="highlights.existing()"
+    [warnings]="diffWarnings()" />
+}
+@for (error of errors(); track $index) {
+  <fs-api-error-notice [error]="error" />
+}
 
-    @if (mergedDocument(); as document) {
-      <details class="fill__section" open>
-        <summary class="fill__section-title">Merged fixture</summary>
-        <fs-document-view [document]="document" [original]="existingPretty()" />
-      </details>
-    }
-    @if (filledDocument(); as document) {
-      <details class="fill__section">
-        <summary class="fill__section-title">Filled values</summary>
-        <fs-document-view [document]="document" />
-      </details>
-    }
-  </section>
+@if (filledDocument(); as document) {
+  <details class="fill__section">
+    <summary class="fill__section-title">Filled values</summary>
+    <fs-document-view [document]="document" />
+  </details>
 }

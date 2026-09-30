@@ -58,11 +58,11 @@ describe('FEATURE: MissingValuesPanel', (): void => {
       expect(textsAt(fixture, '.broken__path')).toStrictEqual(['memo']);
     });
 
-    it('WHEN rendered THEN offers to fix the broken values, chosen by default, and says why AI must do it', async (): Promise<void> => {
+    it('WHEN rendered THEN offers to fix the broken values, chosen by default, and says the sampler already fixes them', async (): Promise<void> => {
       const choice = await loader.getHarness(MatRadioGroupHarness);
 
       expect(await choice.getCheckedValue()).toBe('fix');
-      expect(textAt(fixture, '.missing-step__note')).toContain('only AI fill can put realistic values here');
+      expect(textAt(fixture, '.missing-step__note')).toContain('Fixing needs no AI');
     });
 
     it('WHEN broken values are kept THEN diffs again without refilling them', (): void => {

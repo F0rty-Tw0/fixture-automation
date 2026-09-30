@@ -1,10 +1,11 @@
 import { test } from './mocked-api.fixture.ts';
 import { PARTIAL_INVOICE_JSON_PATH } from './test/common/fixture-file.const.ts';
-import { GENERATE_ROUTE, SPECS_ROUTE } from './test/common/playwright.const.ts';
+import { AI_FILL_ROUTE, DIFF_ROUTE, GENERATE_ROUTE, MERGE_ROUTE, SPECS_ROUTE } from './test/common/playwright.const.ts';
 import type { StudioOptions } from './test/common/playwright.type.ts';
 import { SCREENSHOT_VARIANTS } from './test/common/screenshot.const.ts';
 import { generateMock, specsMock } from './test/mocks/studio-api.mock.ts';
-import { expectValidMerge, fillMissingValues } from './test/pages/ai-fill-panel.page.ts';
+import { aiFillMock, diffMock, mergeMock } from './test/mocks/workbench.mock.ts';
+import { expectGeneratedFallback, expectSchemaErrors, expectValidMerge, fillMissingValues } from './test/pages/ai-fill-panel.page.ts';
 import { pickExistingFixture } from './test/pages/compare-panel.page.ts';
 import { generate, selectAllVisible } from './test/pages/endpoints-step.page.ts';
 import { continueToAiFill, expectMissingPaths } from './test/pages/missing-values-step.page.ts';
@@ -13,7 +14,12 @@ import { SPEC_URL } from './test/pages/studio.page.ts';
 import { openInvoiceCompare, workbenchRoutes } from './test/pages/workbench.page.ts';
 import { expectCode, expectEndpointTabs, openFormatTab } from './test/pages/workspace-step.page.ts';
 import { GENERATE_RESULT_STUB, LOADED_SPEC_STUB } from './test/stubs/studio-api.stub.ts';
-import { DIFF_RESULT_STUB } from './test/stubs/workbench.stub.ts';
+import {
+  BROKEN_DIFF_RESULT_STUB,
+  DIFF_RESULT_STUB,
+  ERROR_EVENT_STUB,
+  PARENT_REQUIRED_MERGE_RESULT_STUB
+} from './test/stubs/workbench.stub.ts';
 import { apiRoute } from './test/utils/route.spec.util.ts';
 import { capture } from './test/utils/screenshot.spec.util.ts';
 
@@ -92,6 +98,58 @@ test.describe('FEATURE: screenshots of every step', () => {
 
       await test.step('AND the merged fixture is captured', async (): Promise<void> =>
         capture(page, variant.name, '10-ai-fill-merged'));
+    });
+
+    test(`GIVEN a broken invoice whose AI fill fails in ${variant.name}, the generated fallback is captured`, async ({
+      page
+    }): Promise<void> => {
+      const failingRoutes = [
+        apiRoute(DIFF_ROUTE, diffMock(BROKEN_DIFF_RESULT_STUB)),
+        apiRoute(AI_FILL_ROUTE, aiFillMock([ERROR_EVENT_STUB]))
+      ];
+      const happyRoutes = workbenchRoutes();
+      const routes = [...happyRoutes, ...failingRoutes];
+      const options: StudioOptions = { colorScheme, routes, viewport };
+
+      await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, options));
+
+      await test.step('AND the partial invoice JSON is picked', async (): Promise<void> =>
+        pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+
+      await test.step('AND the broken compare is captured', async (): Promise<void> =>
+        capture(page, variant.name, '11-compare-broken'));
+
+      await test.step('AND the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
+
+      await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+
+      await test.step('THEN the schema-complete fixture stands in', async (): Promise<void> =>
+        expectGeneratedFallback(page, 'invoice.json', '"memo": "string"'));
+
+      await test.step('AND the fallback is captured', async (): Promise<void> => capture(page, variant.name, '12-ai-fill-fallback'));
+    });
+
+    test(`GIVEN a merge whose parent object misses a property in ${variant.name}, its filled children keep their marks`, async ({
+      page
+    }): Promise<void> => {
+      const invalidMerge = apiRoute(MERGE_ROUTE, mergeMock(PARENT_REQUIRED_MERGE_RESULT_STUB));
+      const happyRoutes = workbenchRoutes();
+      const routes = [...happyRoutes, invalidMerge];
+      const options: StudioOptions = { colorScheme, routes, viewport };
+
+      await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, options));
+
+      await test.step('AND the partial invoice JSON is picked', async (): Promise<void> =>
+        pickExistingFixture(page, PARTIAL_INVOICE_JSON_PATH));
+
+      await test.step('AND the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
+
+      await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+
+      await test.step('THEN the parent error is listed', async (): Promise<void> =>
+        expectSchemaErrors(page, PARENT_REQUIRED_MERGE_RESULT_STUB.errors));
+
+      await test.step('AND the merge is captured', async (): Promise<void> => capture(page, variant.name, '13-ai-fill-parent-error'));
     });
   }
 });

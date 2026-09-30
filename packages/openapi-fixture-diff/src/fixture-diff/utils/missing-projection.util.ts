@@ -1,6 +1,7 @@
+import { parsePath } from '@fixture-automation/shared';
+import type { PathToken } from '@fixture-automation/shared';
+
 import type { SpecSchema } from '../../schema/common/schema.type.ts';
-import type { PathToken } from '../../shared/fixture-path/common/path.type.ts';
-import { parsePath } from '../../shared/fixture-path/utils/drop-path.util.ts';
 import type { MissingEntry } from '../common/missing.type.ts';
 import type { ProjectionNode } from '../common/projection.type.ts';
 

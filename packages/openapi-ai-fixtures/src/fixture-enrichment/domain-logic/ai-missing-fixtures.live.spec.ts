@@ -13,6 +13,7 @@ import { runAgent } from '../../agent-process/data-access/agent-process.client.t
 import type { AiMissingRequest, MissingFile } from '../../missing-values/common/missing.type.ts';
 import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
+import { scratchFilePaths } from '../../test/utils/scratch-listing.spec.util.ts';
 
 type AgentProcessModule = {
   readonly runAgent: (command: AgentCommand, options: AiFixtureOptions) => Promise<string>;
@@ -22,7 +23,7 @@ type AgentLifecycleModule = {
   readonly runAgentProcess: (process: AgentProcess, options: AiFixtureOptions) => Promise<string>;
 };
 
-/** Every attempt's scratch directory listing, taken after the agent exits and before `runAgent` removes it. */
+/** Every attempt's scratch directory files, taken after the agent exits and before `runAgent` removes it. */
 const scratchListings = vi.hoisted((): string[][] => []);
 
 vi.mock('../../agent-process/data-access/agent-process.client.ts', async (importOriginal): Promise<AgentProcessModule> => {
@@ -41,9 +42,10 @@ vi.mock('../../agent-process/data-access/agent-process-lifecycle.client.ts', asy
 
       return output;
     } finally {
-      const entries = await readdir(process.scratchDirectory, { recursive: true });
+      const entries = await readdir(process.scratchDirectory, { recursive: true, withFileTypes: true });
+      const files = scratchFilePaths(process.scratchDirectory, entries);
 
-      scratchListings.push(entries.toSorted());
+      scratchListings.push(files);
     }
   };
   const recorded: AgentLifecycleModule = { runAgentProcess: listed };

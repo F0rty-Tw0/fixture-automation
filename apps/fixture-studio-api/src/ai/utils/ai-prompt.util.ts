@@ -1,8 +1,13 @@
-import { MISSING_SCENARIO, missingDocument, missingPrompt, missingPromptBytes } from '@fixture-automation/openapi-ai-fixtures';
+import {
+  MISSING_SCENARIO,
+  baselineContext,
+  missingDocument,
+  missingPrompt,
+  missingPromptBytes
+} from '@fixture-automation/openapi-ai-fixtures';
 import type { MissingPromptInput } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-import { baselineContext } from './baseline-context.util.ts';
 import { missingChunk } from './missing-chunk.util.ts';
 import { responseSchema } from './response-schema.util.ts';
 import type { AiPromptResult, MissingFile } from '../../contract/common/studio-api.type.ts';

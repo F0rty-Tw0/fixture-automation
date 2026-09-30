@@ -1,9 +1,8 @@
-import { AiFillRejectedError } from '@fixture-automation/openapi-ai-fixtures';
+import { AiFillRejectedError, baselineContext } from '@fixture-automation/openapi-ai-fixtures';
 import type { AiFixtureProgress, AiMissingRequest } from '@fixture-automation/openapi-ai-fixtures';
 
 import type { AiTool, MissingFile } from '../../contract/common/studio-api.type.ts';
 import type { ChunkedFillRun, FillChunk, FillOutcome } from '../common/ai.type.ts';
-import { baselineContext } from '../utils/baseline-context.util.ts';
 import { fillChunks } from '../utils/fill-chunks.util.ts';
 import { aiOutcome, failureText, mergedOutcome, unfilledOutcome } from '../utils/fill-outcome.util.ts';
 import { missingChunk } from '../utils/missing-chunk.util.ts';

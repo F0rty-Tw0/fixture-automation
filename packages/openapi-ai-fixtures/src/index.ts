@@ -12,6 +12,8 @@ export { missingDocument } from './missing-values/utils/missing-document.util.ts
 
 export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
 
+export { baselineContext } from './missing-patterns/utils/baseline-context.util.ts';
+
 export { missingCheck } from './missing-values/utils/missing-check.util.ts';
 
 export { isListFill } from './missing-values/utils/missing-fill.util.ts';

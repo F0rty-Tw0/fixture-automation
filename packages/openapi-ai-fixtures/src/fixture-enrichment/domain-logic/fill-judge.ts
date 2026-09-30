@@ -4,13 +4,15 @@ import type { AgentJson } from '../../agent-provider/common/agent-provider.type.
 import type { MissingPattern } from '../../missing-patterns/common/missing-pattern.type.ts';
 import { expandedFill } from '../../missing-patterns/utils/pattern-expand.util.ts';
 import type { MissingFile, MissingValidator } from '../../missing-values/common/missing.type.ts';
-import { isListFill, isMissingFill, missingOnly } from '../../missing-values/utils/missing-fill.util.ts';
+import { absentPaths, isListFill, isMissingFill, missingOnly } from '../../missing-values/utils/missing-fill.util.ts';
 import { violatingErrors } from '../../missing-values/utils/violation-paths.util.ts';
 import { validationDetails } from '../../schema/utils/validation-message.util.ts';
 import type { FillJudge } from '../common/agent-fixture.type.ts';
 
 const NOT_OBJECT = 'the fill must be one JSON object';
 const NOT_LIST = 'the fill must be one JSON array';
+/** How many absent paths a problem names before it only counts the rest. */
+const LISTED_ABSENT = 5;
 
 const isArrayValue = (value: unknown): boolean => Array.isArray(value);
 
@@ -21,6 +23,16 @@ export const wrongShapeOf = (missing: MissingFile): string => {
   const isList = isListFill(missing.paths);
 
   return isList ? NOT_LIST : NOT_OBJECT;
+};
+
+/** Why an answer is incomplete, naming the first few missing paths it leaves without a value. */
+const absentProblem = (absent: string[]): string => {
+  const listed = absent.slice(0, LISTED_ABSENT).join(', ');
+  const rest = absent.length - LISTED_ABSENT;
+
+  if (rest <= 0) return `no value for ${listed}`;
+
+  return `no value for ${listed} and ${rest} more`;
 };
 
 /** The alternatives worth trying, best first; a list fill tries the lists among them before anything else. */
@@ -72,6 +84,10 @@ export const fillJudge = (missing: MissingFile, validate: MissingValidator, patt
     if (isUnexplained) return verdict.details || wrongShape;
 
     if (!isShaped) return wrongShape;
+
+    const absent = absentPaths(value, missing.paths);
+
+    if (absent.length > 0) return absentProblem(absent);
 
     return undefined;
   };

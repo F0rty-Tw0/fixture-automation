@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isListFill, isMissingFill, missingOnly } from './missing-fill.util.ts';
+import { absentPaths, isListFill, isMissingFill, missingOnly } from './missing-fill.util.ts';
 
 describe('FEATURE: missing fill shape', (): void => {
   describe('GIVEN missing paths', (): void => {
@@ -49,6 +49,17 @@ describe('FEATURE: missing fill shape', (): void => {
       const fill = missingOnly([{ status: 'open', id: 'a' }], ['[0].status']);
 
       expect(fill).toStrictEqual([{ status: 'open' }]);
+    });
+  });
+
+  describe('GIVEN an answer checked for every missing path', (): void => {
+    it('WHEN a path has no value THEN lists it, keeping null as a value', (): void => {
+      const lines = [{ qty: null }];
+      const answer = { lines };
+
+      const absent = absentPaths(answer, ['lines[0].qty', 'lines[1].note', 'id']);
+
+      expect(absent).toStrictEqual(['lines[1].note', 'id']);
     });
   });
 });

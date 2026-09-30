@@ -10,7 +10,7 @@ export { parseMissingFile } from './missing-values/utils/missing-file.util.ts';
 
 export { missingDocument } from './missing-values/utils/missing-document.util.ts';
 
-export { missingPrompt, missingPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
+export { missingPrompt, missingPromptBytes, patternPromptBytes } from './fixture-enrichment/utils/fixture-prompt.util.ts';
 
 export { missingPatterns, pathPattern } from './missing-patterns/utils/path-pattern.util.ts';
 

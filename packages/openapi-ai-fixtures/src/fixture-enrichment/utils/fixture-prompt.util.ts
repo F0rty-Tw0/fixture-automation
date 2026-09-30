@@ -1,4 +1,6 @@
 import { minifiedSchemaProse, minifiedStrings } from './prompt-minify.util.ts';
+import type { MissingPattern, PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
+import { patternDigest } from '../../missing-patterns/utils/pattern-digest.util.ts';
 import { MISSING_PROMPT_LIMIT_BYTES } from '../../missing-values/common/missing.const.ts';
 import type { MissingPromptInput } from '../../missing-values/common/missing.type.ts';
 
@@ -8,6 +10,8 @@ const FIXTURE_BASELINE =
   'Use the baseline fixture as an editable starting point; its values are not immutable. Return the complete fixture: keep every baseline key the schema allows, populate every key the schema requires but the baseline lacks, and correct any value whose type or enum casing does not match the schema. Every array must keep exactly its baseline length, edited index by index; never add, drop, or reorder elements.';
 const MISSING_RESPONSE =
   'Return exactly one JSON value that conforms to the `missing` schema. Include only its keys. Keep values coherent with `baseline` (currency, ids, totals). The result is merged into `baseline` index by index, so every array that also exists in `baseline` must have exactly the baseline array length.';
+const PATTERN_RESPONSE =
+  'Return exactly one JSON object with one key per entry of `patterns`, and no other keys. Each value is an array of 1 to K example values, where K is the smaller of that pattern\'s `count` and 5; every example is the whole value at that path and must conform to the `missing` schema there (an array-valued path takes arrays as examples). `[*]` stands for every array index. Examples are reused cyclically across the pattern\'s items: the i-th item gets example i mod K. Inside string values, `{n}` is replaced by the item\'s 1-based ordinal. Every string example of a field that should differ per item (ids, SKUs, codes, references, emails, names) must contain `{n}`: answer ["SKU-{n}"], never literal sequences such as ["SKU-00001", "SKU-00002"], which repeat across the items. Every other field gets K different realistic examples (varied quantities, amounts, enum values, descriptions), so the items do not all look alike. Keep values coherent with `digest` (currency, ids, totals), the baseline trimmed to the patterns\' parents with every array cut to its first 3 elements.';
 const MISSING_OVERSIZE =
   'missing prompt exceeds the 1 MiB agent input limit; drop fewer or leaf-only fields (schemas referencing hub objects such as account pull in the whole graph)';
 
@@ -36,6 +40,30 @@ type MissingPromptPayload = {
   readonly instructions: MissingPromptInstructions;
   readonly missing: unknown;
   readonly scenario: string;
+};
+
+type PatternCount = {
+  readonly pattern: string;
+  readonly count: number;
+};
+
+type PatternPromptPayload = {
+  readonly instructions: MissingPromptInstructions;
+  readonly missing: unknown;
+  readonly patterns: PatternCount[];
+  readonly digest: unknown;
+  readonly scenario: string;
+};
+
+const utf8Bytes = (text: string): number => Buffer.byteLength(text, 'utf8');
+
+/** `text` when it fits the agent input limit; throws before any CLI run otherwise. */
+const withinLimit = (text: string): string => {
+  const bytes = utf8Bytes(text);
+
+  if (bytes > MISSING_PROMPT_LIMIT_BYTES) throw new Error(MISSING_OVERSIZE);
+
+  return text;
 };
 
 /** The model answers the whole fixture, so baseline strings stay exact; only the schema's prose is minified. */
@@ -69,7 +97,7 @@ const missingPromptText = (input: MissingPromptInput): string => {
 export const missingPromptBytes = (input: MissingPromptInput): number => {
   const text = missingPromptText(input);
 
-  return Buffer.byteLength(text, 'utf8');
+  return utf8Bytes(text);
 };
 
 /**
@@ -79,9 +107,42 @@ export const missingPromptBytes = (input: MissingPromptInput): number => {
  */
 export const missingPrompt = (input: MissingPromptInput): string => {
   const text = missingPromptText(input);
-  const bytes = Buffer.byteLength(text, 'utf8');
 
-  if (bytes > MISSING_PROMPT_LIMIT_BYTES) throw new Error(MISSING_OVERSIZE);
+  return withinLimit(text);
+};
 
-  return text;
+const patternCount = (pattern: MissingPattern): PatternCount => {
+  const count: PatternCount = { pattern: pattern.pattern, count: pattern.paths.length };
+
+  return count;
+};
+
+/** The digest, like the missing baseline, never comes back in the answer, so its strings are minified too. */
+const patternPromptText = (input: PatternPromptInput): string => {
+  const { scenario } = input;
+  const missing = minifiedSchemaProse(input.missing);
+  const patterns = input.patterns.map(patternCount);
+  const trimmed = patternDigest(input.fixture, input.patterns);
+  const digest = minifiedStrings(trimmed);
+  const instructions: MissingPromptInstructions = { authority: AUTHORITY, response: PATTERN_RESPONSE, restrictions: RESTRICTIONS };
+  const prompt: PatternPromptPayload = { instructions, missing, patterns, digest, scenario };
+
+  return JSON.stringify(prompt);
+};
+
+/** UTF-8 size of the prompt `patternPrompt` builds, without its limit check, so a caller can split a fill first. */
+export const patternPromptBytes = (input: PatternPromptInput): number => {
+  const text = patternPromptText(input);
+
+  return utf8Bytes(text);
+};
+
+/**
+ * Prompt asking for a few examples per missing path pattern (`lines[*].qty`) instead of a value per concrete path,
+ * over a digest of the baseline instead of the whole fixture, so a 1000-element array costs one pattern.
+ */
+export const patternPrompt = (input: PatternPromptInput): string => {
+  const text = patternPromptText(input);
+
+  return withinLimit(text);
 };

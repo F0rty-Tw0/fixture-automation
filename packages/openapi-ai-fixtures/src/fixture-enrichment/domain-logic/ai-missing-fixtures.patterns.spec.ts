@@ -49,6 +49,9 @@ const INVALID_LINES = [
   { qty: 0, sku: 'SKU-5' }
 ];
 const INVALID_FILL = { lines: INVALID_LINES };
+const ZERO_QUANTITY_ANSWER = { 'lines[*].qty': [0] };
+const ZERO_QUANTITY_LINES = [{ qty: 0 }, { qty: 0 }, { qty: 0 }, { qty: 0 }, { qty: 0 }];
+const ZERO_QUANTITY_FILL = { lines: ZERO_QUANTITY_LINES };
 
 const linePaths = (field: string): string[] =>
   Array.from({ length: LINE_COUNT }, (_value: unknown, index: number): string => `lines[${index}].${field}`);
@@ -167,6 +170,19 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
 
       expect(error.candidates).toStrictEqual([INVALID_FILL, INVALID_FILL]);
       expect(error.problem).toMatch(/\/lines\/0\/qty/);
+    });
+
+    it('WHEN the answer is prose with two fenced pattern answers THEN the rejection candidates are both expansions', async (): Promise<void> => {
+      const invalid = JSON.stringify(INVALID_ANSWER);
+      const zeroQuantity = JSON.stringify(ZERO_QUANTITY_ANSWER);
+      const text = `Here are two options.\n\n\`\`\`json\n${invalid}\n\`\`\`\n\nOr:\n\n\`\`\`json\n${zeroQuantity}\n\`\`\``;
+      const expected = [ZERO_QUANTITY_FILL, INVALID_FILL, ZERO_QUANTITY_FILL, INVALID_FILL];
+
+      vi.mocked(runAgent).mockResolvedValue(agentResponse('claude', text));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', REQUEST));
+
+      expect(error.candidates).toStrictEqual(expected);
     });
 
     it('WHEN one pattern is left out THEN its paths stay absent and the projection rejects the fill', async (): Promise<void> => {

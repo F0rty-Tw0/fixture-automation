@@ -4,7 +4,7 @@ import { geminiFixture } from './gemini-generation.ts';
 import type { AgentCommand, AgentFile } from '../../agent-process/common/agent-process.type.ts';
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
 import type { AiFixtureOptions, AiFixtureProgress } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
-import { agentArgs, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
+import { agentArgs, fileRequest, modelRequest } from '../../test/utils/agent-model.spec.util.ts';
 import { agentResponse } from '../../test/utils/agent-response.spec.util.ts';
 import type { AgentRequest } from '../common/agent-provider.type.ts';
 import { GEMINI_EXCLUDED_TOOLS } from '../common/gemini.const.ts';
@@ -282,6 +282,20 @@ describe('FEATURE: Gemini fixture response handling', (): void => {
       await geminiFixture(modelRequest('gemini'));
 
       expect(agentArgs(vi.mocked(runAgent).mock.calls)).not.toContain('-m');
+    });
+  });
+
+  describe('GIVEN a request that stages files', (): void => {
+    it('WHEN the command is built THEN stages them after settings that keep the read tools', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(geminiEnvelope);
+
+      await geminiFixture(fileRequest('gemini'));
+
+      const stagedPaths = onlyCommand(vi.mocked(runAgent).mock.calls).files?.map((file: AgentFile): string => file.path);
+      const settings = writtenSettings(vi.mocked(runAgent).mock.calls);
+
+      expect(stagedPaths).toStrictEqual(['.gemini/system-settings.json', 'baseline.json']);
+      expect(settings).toHaveProperty('tools.exclude', expect.not.arrayContaining(['read_file']));
     });
   });
 });

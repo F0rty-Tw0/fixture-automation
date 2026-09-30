@@ -37,3 +37,10 @@ export const GEMINI_EXCLUDED_TOOLS = [
   'write_file',
   'write_todos'
 ];
+
+/**
+ * The excluded tools that only read or search files; a run that stages files leaves them declared. Gemini's default
+ * policy auto-allows these four in headless mode and confines them to the workspace; `read_many_files` stays excluded
+ * because that policy denies it without an explicit `tools.allowed` rule.
+ */
+export const GEMINI_READ_TOOLS = ['glob', 'grep_search', 'list_directory', 'read_file'];

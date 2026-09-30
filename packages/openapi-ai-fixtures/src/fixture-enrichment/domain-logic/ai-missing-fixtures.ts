@@ -129,7 +129,7 @@ const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: M
     return undefined;
   };
 
-  const expanded = (value: unknown): MissingFill => expandedFill(value, patterns, isList);
+  const expanded = (value: unknown): unknown => expandedFill(value, patterns, isList);
 
   const check = async (value: unknown, parsed: AgentJson): Promise<string | undefined> => {
     const fill = expanded(value);

@@ -68,6 +68,9 @@ const MISSING: MissingFile = {
 };
 const OPTIONS: AiFixtureOptions = { tool: 'claude', timeoutMs: 10000 };
 const REQUEST: AiMissingRequest = { fixture: FIXTURE, missing: MISSING, scenario: SCENARIO };
+const LIST_MISSING: MissingFile = { ...MISSING, paths: ['[0].status', '[1].status'], schema: LIST_SCHEMA };
+const LIST_FIXTURE = [{ id: 'a' }, { id: 'b' }];
+const LIST_REQUEST: AiMissingRequest = { ...REQUEST, fixture: LIST_FIXTURE, missing: LIST_MISSING };
 
 const answer = (value: unknown): string => agentResponse('claude', JSON.stringify(value));
 
@@ -170,16 +173,31 @@ describe('FEATURE: AI fill of diffed missing fields by path pattern', (): void =
 
   describe('GIVEN a list fixture whose elements lack a status', (): void => {
     it('WHEN the harness answers by pattern THEN returns the expanded list', async (): Promise<void> => {
-      const listMissing: MissingFile = { ...MISSING, paths: ['[0].status', '[1].status'], schema: LIST_SCHEMA };
-      const fixture = [{ id: 'a' }, { id: 'b' }];
-      const list: AiMissingRequest = { ...REQUEST, fixture, missing: listMissing };
       const listAnswer = { '[*].status': ['draft', 'open'] };
 
       vi.mocked(runAgent).mockResolvedValue(answer(listAnswer));
 
-      const result = await aiMissingFixture(OPTIONS)('invoice', list);
+      const result = await aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST);
 
       expect(result).toStrictEqual([{ status: 'draft' }, { status: 'open' }]);
+    });
+
+    it('WHEN the harness answers a bare number THEN rejects instead of accepting an empty list', async (): Promise<void> => {
+      vi.mocked(runAgent).mockResolvedValue(answer(42));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST));
+
+      expect(error.problem).toBe('/: must be array');
+    });
+
+    it('WHEN the pattern holds no examples THEN rejects instead of accepting an empty list', async (): Promise<void> => {
+      const emptyAnswer = { '[*].status': [] };
+
+      vi.mocked(runAgent).mockResolvedValue(answer(emptyAnswer));
+
+      const error = await rejection(aiMissingFixture(OPTIONS)('invoice', LIST_REQUEST));
+
+      expect(error.problem).toBe('/: must be array');
     });
   });
 });

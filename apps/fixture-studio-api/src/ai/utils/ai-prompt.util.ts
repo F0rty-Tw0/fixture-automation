@@ -65,27 +65,17 @@ export const aiPrompt = (fixture: unknown, missing: MissingFile, scenario: strin
   return promptResult(baseline, chunk, scenario);
 };
 
-/** UTF-8 size of the prompt over the whole `fixture`; unlike the prompt itself, it counts past the agent input limit. */
-export const promptBytes = (fixture: unknown, missing: MissingFile, scenario: string | undefined): number => {
-  const input = promptInput(fixture, missing, scenario);
-
-  return missingPromptBytes(input);
-};
-
-/** UTF-8 size of the prompt asking for `paths` over a baseline trimmed to their context. */
-export const chunkPromptBytes = (fixture: unknown, missing: MissingFile, paths: string[], scenario: string | undefined): number => {
-  const chunk = missingChunk(missing, paths);
-  const baseline = baselineContext(fixture, chunk.paths);
-
-  return promptBytes(baseline, chunk, scenario);
-};
-
 /**
  * UTF-8 size of the browser-model prompt asking for every missing path at once, over a baseline trimmed to their
- * context, with the default scenario (the user's own is not known yet). 0 when nothing is missing.
+ * context, with the default scenario (the user's own is not known yet). 0 when nothing is missing. Unlike the prompt
+ * itself, it counts past the agent input limit.
  */
 export const trimmedPromptBytes = (fixture: unknown, missing: MissingFile): number => {
   if (missing.paths.length === 0) return 0;
 
-  return chunkPromptBytes(fixture, missing, missing.paths, undefined);
+  const chunk = missingChunk(missing, missing.paths);
+  const baseline = baselineContext(fixture, chunk.paths);
+  const input = promptInput(baseline, chunk, undefined);
+
+  return missingPromptBytes(input);
 };

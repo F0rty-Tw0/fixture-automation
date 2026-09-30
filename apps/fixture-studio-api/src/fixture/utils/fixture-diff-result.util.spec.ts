@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { fixtureDiffResult } from './fixture-diff-result.util.ts';
 import { fixtureJson } from './fixture-merge.util.ts';
-import { aiPrompt, promptBytes, trimmedPromptBytes } from '../../ai/utils/ai-prompt.util.ts';
+import { aiPrompt, trimmedPromptBytes } from '../../ai/utils/ai-prompt.util.ts';
 import type { DiffBody } from '../../contract/common/studio-api.type.ts';
 import { studioSpec } from '../../test/utils/studio-spec.spec.util.ts';
 import { listSpec } from '../test/utils/list-spec.spec.util.ts';
@@ -97,7 +97,8 @@ describe('FEATURE: fixture diff result', (): void => {
     it('WHEN diffed THEN promptBytes is a fraction of the untrimmed baseline prompt', (): void => {
       const result = fixtureDiffResult(spec, 'invoice', diffBody(INVOICE_WITH_HISTORY, false));
 
-      const untrimmed = promptBytes(result.baseline, result.missing, undefined);
+      const untrimmedPrompt = aiPrompt(result.baseline, result.missing, undefined);
+      const untrimmed = Buffer.byteLength(untrimmedPrompt.prompt, 'utf8');
 
       expect(result.promptBytes).toBeLessThan(untrimmed / 2);
     });

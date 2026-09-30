@@ -1,3 +1,4 @@
+import { pathPattern } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -15,7 +16,46 @@ const TEXT_SCHEMA = { type: 'string' };
 const EMPTY_SCHEMAS: Record<string, unknown> = {};
 const EMPTY_COMPONENTS = { schemas: EMPTY_SCHEMAS };
 
+const LINE_COUNT = 1000;
+const LINE_FIELDS = 6;
+
 const fieldName = (_item: unknown, index: number): string => `f${index}`;
+
+/** Every `lines[i].f<n>` path, item by item, for `count` lines of `fields` string fields each. */
+const linePaths = (count: number, fields: number): string[] => {
+  const names = Array.from({ length: fields }, fieldName);
+  const itemPaths = (_item: unknown, index: number): string[] => names.map((name: string): string => `lines[${index}].${name}`);
+
+  return Array.from({ length: count }, itemPaths).flat();
+};
+
+/** A projection of `count` lines each missing `fields` string fields: `fields` patterns of `count` paths. */
+const linesMissing = (count: number, fields: number): MissingFile => {
+  const names = Array.from({ length: fields }, fieldName);
+  const entries = names.map((name: string): [string, unknown] => [name, TEXT_SCHEMA]);
+  const properties = Object.fromEntries(entries);
+  const items = { type: 'object', properties };
+  const lines = { type: 'array', items };
+  const lineProperties = { lines };
+  const schema = { type: 'object', properties: lineProperties };
+  const paths = linePaths(count, fields);
+  const missing: MissingFile = { schemaName: 'order', dialect: 'openapi-30', paths, schema, components: EMPTY_COMPONENTS };
+
+  return missing;
+};
+
+const lineItem = (_item: unknown, index: number): Record<string, unknown> => {
+  const item = { id: `line_${index}` };
+
+  return item;
+};
+
+const chunkPatterns = (chunk: FillChunk): string[] => {
+  const patterns = chunk.paths.map(pathPattern);
+  const unique = new Set(patterns);
+
+  return [...unique];
+};
 
 /** A flat projection of `count` string fields, `f0` to `f<count - 1>`. */
 const wideMissing = (count: number): MissingFile => {
@@ -50,7 +90,7 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
   });
 
   describe('GIVEN a fixture whose prompt exceeds the chunk budget', (): void => {
-    it('WHEN planned THEN the paths are halved until each chunk fits or holds one path', (): void => {
+    it('WHEN planned THEN the patterns are halved until each chunk fits or holds one pattern', (): void => {
       const chunks = fillChunks(LARGE_INVOICE, missing, SCENARIO);
 
       expect(chunks.map(chunkPaths)).toStrictEqual([['status'], ['customer']]);
@@ -68,14 +108,39 @@ describe('FEATURE: CLI fill chunk planning', (): void => {
     });
   });
 
-  describe('GIVEN more missing paths than one chunk may ask for', (): void => {
-    it('WHEN planned THEN every chunk holds at most 150 paths, in missing order', (): void => {
+  describe('GIVEN more missing patterns than one chunk may ask for', (): void => {
+    it('WHEN planned THEN the patterns are sliced 150 at a time, in missing order, without halving', (): void => {
       const wide = wideMissing(200);
 
       const chunks = fillChunks({}, wide, SCENARIO);
 
-      expect(chunks.map(chunkSize)).toStrictEqual([100, 100]);
+      expect(chunks.map(chunkSize)).toStrictEqual([150, 50]);
       expect(chunks.flatMap(chunkPaths)).toStrictEqual(wide.paths);
+    });
+  });
+
+  describe('GIVEN 6000 missing paths that repeat 6 fields over 1000 array items', (): void => {
+    it('WHEN planned THEN one chunk holds every path, since the prompt asks per pattern', (): void => {
+      const lines = linesMissing(LINE_COUNT, LINE_FIELDS);
+      const items = Array.from({ length: LINE_COUNT }, lineItem);
+      const order = { id: 'or_1', currency: 'eur', lines: items };
+
+      const chunks = fillChunks(order, lines, SCENARIO);
+
+      expect(chunks).toStrictEqual([{ paths: lines.paths, isOversized: false }]);
+    });
+  });
+
+  describe('GIVEN array patterns whose prompts each exceed the chunk budget', (): void => {
+    it('WHEN planned THEN each chunk holds whole patterns, never part of one', (): void => {
+      const lines = linesMissing(10, 4);
+      const items = Array.from({ length: 10 }, lineItem);
+      const order = { ...LARGE_INVOICE, lines: items };
+
+      const chunks = fillChunks(order, lines, SCENARIO);
+
+      expect(chunks.map(chunkPatterns)).toStrictEqual([['lines[*].f0'], ['lines[*].f1'], ['lines[*].f2'], ['lines[*].f3']]);
+      expect(chunks.map(chunkSize)).toStrictEqual([10, 10, 10, 10]);
     });
   });
 

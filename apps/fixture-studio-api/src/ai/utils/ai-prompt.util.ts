@@ -24,12 +24,18 @@ export const missingScenario = (scenario: string | undefined): string => {
   return trimmed;
 };
 
-const promptInput = (baseline: unknown, missing: MissingFile, scenario: string | undefined): MissingPromptInput => {
-  const fixtureJson: unknown = JSON.stringify(baseline);
+/** The fixture as JSON; throws a `FixtureError` for a value `JSON.stringify` drops, such as `undefined`. */
+export const serializedFixture = (fixture: unknown): string => {
+  const fixtureJson: unknown = JSON.stringify(fixture);
 
   if (typeof fixtureJson !== 'string')
     throw new FixtureError('the fixture is not JSON-serializable', 'send the parsed fixture object');
 
+  return fixtureJson;
+};
+
+const promptInput = (baseline: unknown, missing: MissingFile, scenario: string | undefined): MissingPromptInput => {
+  const fixtureJson = serializedFixture(baseline);
   const document = missingDocument(missing);
   const input: MissingPromptInput = { fixtureJson, missing: document, scenario: missingScenario(scenario) };
 

@@ -1,6 +1,5 @@
-import { parsePath } from '@fixture-automation/openapi-fixture-diff';
-import type { PathToken } from '@fixture-automation/openapi-fixture-diff';
-import { isRecord } from '@fixture-automation/shared';
+import { isRecord, parsePath } from '@fixture-automation/shared';
+import type { PathToken } from '@fixture-automation/shared';
 
 /** The parent chains of the kept paths, merged: each node's children are the tokens some path steps through. */
 type ChainNode = Map<PathToken, ChainNode>;

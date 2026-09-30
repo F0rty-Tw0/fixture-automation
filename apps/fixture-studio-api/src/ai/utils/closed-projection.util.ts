@@ -1,6 +1,5 @@
-import { parsePath } from '@fixture-automation/openapi-fixture-diff';
-import type { PathToken } from '@fixture-automation/openapi-fixture-diff';
-import { isRecord } from '@fixture-automation/shared';
+import { isRecord, parsePath } from '@fixture-automation/shared';
+import type { PathToken } from '@fixture-automation/shared';
 
 const tailsOf = (routes: PathToken[][]): PathToken[][] => routes.map((route: PathToken[]): PathToken[] => route.slice(1));
 

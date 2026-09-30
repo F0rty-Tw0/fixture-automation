@@ -1,7 +1,8 @@
-import { isSchema, missingProjection, parsePath, resolveSchema } from '@fixture-automation/openapi-fixture-diff';
-import type { MissingEntry, PathToken, SpecSchema, SpecSchemas } from '@fixture-automation/openapi-fixture-diff';
+import { isSchema, missingProjection, resolveSchema } from '@fixture-automation/openapi-fixture-diff';
+import type { MissingEntry, SpecSchema, SpecSchemas } from '@fixture-automation/openapi-fixture-diff';
 import { FixtureError, reachableSchemas, schemaSuggestion } from '@fixture-automation/openapi-fixtures';
-import { isRecord } from '@fixture-automation/shared';
+import { isRecord, parsePath } from '@fixture-automation/shared';
+import type { PathToken } from '@fixture-automation/shared';
 
 import type { MissingFile } from '../../contract/common/studio-api.type.ts';
 

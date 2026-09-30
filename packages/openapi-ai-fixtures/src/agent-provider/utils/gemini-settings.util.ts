@@ -1,5 +1,7 @@
 import { isRecord } from '@fixture-automation/shared';
 
+import { GEMINI_EXCLUDED_TOOLS, GEMINI_READ_TOOLS } from '../common/gemini.const.ts';
+
 const JSON_COMMENTS = /("(?:\\.|[^"\\])*")|\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g;
 
 const removeJsonComment = (match: string, quoted: string | undefined): string => {
@@ -36,4 +38,22 @@ export const assertSafeGeminiSystemSettings = (content: string): void => {
 
   assertDisabledSetting(value['experimental'], 'autoMemory', 'Auto Memory');
   assertDisabledSetting(value['hooksConfig'], 'enabled', 'hooks');
+};
+
+const isNonReadTool = (tool: string): boolean => !GEMINI_READ_TOOLS.includes(tool);
+
+/** Generation system settings excluding every built-in tool, except the read and search tools when the run reads staged files. */
+export const geminiSettingsContent = (readsFiles: boolean): string => {
+  const nonReadTools = GEMINI_EXCLUDED_TOOLS.filter(isNonReadTool);
+  const exclude = readsFiles ? nonReadTools : GEMINI_EXCLUDED_TOOLS;
+  const general = { enableAutoUpdate: false, topicUpdateNarration: true };
+  const ide = { enabled: false, hasSeenNudge: true };
+  const skills = { enabled: false };
+  const hooksConfig = { enabled: false };
+  const tools = { exclude, discoveryCommand: '' };
+  const mcp = { enabled: false };
+  const admin = { mcp };
+  const settings = { general, ide, tools, skills, hooksConfig, admin };
+
+  return `${JSON.stringify(settings, null, 2)}\n`;
 };

@@ -1,7 +1,9 @@
 import { fillJudge, wrongShapeOf } from './fill-judge.ts';
 import { generateFixture } from './fixture-agent.ts';
 import { AgentJsonError } from '../../agent-provider/common/agent-json.error.ts';
+import { CODEX_DIGEST_ONLY } from '../../agent-provider/common/agent-provider.const.ts';
 import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
+import { withReadFilesEnv } from '../../agent-provider/utils/file-mode.util.ts';
 import type { PatternPromptInput } from '../../missing-patterns/common/missing-pattern.type.ts';
 import { missingPatterns } from '../../missing-patterns/utils/path-pattern.util.ts';
 import { MISSING_SCHEMA_NAME } from '../../missing-values/common/missing.const.ts';
@@ -16,12 +18,12 @@ import type {
 import { missingCheck } from '../../missing-values/utils/missing-check.util.ts';
 import { missingDocument } from '../../missing-values/utils/missing-document.util.ts';
 import { isListFill, isMissingFill } from '../../missing-values/utils/missing-fill.util.ts';
-import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
+import type { AiFixtureOptions, AiFixtureProgress } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
 import { AiFillRejectedError } from '../common/ai-fill-rejected.error.ts';
 import { saveFailedResponse } from '../data-access/agent-response-file.client.ts';
-import { patternPrompt } from '../utils/fixture-prompt.util.ts';
+import { patternRequest } from '../utils/pattern-request.util.ts';
 
 /** Compiles before the CLI runs, so a projection AJV cannot compile fails without spending a generation. */
 const inProcessValidator = (missing: MissingFile): MissingValidator => {
@@ -67,14 +69,27 @@ const checkedFill = async (request: AgentRequest, check: FixtureCheck, candidate
   }
 };
 
+/** Codex asked to read files says why it gets the digest only; every other tool stays silent. */
+const reportDigestOnly = (options: AiFixtureOptions): void => {
+  const isCodexAskedToRead = options.tool === 'codex' && options.readsFiles === true;
+
+  if (!isCodexAskedToRead) return;
+
+  const progress: AiFixtureProgress = { stream: 'status', text: CODEX_DIGEST_ONLY };
+
+  options.onProgress?.(progress);
+};
+
 /**
  * Fill the fields a fixture diff reported as absent, returning only the missing paths, each valid against the
  * projection; an answer still unusable after the repair round rejects with an `AiFillRejectedError` holding every
  * answer that parsed.
  * The diff's `missing.json` is self-contained, so the OpenAPI document is never loaded here.
  */
-export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory => {
-  parseAiTool(options.tool);
+export const aiMissingFixture = (chosen: AiFixtureOptions): AiMissingFactory => {
+  parseAiTool(chosen.tool);
+
+  const options = withReadFilesEnv(chosen, process.env['OPENAPI_AI_READ_FILES']);
 
   const enrich = async (name: string, request: AiMissingRequest): Promise<MissingFill> => {
     options.signal?.throwIfAborted();
@@ -98,8 +113,10 @@ export const aiMissingFixture = (options: AiFixtureOptions): AiMissingFactory =>
     const validate = request.validate ?? inProcessValidator(missing);
     const { accepted, candidates, check } = fillJudge(missing, validate, patterns);
     const input: PatternPromptInput = { fixture, missing: document, patterns, scenario };
-    const prompt = patternPrompt(input);
-    const agentRequest: AgentRequest = { prompt, options };
+    const agentRequest = patternRequest(input, options);
+
+    reportDigestOnly(options);
+
     const generated = await checkedFill(agentRequest, check, candidates);
     const result = accepted();
     const isShaped = isMissingFill(result, isListFill(missing.paths));

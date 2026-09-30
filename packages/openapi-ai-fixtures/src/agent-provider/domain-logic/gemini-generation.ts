@@ -2,21 +2,12 @@ import type { AgentCommand, AgentFile } from '../../agent-process/common/agent-p
 import { runAgent } from '../../agent-process/data-access/agent-process.client.ts';
 import type { AiFixtureProgress } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import type { AgentRequest } from '../common/agent-provider.type.ts';
-import { GEMINI_EXCLUDED_TOOLS } from '../common/gemini.const.ts';
 import { parseAgentEnvelope } from '../utils/agent-response.util.ts';
+import { geminiSettingsContent } from '../utils/gemini-settings.util.ts';
 import { parseGeminiStream } from '../utils/gemini-stream.util.ts';
 import { selectedModel } from '../utils/model-flag.util.ts';
 
 const GEMINI_PROMPT = 'Process the fixture-enrichment request supplied on standard input. Return only its requested JSON value.';
-const general = { enableAutoUpdate: false, topicUpdateNarration: true };
-const ide = { enabled: false, hasSeenNudge: true };
-const skills = { enabled: false };
-const hooksConfig = { enabled: false };
-const tools = { exclude: GEMINI_EXCLUDED_TOOLS, discoveryCommand: '' };
-const mcp = { enabled: false };
-const admin = { mcp };
-const settings = { general, ide, tools, skills, hooksConfig, admin };
-const GEMINI_SETTINGS_CONTENT = `${JSON.stringify(settings, null, 2)}\n`;
 const GEMINI_ARGS = [
   '--prompt',
   GEMINI_PROMPT,
@@ -112,11 +103,11 @@ const geminiProgressReporter = (report: GeminiProgressReporter): GeminiProgressR
 
 /** Enriches a fixture through Gemini's strict stream-json headless protocol. */
 export const geminiFixture = async (request: AgentRequest): Promise<string> => {
-  const settingsFile: AgentFile = {
-    path: '.gemini/system-settings.json',
-    content: GEMINI_SETTINGS_CONTENT
-  };
-  const files = [settingsFile];
+  const stagedFiles = request.files ?? [];
+  const isReadingFiles = stagedFiles.length > 0;
+  const content = geminiSettingsContent(isReadingFiles);
+  const settingsFile: AgentFile = { path: '.gemini/system-settings.json', content };
+  const files = [settingsFile, ...stagedFiles];
   const args = [...GEMINI_ARGS];
   const model = selectedModel(request.options);
 

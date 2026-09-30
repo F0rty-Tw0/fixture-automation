@@ -21,6 +21,7 @@ const cliOptions = {
   timeout: stringOption,
   model: stringOption,
   'list-models': booleanOption,
+  'no-read-files': booleanOption,
   help: helpOption
 };
 
@@ -150,7 +151,10 @@ export const parseAiFixtureArgs = async (args: string[], inputs: Inputs = silent
 
   const executable = await inputs.optional(values.executable, AI_FIXTURES_INPUTS.executable);
   const timeout = await inputs.optional(values.timeout, AI_FIXTURES_INPUTS.timeout);
-  const options = toolOptions(toolName, executable, timeout, values.model);
+  const chosen = toolOptions(toolName, executable, timeout, values.model);
+  const isDigestOnly = values['no-read-files'] === true;
+  const digestOnly: AiFixtureOptions = { ...chosen, readsFiles: false };
+  const options = isDigestOnly ? digestOnly : chosen;
   const { specUrl, schemaName } = target;
   const parsed: AiFixtureCliOptions = { specUrl, schemaName, fixtureFile, scenario, options, outFile, typesFile };
 

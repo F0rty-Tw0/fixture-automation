@@ -134,6 +134,20 @@ describe('FEATURE: AI fixture CLI arguments', (): void => {
       await expect(parseAiFixtureArgs(empty)).rejects.toThrow(Error);
     });
 
+    it('WHEN --no-read-files is given THEN turns file mode off on the tool options', async (): Promise<void> => {
+      const digestOnly = [...args, '--missing', 'missing.json', '--no-read-files'];
+      const parsed = await parseAiFixtureArgs(digestOnly);
+
+      expect(parsed?.options.readsFiles).toBe(false);
+    });
+
+    it('WHEN --no-read-files is absent THEN leaves file mode to the tool default', async (): Promise<void> => {
+      const filling = [...args, '--missing', 'missing.json'];
+      const parsed = await parseAiFixtureArgs(filling);
+
+      expect(parsed?.options).not.toHaveProperty('readsFiles');
+    });
+
     it('WHEN no projection is given THEN a scenario is still required', async (): Promise<void> => {
       await expect(parseAiFixtureArgs(args)).rejects.toThrow(/--scenario/);
     });

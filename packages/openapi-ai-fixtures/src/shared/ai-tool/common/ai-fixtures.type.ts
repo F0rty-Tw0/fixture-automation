@@ -31,6 +31,12 @@ export type AiFixtureOptions = {
   readonly signal?: AbortSignal;
   /** Base path for failed-response diagnostic sidecars; absent disables persistence. */
   readonly recoveryFile?: string;
+  /**
+   * Whether a missing-field fill stages the baseline as `baseline.json` for the agent to read and search, overriding
+   * the tool's default in `FILE_MODE_TOOLS` and the `OPENAPI_AI_READ_FILES` off switch (`0`, `false`, `off` or `no`).
+   * Codex ignores `true` and always gets the digest only.
+   */
+  readonly readsFiles?: boolean;
 };
 
 export type AiFixtureRequest<TFixture = Record<string, unknown>> = {

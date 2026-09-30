@@ -1,4 +1,4 @@
-import type { AgentCommand } from '../../agent-process/common/agent-process.type.ts';
+import type { AgentCommand, AgentFile } from '../../agent-process/common/agent-process.type.ts';
 import type { AgentRequest } from '../../agent-provider/common/agent-provider.type.ts';
 import type { AiFixtureOptions, AiTool } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 
@@ -29,4 +29,33 @@ export const modelRequest = (tool: AiTool, model?: string): AgentRequest => {
   const request: AgentRequest = { prompt: MODEL_PROMPT, options };
 
   return request;
+};
+
+/** An agent request for one harness that stages a `baseline.json` for the agent to read. */
+export const fileRequest = (tool: AiTool): AgentRequest => {
+  const options: AiFixtureOptions = { tool };
+  const baseline: AgentFile = { path: 'baseline.json', content: '{"id":"in_1"}' };
+  const files = [baseline];
+  const request: AgentRequest = { prompt: MODEL_PROMPT, options, files };
+
+  return request;
+};
+
+/** The command of the single `runAgent` call, given its mock's recorded calls. */
+export const agentCommand = (calls: (readonly [AgentCommand, AiFixtureOptions])[]): AgentCommand => {
+  const [call] = calls;
+
+  if (call === undefined) throw new Error('runAgent was not called');
+
+  return call[0];
+};
+
+/** The content of the file a command stages at `path`. */
+export const stagedContent = (command: AgentCommand, path: string): string => {
+  const files = command.files ?? [];
+  const file = files.find((staged: AgentFile): boolean => staged.path === path);
+
+  if (file === undefined) throw new Error(`no file was staged at ${path}`);
+
+  return file.content;
 };

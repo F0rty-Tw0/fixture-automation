@@ -23,8 +23,17 @@ const claudeResult = (envelope: Record<string, unknown>): string => {
   return result;
 };
 
-/** Enrich a fixture through an installed Claude Code CLI without agent tools. */
+/** Claude Code's built-in tools that only read or search files. */
+const CLAUDE_READ_TOOLS = 'Read,Grep,Glob';
+
+/**
+ * Enrich a fixture through an installed Claude Code CLI without agent tools, or, when the request stages files, with
+ * only the read and search tools confined by `--restricted` to the scratch directory (`--safe-mode` does not confine).
+ */
 export const claudeFixture = async (request: AgentRequest): Promise<string> => {
+  const files = request.files ?? [];
+  const isReadingFiles = files.length > 0;
+  const tools = isReadingFiles ? CLAUDE_READ_TOOLS : '';
   const args = [
     '-p',
     '--input-format',
@@ -33,7 +42,7 @@ export const claudeFixture = async (request: AgentRequest): Promise<string> => {
     'json',
     '--safe-mode',
     '--tools',
-    '',
+    tools,
     '--disallowedTools',
     'mcp__*',
     '--strict-mcp-config',
@@ -43,12 +52,15 @@ export const claudeFixture = async (request: AgentRequest): Promise<string> => {
   ];
   const model = selectedModel(request.options);
 
+  if (isReadingFiles) args.push('--restricted');
+
   if (model !== undefined) args.push('--model', model);
 
   const command: AgentCommand = {
     executable: 'claude',
     args,
-    input: request.prompt
+    input: request.prompt,
+    files
   };
   const output = await runAgent(command, request.options);
   const envelope = parseAgentEnvelope(output, 'claude');

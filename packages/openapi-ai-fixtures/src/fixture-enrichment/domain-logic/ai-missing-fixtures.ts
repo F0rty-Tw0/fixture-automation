@@ -16,6 +16,8 @@ import type {
 import { missingCheck } from '../../missing-values/utils/missing-check.util.ts';
 import { missingDocument } from '../../missing-values/utils/missing-document.util.ts';
 import { isListFill, isMissingFill } from '../../missing-values/utils/missing-fill.util.ts';
+import { violatingErrors } from '../../missing-values/utils/violation-paths.util.ts';
+import { validationDetails } from '../../schema/utils/validation-message.util.ts';
 import type { AiFixtureOptions } from '../../shared/ai-tool/common/ai-fixtures.type.ts';
 import { parseAiTool } from '../../shared/ai-tool/utils/ai-tool.util.ts';
 import type { AgentFixture, FixtureCheck } from '../common/agent-fixture.type.ts';
@@ -100,9 +102,11 @@ const preferredAlternatives = (alternatives: unknown[], isList: boolean): unknow
 };
 
 /**
- * Expands each parsed pattern answer to its concrete fill and judges that against the projection. When the parser's
- * best-ranked value fails, another JSON value from the same answer that fits is accepted instead, so a correct answer
- * next to a bigger or differently shaped one costs no repair run.
+ * Expands each parsed pattern answer to its concrete fill and judges that against the projection, counting only the
+ * errors that touch a missing path: sparse indices leave array holes, and the projection's collapsed `items` requires
+ * every missing key on every item, neither of which the merge ever writes. When the parser's best-ranked value fails,
+ * another JSON value from the same answer that fits is accepted instead, so a correct answer next to a bigger or
+ * differently shaped one costs no repair run.
  */
 const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: MissingPattern[]): FillJudge => {
   const isList = isListFill(missing.paths);
@@ -112,12 +116,17 @@ const fillJudge = (missing: MissingFile, validate: MissingValidator, patterns: M
 
   const problemOf = async (value: unknown): Promise<string | undefined> => {
     const verdict = await validate(missing, value);
+    const violations = violatingErrors(verdict.errors, missing.paths);
     const isShaped = isMissingFill(value, isList);
-    const isValidFill = verdict.valid && isShaped;
+    const isUnexplained = !verdict.valid && verdict.errors.length === 0;
 
-    if (isValidFill) return undefined;
+    if (violations.length > 0) return validationDetails(violations);
 
-    return verdict.details || wrongShape;
+    if (isUnexplained) return verdict.details || wrongShape;
+
+    if (!isShaped) return wrongShape;
+
+    return undefined;
   };
 
   const expanded = (value: unknown): MissingFill => expandedFill(value, patterns, isList);

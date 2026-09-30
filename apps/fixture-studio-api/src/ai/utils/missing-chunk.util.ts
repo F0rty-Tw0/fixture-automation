@@ -89,8 +89,10 @@ const missingEntry = (missing: MissingFile, schemas: SpecSchemas, path: string):
 };
 
 const assertListed = (missing: MissingFile, paths: string[]): void => {
+  const listed = new Set(missing.paths);
+
   for (const path of paths) {
-    const isListed = missing.paths.includes(path);
+    const isListed = listed.has(path);
 
     if (isListed) continue;
 
@@ -118,7 +120,8 @@ export const missingChunk = (missing: MissingFile, paths: string[]): MissingFile
   assertListed(missing, paths);
 
   const allSchemas = componentSchemas(missing);
-  const selected = missing.paths.filter((path: string): boolean => paths.includes(path));
+  const wanted = new Set(paths);
+  const selected = missing.paths.filter((path: string): boolean => wanted.has(path));
   const entries = selected.map((path: string): MissingEntry => missingEntry(missing, allSchemas, path));
   const schema = missingProjection(entries);
   const schemas = reachableSchemas(schema, allSchemas);

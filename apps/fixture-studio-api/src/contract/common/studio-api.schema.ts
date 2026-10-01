@@ -10,6 +10,9 @@ export const AI_PROGRESS_STREAMS = ['stdout', 'stderr', 'status'] as const;
 /** A model slug as the CLIs take it; it cannot start with `-`, so it never reads as a flag. */
 const MODEL_SLUG = /^[A-Za-z0-9][\w.:/@-]{0,127}$/;
 
+/** The methods the CLI merge prompt accepts, in any casing; mirrors `HTTP_METHODS` of `openapi-fixture-merge`. */
+const HTTP_METHOD = /^(?:get|post|put|patch|delete|head|options)$/iu;
+
 export const SCHEMA_DIALECTS = ['draft-07', 'openapi-30', 'openapi-31'] as const;
 
 /** A spec comes from an http(s) URL or as an uploaded document; `file://` is refused so the API never reads local files for a caller. */
@@ -60,6 +63,16 @@ export const mergeBodySchema = z.object({
   populated: z.unknown(),
   objectShape: z.string().optional(),
   original: z.unknown().optional()
+});
+
+/**
+ * The CLI merge's endpoint prompts, trimmed as the CLI trims answers: `url` is the concrete path (`v1/invoices/in_1`),
+ * `subdirectory` an optional prefix hashed with it (`billing`).
+ */
+export const fixtureNameQuerySchema = z.object({
+  method: z.string().trim().regex(HTTP_METHOD),
+  url: z.string().trim().min(1),
+  subdirectory: z.string().optional()
 });
 
 /** `paths` asks for a chunk: each must be one of `missing.paths`; omitted, the prompt covers every missing path. */

@@ -6,6 +6,7 @@ export const API_ROUTES = {
   diff: '/specs/:specId/diff',
   envelope: '/specs/:specId/envelope',
   merge: '/specs/:specId/merge',
+  fixtureName: '/fixture-name',
   aiPrompt: '/specs/:specId/ai-prompt',
   aiFill: '/specs/:specId/ai-fill',
   aiModels: '/ai/cli/models',

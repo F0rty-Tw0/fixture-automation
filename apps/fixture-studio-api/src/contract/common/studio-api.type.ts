@@ -11,6 +11,7 @@ import type {
   aiToolsResultSchema,
   diffBodySchema,
   envelopeBodySchema,
+  fixtureNameQuerySchema,
   generateBodySchema,
   loadSpecBodySchema,
   mergeBodySchema
@@ -128,6 +129,13 @@ export type MergeResult = {
   readonly filled: string[];
   readonly valid: boolean;
   readonly errors: string[];
+};
+
+export type FixtureNameQuery = z.infer<typeof fixtureNameQuerySchema>;
+
+/** The file name `openapi-fixture-merge` writes for the queried endpoint: Base64 SHA-1 of its identity, `/` as `x`. */
+export type FixtureNameResult = {
+  readonly fileName: string;
 };
 
 /** The body with `missing` typed as the `MissingFile` a diff returns, so it can be sent back unchanged. */

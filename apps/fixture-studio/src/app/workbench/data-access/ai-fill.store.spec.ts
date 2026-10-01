@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { AiFillBody, AiFillResultEvent, DiffBody, MergeBody } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillBody, AiFillResultEvent, DiffBody, MergeBody, MergeResult } from '@fixture-automation/fixture-studio-api/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AiFillStore } from './ai-fill.store.ts';
@@ -42,6 +42,11 @@ const EXPECTED_FILL: AiFillBody = {
 const OTHER_FIXTURE = { id: 'in_2' };
 const OTHER_DIFF: DiffBody = { endpointId: 'GET /v1/invoices', fixture: OTHER_FIXTURE, requiredOnly: false };
 const OTHER_COMPARE: DiffRequest = { specId: 'spec-1', body: OTHER_DIFF };
+
+/** Lets awaited promises resume without a macrotask, so no effect runs and no resource notices a new request. */
+const flushMicrotasks = async (): Promise<void> => {
+  for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+};
 
 describe('FEATURE: AI fill store', (): void => {
   let engine: StudioEngine;
@@ -181,6 +186,29 @@ describe('FEATURE: AI fill store', (): void => {
       expect(store.answer()).toBeUndefined();
       expect(store.merged()).toBeUndefined();
       expect(store.shownAnswer()).toBeUndefined();
+    });
+
+    it('WHEN the last merge lands after a new run started THEN never shows it', async (): Promise<void> => {
+      let resolveMerge: (merge: MergeResult) => void = (): void => undefined;
+      const pendingMerge = async (): Promise<MergeResult> => {
+        return new Promise<MergeResult>((resolve) => {
+          resolveMerge = resolve;
+        });
+      };
+      const expectMergeAsked = (): void => {
+        TestBed.tick();
+        expect(engine.merge).toHaveBeenCalled();
+      };
+
+      vi.mocked(engine.merge).mockImplementationOnce(pendingMerge);
+      resolveFill(RESULT);
+      await vi.waitFor(expectMergeAsked);
+
+      store.start({ ...CLI_RUN });
+      resolveMerge(MERGE_RESULT_STUB);
+      await flushMicrotasks();
+
+      expect(store.merged()).toBeUndefined();
     });
 
     it('WHEN a re-run fails after a merge THEN shows nothing of the earlier run', async (): Promise<void> => {

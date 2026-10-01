@@ -104,6 +104,14 @@ describe('FEATURE: AiFillPanel results', (): void => {
       expect(textAt(fixture, '.fallback__title')).toBe('Generated from the schema');
     });
 
+    it('WHEN rendered THEN the fallback offers the hashed name, once', (): void => {
+      const toggles = hostOf(fixture).querySelectorAll('mat-slide-toggle');
+      const fallbackToggle = region('Generated fallback')?.querySelector('mat-slide-toggle');
+
+      expect(toggles).toHaveLength(1);
+      expect(fallbackToggle).toBeInstanceOf(HTMLElement);
+    });
+
     it('WHEN rendered THEN shows the error after the fallback, not in its place', (): void => {
       const fallback = region('Generated fallback');
       const notice = requiredElement(fixture, 'fs-api-error-notice');

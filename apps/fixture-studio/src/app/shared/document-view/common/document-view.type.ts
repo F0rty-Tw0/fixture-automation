@@ -23,6 +23,14 @@ export type LineAnchor = {
   readonly b: number;
 };
 
+/** The lines between two anchors in either document of a diff, by their line codes and the index they start at. */
+export type LineGap = {
+  readonly fromA: number;
+  readonly fromB: number;
+  readonly codesA: string;
+  readonly codesB: string;
+};
+
 /** One change on the overview ruler beside a diff: its offset and size as percentages of the document, and its first line. */
 export type ChangeMark = {
   readonly top: number;

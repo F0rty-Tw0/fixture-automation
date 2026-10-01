@@ -1,7 +1,7 @@
 import { Change, diff } from '@codemirror/merge';
 
-import { lineAnchors } from './line-anchor.util.ts';
-import type { LineAnchor } from '../common/document-view.type.ts';
+import { lineGaps } from './line-anchor.util.ts';
+import type { LineGap } from '../common/document-view.type.ts';
 
 /** Line ids become UTF-16 code units; the surrogate block is skipped because `diff` keeps surrogate pairs whole. */
 const SURROGATE_START = 0xd800;
@@ -9,9 +9,11 @@ const SURROGATE_SIZE = 0x800;
 const MAX_LINE_IDS = 0xffff - SURROGATE_SIZE;
 /**
  * A line diff of wildly different documents falls back to a coarser match after this long, instead of freezing the page.
- * Each gap between anchors gets its own budget, so one hard gap never coarsens the rest.
+ * The whole diff shares it between the gaps between anchors, so many hard gaps never add up.
  */
-const LINE_DIFF_CONFIG = { timeout: 500 };
+const LINE_DIFF_BUDGET_MS = 500;
+/** CodeMirror reads a zero timeout as none, so a gap whose share rounds down to zero still gets one millisecond. */
+const MIN_GAP_TIMEOUT_MS = 1;
 /** CodeMirror's own default: changed lines are short, and a huge rewritten block may be matched coarsely. */
 const CHARACTER_DIFF_CONFIG = { scanLimit: 500 };
 
@@ -61,16 +63,14 @@ const refine = (a: string, b: string, lines: Change): Change[] => {
   );
 };
 
-/** The line changes between two anchors, by line index in either whole document. */
-const gapChanges = (codesA: string, codesB: string, from: LineAnchor, to: LineAnchor): Change[] => {
-  const fromA = from.a + 1;
-  const fromB = from.b + 1;
-  const gapA = codesA.slice(fromA, to.a);
-  const gapB = codesB.slice(fromB, to.b);
+const gapSize = (gap: LineGap): number => gap.codesA.length + gap.codesB.length;
 
-  if (gapA === gapB) return [];
+/** The line changes inside one gap, by line index in either whole document, found within `timeout` milliseconds. */
+const gapChanges = (gap: LineGap, timeout: number): Change[] => {
+  if (gap.codesA === gap.codesB) return [];
 
-  const changes = diff(gapA, gapB, LINE_DIFF_CONFIG);
+  const changes = diff(gap.codesA, gap.codesB, { timeout });
+  const { fromA, fromB } = gap;
 
   return changes.map(
     (change: Change): Change => new Change(change.fromA + fromA, change.toA + fromA, change.fromB + fromB, change.toB + fromB)
@@ -79,17 +79,21 @@ const gapChanges = (codesA: string, codesB: string, from: LineAnchor, to: LineAn
 
 /**
  * Line changes, diffed gap by gap between lines unique to both documents: one diff over the whole of a large fixture with
- * thousands of edits runs out of time and marks everything after that point as one changed block.
+ * thousands of edits runs out of time and marks everything after that point as one changed block. Each gap gets the share
+ * of the time budget its size earns, so many hard gaps together still keep to about one budget.
  */
 const anchoredLineChanges = (codesA: string, codesB: string): Change[] => {
-  const start: LineAnchor = { a: -1, b: -1 };
-  const end: LineAnchor = { a: codesA.length, b: codesB.length };
-  const unique = lineAnchors(codesA, codesB);
-  const anchors = [start, ...unique, end];
+  const gaps = lineGaps(codesA, codesB);
+  const totalSize = gaps.reduce((total: number, gap: LineGap): number => total + gapSize(gap), 0);
 
-  const changesBefore = (to: LineAnchor, index: number): Change[] => gapChanges(codesA, codesB, anchors[index] ?? start, to);
+  const changesIn = (gap: LineGap): Change[] => {
+    const share = Math.floor((LINE_DIFF_BUDGET_MS * gapSize(gap)) / Math.max(totalSize, 1));
+    const timeout = Math.max(share, MIN_GAP_TIMEOUT_MS);
 
-  return anchors.slice(1).flatMap(changesBefore);
+    return gapChanges(gap, timeout);
+  };
+
+  return gaps.flatMap(changesIn);
 };
 
 /**

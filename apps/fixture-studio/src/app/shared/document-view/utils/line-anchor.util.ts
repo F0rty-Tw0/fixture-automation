@@ -1,4 +1,4 @@
-import type { LineAnchor } from '../common/document-view.type.ts';
+import type { LineAnchor, LineGap } from '../common/document-view.type.ts';
 
 type Occurrence = {
   readonly count: number;
@@ -83,8 +83,28 @@ const increasingPairs = (pairs: LineAnchor[]): LineAnchor[] => {
  * Lines a diff can pin both documents on (patience diff): each occurs once in either document, and they keep their order.
  * Diffing only the gaps between them stays fast however many values changed.
  */
-export const lineAnchors = (codesA: string, codesB: string): LineAnchor[] => {
+const lineAnchors = (codesA: string, codesB: string): LineAnchor[] => {
   const pairs = uniquePairs(codesA, codesB);
 
   return increasingPairs(pairs);
+};
+
+const gapOf = (codesA: string, codesB: string, from: LineAnchor, to: LineAnchor): LineGap => {
+  const fromA = from.a + 1;
+  const fromB = from.b + 1;
+  const gap: LineGap = { fromA, fromB, codesA: codesA.slice(fromA, to.a), codesB: codesB.slice(fromB, to.b) };
+
+  return gap;
+};
+
+/** The runs of lines before, between and after the anchors: all a diff still has to compare. */
+export const lineGaps = (codesA: string, codesB: string): LineGap[] => {
+  const start: LineAnchor = { a: -1, b: -1 };
+  const end: LineAnchor = { a: codesA.length, b: codesB.length };
+  const unique = lineAnchors(codesA, codesB);
+  const anchors = [start, ...unique, end];
+
+  const gapBefore = (to: LineAnchor, index: number): LineGap => gapOf(codesA, codesB, anchors[index] ?? start, to);
+
+  return anchors.slice(1).map(gapBefore);
 };

@@ -3,6 +3,8 @@ import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
+import { MatInputHarness } from '@angular/material/input/testing';
+import { MatSlideToggleHarness } from '@angular/material/slide-toggle/testing';
 import { MatSnackBarHarness } from '@angular/material/snack-bar/testing';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,8 +12,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CopyExportBar } from './copy-export-bar.ts';
 import { clipboardMock } from '../../../../test/mocks/browser.mock.ts';
 import { textAt } from '../../../../test/utils/fixture-dom.spec.util.ts';
+import type { ExportNaming, HashedExport } from '../../common/document-view.type.ts';
+import { exportNamingMock } from '../../test/mocks/export-naming.mock.ts';
 
 const CONTENT = '{ "id": "in_1" }';
+const URL_FIELD = MatInputHarness.with({ selector: '[name="url"]' });
+const SUBDIRECTORY_FIELD = MatInputHarness.with({ selector: '[name="subdirectory"]' });
+const EXPORT_BUTTON = MatButtonHarness.with({ text: 'Export' });
 
 type DownloadCapture = {
   readonly blobs: Blob[];
@@ -101,6 +108,123 @@ describe('FEATURE: CopyExportBar', (): void => {
       expect(downloads.blobs.map((blob) => blob.type)).toStrictEqual(['application/json']);
       expect(downloads.anchors.map((anchor) => anchor.download)).toStrictEqual(['Invoice.json']);
       expect(downloads.anchors.map((anchor) => anchor.href)).toStrictEqual(['blob:fixture']);
+    });
+  });
+
+  it('GIVEN no hashed export WHEN rendered THEN offers no hashed naming', async (): Promise<void> => {
+    const toggles = await loader.getAllHarnesses(MatSlideToggleHarness);
+
+    expect(toggles).toHaveLength(0);
+  });
+
+  describe('GIVEN a hashed export for an endpoint with a path parameter', (): void => {
+    let naming: ExportNaming;
+
+    const turnOnHashing = async (): Promise<void> => {
+      const toggle = await loader.getHarness(MatSlideToggleHarness);
+
+      await toggle.check();
+    };
+
+    const enterUrl = async (url: string): Promise<void> => {
+      await turnOnHashing();
+      const field = await loader.getHarness(URL_FIELD);
+
+      await field.setValue(url);
+    };
+
+    beforeEach(async (): Promise<void> => {
+      naming = exportNamingMock();
+      naming.rememberSubdirectory('billing');
+      vi.mocked(naming.fileName).mockResolvedValue('hash.json');
+      const hashedExport: HashedExport = { method: 'GET', path: '/v1/invoices/{id}', naming };
+
+      fixture.componentRef.setInput('hashedExport', hashedExport);
+      await fixture.whenStable();
+    });
+
+    it('WHEN rendered THEN keeps the plain name with hashed naming off', async (): Promise<void> => {
+      const toggle = await loader.getHarness(MatSlideToggleHarness);
+      const fields = await loader.getAllHarnesses(MatInputHarness);
+
+      expect(await toggle.isChecked()).toBe(false);
+      expect(fields).toHaveLength(0);
+      expect(textAt(fixture, '.bar__file')).toBe('Invoice.json');
+    });
+
+    describe('WHEN hashed naming is turned on', (): void => {
+      beforeEach(async (): Promise<void> => {
+        await turnOnHashing();
+      });
+
+      it('THEN prefills the URL with the path template and the subdirectory with the remembered one', async (): Promise<void> => {
+        const url = await loader.getHarness(URL_FIELD);
+        const subdirectory = await loader.getHarness(SUBDIRECTORY_FIELD);
+
+        expect(await url.getValue()).toBe('/v1/invoices/{id}');
+        expect(await subdirectory.getValue()).toBe('billing');
+      });
+
+      it('THEN blocks Export and names the placeholder to replace', async (): Promise<void> => {
+        const exportButton = await loader.getHarness(EXPORT_BUTTON);
+
+        expect(await exportButton.isDisabled()).toBe(true);
+        expect(textAt(fixture, '.bar__reason')).toBe('Replace {id} in the URL to export under the hashed name.');
+        expect(naming.fileName).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('WHEN the URL is made concrete', (): void => {
+      beforeEach(async (): Promise<void> => {
+        await enterUrl('/v1/invoices/in_1');
+      });
+
+      it('THEN shows the hashed name asked for with the method, URL and subdirectory', (): void => {
+        const query = { method: 'GET', url: '/v1/invoices/in_1', subdirectory: 'billing' };
+
+        expect(naming.fileName).toHaveBeenLastCalledWith(query, expect.any(AbortSignal));
+        expect(textAt(fixture, '.bar__file')).toBe('hash.json');
+      });
+
+      it('THEN Export downloads under the hashed name', async (): Promise<void> => {
+        const downloads = captureDownloads();
+        const exportButton = await loader.getHarness(EXPORT_BUTTON);
+
+        await exportButton.click();
+
+        expect(downloads.anchors.map((anchor) => anchor.download)).toStrictEqual(['hash.json']);
+      });
+    });
+
+    it('WHEN the subdirectory is changed THEN remembers it and names with it', async (): Promise<void> => {
+      await enterUrl('v1/invoices/in_1');
+      const subdirectory = await loader.getHarness(SUBDIRECTORY_FIELD);
+
+      await subdirectory.setValue('savings');
+
+      expect(naming.rememberSubdirectory).toHaveBeenLastCalledWith('savings');
+      expect(naming.fileName).toHaveBeenLastCalledWith(
+        { method: 'GET', url: 'v1/invoices/in_1', subdirectory: 'savings' },
+        expect.any(AbortSignal)
+      );
+    });
+
+    it('WHEN the URL is emptied THEN blocks Export and asks for a URL', async (): Promise<void> => {
+      await enterUrl('');
+      const exportButton = await loader.getHarness(EXPORT_BUTTON);
+
+      expect(await exportButton.isDisabled()).toBe(true);
+      expect(textAt(fixture, '.bar__reason')).toBe('Enter the endpoint URL to export under the hashed name.');
+    });
+
+    it('WHEN the API refuses to name it THEN blocks Export and says why', async (): Promise<void> => {
+      vi.mocked(naming.fileName).mockRejectedValue(new Error('The Fixture Studio API did not answer.'));
+
+      await enterUrl('v1/invoices/in_1');
+      const exportButton = await loader.getHarness(EXPORT_BUTTON);
+
+      expect(await exportButton.isDisabled()).toBe(true);
+      expect(textAt(fixture, '.bar__reason')).toBe('No hashed name: The Fixture Studio API did not answer.');
     });
   });
 });

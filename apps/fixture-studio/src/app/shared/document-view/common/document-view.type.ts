@@ -1,4 +1,6 @@
-import type { FillSource, FixtureFormat } from '@fixture-automation/fixture-studio-api/contract';
+import type { Signal } from '@angular/core';
+
+import type { FillSource, FixtureFormat, FixtureNameQuery } from '@fixture-automation/fixture-studio-api/contract';
 
 export type CodeLanguage = 'json' | 'typescript';
 
@@ -65,4 +67,21 @@ export type LineHighlight = {
   readonly label: string;
   readonly reason?: string;
   readonly found?: string;
+};
+
+/** Names an export the way the CLI merge names its file; the studio binds it to the API. */
+export type ExportNaming = {
+  /** The subdirectory this viewer used last, `''` for none. */
+  readonly subdirectory: Signal<string>;
+  rememberSubdirectory(subdirectory: string): void;
+  /** The hashed file name the CLI merge writes for the query; rejects when the API refuses it. */
+  fileName(query: FixtureNameQuery, abortSignal: AbortSignal): Promise<string>;
+};
+
+/** An endpoint whose final fixture can be exported under the CLI merge's hashed file name instead of its plain one. */
+export type HashedExport = {
+  readonly method: string;
+  /** The OpenAPI path template (`/v1/invoices/{id}`), prefilled as the URL the user makes concrete. */
+  readonly path: string;
+  readonly naming: ExportNaming;
 };

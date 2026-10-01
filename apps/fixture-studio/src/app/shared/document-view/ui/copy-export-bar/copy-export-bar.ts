@@ -17,6 +17,18 @@ const SNACK_DURATION_MS = 2400;
 /** An OpenAPI path parameter left in a URL, e.g. `{id}`. */
 const PATH_PLACEHOLDER = /\{[^{}]*\}/gu;
 
+/** Any brace, so a half-edited parameter (`{id`) still counts as template. */
+const TEMPLATE_BRACE = /[{}]/u;
+
+/** The hint for a URL still holding template braces: both spellings are valid, for different CLI flows. */
+const templateHint = (url: string): string => {
+  const placeholders = url.match(PATH_PLACEHOLDER) ?? [];
+  const placeholderList = placeholders.join(', ');
+  const parts = placeholders.length > 0 ? placeholderList : 'the braces';
+
+  return `Kept as the template: matches the wizard's route target. Replace ${parts} to match a merge run with a real URL.`;
+};
+
 type HashedNameRequest = {
   readonly naming: ExportNaming;
   readonly query: FixtureNameQuery;
@@ -48,24 +60,14 @@ export class CopyExportBar {
 
   private readonly isHashing = computed(() => this.hashedExport() !== undefined && this.isHashed());
 
-  /** Why the hashed name cannot be asked for yet: no URL, or a `{…}` placeholder still in it. */
-  private readonly urlProblem: Signal<string | undefined> = computed(() => {
-    const url = this.url().trim();
-    const placeholders = url.match(PATH_PLACEHOLDER) ?? [];
-
-    if (url === '') return 'Enter the endpoint URL to export under the hashed name.';
-
-    if (placeholders.length > 0) return `Replace ${placeholders.join(', ')} in the URL to export under the hashed name.`;
-
-    return undefined;
-  });
+  private readonly isUrlEmpty = computed(() => this.url().trim() === '');
 
   private readonly hashedNameRequest: Signal<HashedNameRequest | undefined> = computed(() => {
     const hashedExport = this.hashedExport();
 
     if (hashedExport === undefined || !this.isHashed()) return undefined;
 
-    if (this.urlProblem() !== undefined) return undefined;
+    if (this.isUrlEmpty()) return undefined;
 
     const query: FixtureNameQuery = { method: hashedExport.method, url: this.url(), subdirectory: this.subdirectory() };
     const request: HashedNameRequest = { naming: hashedExport.naming, query };
@@ -93,14 +95,21 @@ export class CopyExportBar {
   protected readonly shownFileName = computed(() => this.exportFileName() ?? '…');
   protected readonly canExport = computed(() => this.exportFileName() !== undefined);
 
-  protected readonly hashingProblem: Signal<string | undefined> = computed(() => {
+  /** Why Export is blocked (no URL, API error), or which CLI flow a template URL matches. */
+  protected readonly hashingNote: Signal<string | undefined> = computed(() => {
     if (!this.isHashing()) return undefined;
 
     const error = this.hashedName.error();
+    const url = this.url();
+    const isTemplate = TEMPLATE_BRACE.test(url);
 
     if (error !== undefined) return `No hashed name: ${error.message}`;
 
-    return this.urlProblem();
+    if (this.isUrlEmpty()) return 'Enter the endpoint URL to export under the hashed name.';
+
+    if (isTemplate) return templateHint(url);
+
+    return undefined;
   });
 
   protected rememberSubdirectory(subdirectory: string): void {
@@ -110,7 +119,9 @@ export class CopyExportBar {
   protected async copy(): Promise<void> {
     try {
       await navigator.clipboard.writeText(this.content());
-      this.snackBar.open(`Copied ${this.shownFileName()}`, undefined, { duration: SNACK_DURATION_MS });
+      const copiedName = this.exportFileName() ?? this.fileName();
+
+      this.snackBar.open(`Copied ${copiedName}`, undefined, { duration: SNACK_DURATION_MS });
     } catch {
       this.snackBar.open('The browser blocked clipboard access. Use Export instead.', 'Dismiss');
     }

@@ -165,12 +165,19 @@ describe('FEATURE: CopyExportBar', (): void => {
         expect(await subdirectory.getValue()).toBe('billing');
       });
 
-      it('THEN blocks Export and names the placeholder to replace', async (): Promise<void> => {
+      it('THEN names the template as the wizard route flow does and allows Export', async (): Promise<void> => {
+        const query = { method: 'GET', url: '/v1/invoices/{id}', subdirectory: 'billing' };
         const exportButton = await loader.getHarness(EXPORT_BUTTON);
 
-        expect(await exportButton.isDisabled()).toBe(true);
-        expect(textAt(fixture, '.bar__reason')).toBe('Replace {id} in the URL to export under the hashed name.');
-        expect(naming.fileName).not.toHaveBeenCalled();
+        expect(await exportButton.isDisabled()).toBe(false);
+        expect(naming.fileName).toHaveBeenLastCalledWith(query, expect.any(AbortSignal));
+        expect(textAt(fixture, '.bar__file')).toBe('hash.json');
+      });
+
+      it('THEN hints which CLI flow the template matches and how to match a merge run', (): void => {
+        expect(textAt(fixture, '.bar__reason')).toBe(
+          "Kept as the template: matches the wizard's route target. Replace {id} to match a merge run with a real URL."
+        );
       });
     });
 
@@ -184,6 +191,10 @@ describe('FEATURE: CopyExportBar', (): void => {
 
         expect(naming.fileName).toHaveBeenLastCalledWith(query, expect.any(AbortSignal));
         expect(textAt(fixture, '.bar__file')).toBe('hash.json');
+      });
+
+      it('THEN shows no template hint', (): void => {
+        expect(textAt(fixture, '.bar__reason')).toBe('');
       });
 
       it('THEN Export downloads under the hashed name', async (): Promise<void> => {
@@ -207,6 +218,24 @@ describe('FEATURE: CopyExportBar', (): void => {
         { method: 'GET', url: 'v1/invoices/in_1', subdirectory: 'savings' },
         expect.any(AbortSignal)
       );
+    });
+
+    it('WHEN the URL holds a lone brace THEN still hints that it is template', async (): Promise<void> => {
+      await enterUrl('/v1/invoices/{id');
+
+      expect(textAt(fixture, '.bar__reason')).toBe(
+        "Kept as the template: matches the wizard's route target. Replace the braces to match a merge run with a real URL."
+      );
+    });
+
+    it('WHEN Copy is pressed while no hashed name is known THEN confirms with the plain name', async (): Promise<void> => {
+      await enterUrl('');
+      const copy = await loader.getHarness(MatButtonHarness.with({ text: 'Copy' }));
+
+      await copy.click();
+      const snackBar = await rootLoader.getHarness(MatSnackBarHarness);
+
+      expect(await snackBar.getMessage()).toBe('Copied Invoice.json');
     });
 
     it('WHEN the URL is emptied THEN blocks Export and asks for a URL', async (): Promise<void> => {

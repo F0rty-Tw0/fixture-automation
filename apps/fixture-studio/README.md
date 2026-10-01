@@ -15,7 +15,7 @@ One page, six steps on a rail. Each step's heading folds it away; the active ste
 5. **Missing & broken values** — the missing paths, grouped by their first key, and the present values that are broken (path, value, reason). Fix broken values (AI fill rewrites them) or keep them. Then **Continue to AI fill**.
 6. **Fill with AI** — an optional extra prompt (scenario), then fill; the answer streams into the log as one block, and the result is merged and validated against the schema.
 
-Every step keeps its state per endpoint. Copy or Export (download) any document. The final fixture (merged, or generated from the schema when the fill fails) can also be exported under the CLI merge's hashed file name: turn on **Name like the CLI merge**, replace each `{…}` in the URL with a real value, and add a subdirectory if the CLI used one (remembered in this browser). Long lists, logs, and editors scroll inside their own box.
+Every step keeps its state per endpoint. Copy or Export (download) any document. The final fixture (merged, or generated from the schema when the fill fails) can also be exported under the CLI merge's hashed file name: turn on **Name like the CLI merge** and add a subdirectory if the CLI used one (remembered in this browser). The URL starts as the endpoint's path template: left untouched, the name matches the wizard's route-target flow; with each `{…}` replaced by a real value, it matches a merge run (or the wizard's schema-name flow) given that URL. Long lists, logs, and editors scroll inside their own box.
 
 Built with Angular 22 (zoneless, signals, signal forms), Angular Material 3, and CodeMirror 6 for the code and diff views.
 

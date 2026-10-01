@@ -24,6 +24,26 @@ const bigObject = (extra: Record<string, unknown>): string => {
   return JSON.stringify(object, null, 2);
 };
 
+type Account = {
+  readonly id: string;
+  readonly currency: string;
+  readonly balance: number;
+  readonly buying_power: number;
+};
+
+const accountOf = (index: number, buyingPower: number): Account => {
+  const account: Account = { id: `acc_${index}`, currency: 'DKK', balance: 1.02, buying_power: buyingPower };
+
+  return account;
+};
+
+/** Twenty thousand accounts: far too many scattered edits for one line diff to finish within its timeout. */
+const accountsJson = (buyingPower: number): string => {
+  const accounts = Array.from({ length: 20_000 }, (_: unknown, index: number): Account => accountOf(index, buyingPower));
+
+  return JSON.stringify({ accounts }, null, 2);
+};
+
 describe('FEATURE: line diff', (): void => {
   it('GIVEN equal texts WHEN diffed THEN returns no changes', (): void => {
     expect(lineDiff('{\n  "a": 1\n}', '{\n  "a": 1\n}')).toStrictEqual([]);
@@ -48,5 +68,20 @@ describe('FEATURE: line diff', (): void => {
 
   it('GIVEN a line removed WHEN diffed THEN marks the removed line', (): void => {
     expect(editsOf('a\nb\nc', 'a\nc')).toStrictEqual([{ removed: 'b\n', added: '' }]);
+  });
+
+  it('GIVEN thousands of scattered edits WHEN diffed THEN each stays on its own line instead of one block', (): void => {
+    const a = accountsJson(0);
+    const b = accountsJson(50_000);
+
+    const edits = editsOf(a, b);
+    const isOneLine = (edit: Edit): boolean => {
+      const text = `${edit.removed}${edit.added}`;
+
+      return !text.includes('\n');
+    };
+
+    expect(edits).toHaveLength(20_000);
+    expect(edits.every(isOneLine)).toBe(true);
   });
 });

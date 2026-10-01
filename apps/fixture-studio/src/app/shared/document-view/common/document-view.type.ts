@@ -17,6 +17,12 @@ export type ChangedLines = {
   readonly to: number;
 };
 
+/** A line equal in both documents of a diff, by its 0-based index in each. */
+export type LineAnchor = {
+  readonly a: number;
+  readonly b: number;
+};
+
 /** One change on the overview ruler beside a diff: its offset and size as percentages of the document, and its first line. */
 export type ChangeMark = {
   readonly top: number;

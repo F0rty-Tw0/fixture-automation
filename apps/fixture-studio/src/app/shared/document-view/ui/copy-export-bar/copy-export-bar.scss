@@ -26,10 +26,18 @@
 
 .bar__actions {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: var(--fs-space-2);
   align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
   margin-left: auto;
+}
+
+.bar__buttons {
+  display: flex;
+  gap: var(--fs-space-2);
 }
 
 .bar__hash {

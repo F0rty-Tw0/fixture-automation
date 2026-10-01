@@ -4,8 +4,10 @@
   @if (hashedExport()) {
   <mat-slide-toggle [checked]="isHashed()" class="bar__hash" (change)="isHashed.set($event.checked)">Hash filename</mat-slide-toggle>
   }
-  <button mat-button type="button" (click)="copy()">Copy</button>
-  <button [disabled]="!canExport()" mat-stroked-button type="button" (click)="download()">Export</button>
+  <span class="bar__buttons">
+    <button mat-button type="button" (click)="copy()">Copy</button>
+    <button [disabled]="!canExport()" mat-stroked-button type="button" (click)="download()">Export</button>
+  </span>
 </span>
 @if (hashedExport(); as hashed) { @if (isHashed()) {
 <div class="bar__naming">

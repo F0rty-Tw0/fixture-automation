@@ -3,7 +3,7 @@ import type { Signal } from '@angular/core';
 
 import type { MergeResult } from '@fixture-automation/fixture-studio-api/contract';
 
-import type { FixtureDocument, LineHighlight } from '../../../shared/document-view/common/document-view.type.ts';
+import type { FixtureDocument, HashedExport, LineHighlight } from '../../../shared/document-view/common/document-view.type.ts';
 import { DocumentView } from '../../../shared/document-view/ui/document-view/document-view.ts';
 import { jsonDocument } from '../../../shared/document-view/utils/json-document.util.ts';
 import type { FilledPath } from '../../../workbench/common/ai-fill.type.ts';
@@ -24,6 +24,8 @@ export class MergeResultView {
   public readonly highlights = input<LineHighlight[]>([]);
   public readonly original = input<string | undefined>(undefined);
   public readonly originalHighlights = input<LineHighlight[]>([]);
+  /** Lets the fixture be exported under the CLI merge's hashed file name. */
+  public readonly hashedExport = input<HashedExport | undefined>(undefined);
 
   protected readonly document: Signal<FixtureDocument> = computed(() => {
     return jsonDocument('Merged fixture', this.fileName(), this.merge().mergedJson);

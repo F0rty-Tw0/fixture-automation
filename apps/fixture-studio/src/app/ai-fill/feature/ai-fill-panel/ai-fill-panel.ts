@@ -12,7 +12,7 @@ import { MatSelect } from '@angular/material/select';
 import type { ApiErrorBody } from '@fixture-automation/fixture-studio-api/contract';
 
 import { ApiErrorNotice } from '../../../shared/api-error/ui/api-error-notice/api-error-notice.ts';
-import type { FixtureDocument } from '../../../shared/document-view/common/document-view.type.ts';
+import type { FixtureDocument, HashedExport } from '../../../shared/document-view/common/document-view.type.ts';
 import { DocumentView } from '../../../shared/document-view/ui/document-view/document-view.ts';
 import { jsonDocument } from '../../../shared/document-view/utils/json-document.util.ts';
 import { NoticeList } from '../../../shared/notice/ui/notice-list/notice-list.ts';
@@ -21,6 +21,7 @@ import { FillOutcome } from '../../../workbench/domain-logic/fill-outcome.servic
 import { FixHighlights } from '../../../workbench/domain-logic/fix-highlights.service.ts';
 import { FixtureAiFill } from '../../../workbench/domain-logic/fixture-ai-fill.service.ts';
 import { FixtureComparison } from '../../../workbench/domain-logic/fixture-comparison.service.ts';
+import { FixtureExportNaming } from '../../../workbench/domain-logic/fixture-export-naming.service.ts';
 import { OnDeviceAi } from '../../../workbench/domain-logic/on-device-ai.service.ts';
 import { AI_AVAILABILITY_LABELS } from '../../common/ai-availability.const.ts';
 import { GeneratedFallback } from '../../ui/generated-fallback/generated-fallback.ts';
@@ -65,6 +66,7 @@ export class AiFillPanel {
   protected readonly highlights = inject(FixHighlights);
 
   private readonly comparison = inject(FixtureComparison);
+  private readonly exportNaming = inject(FixtureExportNaming);
 
   protected readonly availabilityLabel = computed(() => {
     const availability = this.onDevice.chromeAvailability.value() ?? 'unavailable';
@@ -95,6 +97,14 @@ export class AiFillPanel {
     if (json === undefined) return undefined;
 
     return jsonDocument('Generated from the schema', `${this.view().schemaName}.json`, json);
+  });
+
+  /** The final fixture, merged or generated, can be exported under the name the CLI merge gives this endpoint. */
+  protected readonly hashedExport = computed((): HashedExport => {
+    const view = this.view();
+    const hashedExport: HashedExport = { method: view.method, path: view.path, naming: this.exportNaming };
+
+    return hashedExport;
   });
 
   protected readonly filledDocument = computed((): FixtureDocument | undefined => {

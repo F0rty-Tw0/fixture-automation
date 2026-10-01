@@ -1,4 +1,4 @@
-<fs-copy-export-bar [content]="document().content" [fileName]="document().fileName" />
+<fs-copy-export-bar [content]="document().content" [fileName]="document().fileName" [hashedExport]="hashedExport()" />
 @if (original() !== undefined) {
 <div class="document__sides">
   <span>Existing fixture</span>

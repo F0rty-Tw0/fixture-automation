@@ -9,7 +9,7 @@ import {
   FIX_OUTCOME_MARKERS,
   FIX_OUTCOME_ORDER
 } from '../../common/document-view.const.ts';
-import type { FixOrigin, FixOutcome, FixtureDocument, LineHighlight } from '../../common/document-view.type.ts';
+import type { FixOrigin, FixOutcome, FixtureDocument, HashedExport, LineHighlight } from '../../common/document-view.type.ts';
 import { CodeView } from '../code-view/code-view.ts';
 import { CopyExportBar } from '../copy-export-bar/copy-export-bar.ts';
 
@@ -28,6 +28,8 @@ export class DocumentView {
   public readonly highlights = input<LineHighlight[]>([]);
   /** Lines of `original` to mark, shown only in a diff. */
   public readonly originalHighlights = input<LineHighlight[]>([]);
+  /** When set, the file bar can also export under the CLI merge's hashed file name. */
+  public readonly hashedExport = input<HashedExport | undefined>(undefined);
 
   protected readonly outcomeLabels = FIX_OUTCOME_LABELS;
   protected readonly originLabels = FIX_ORIGIN_LABELS;

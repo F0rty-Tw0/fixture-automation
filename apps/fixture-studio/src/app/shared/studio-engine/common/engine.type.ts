@@ -11,6 +11,8 @@ import type {
   DiffResult,
   EnvelopeBody,
   EnvelopeResult,
+  FixtureNameQuery,
+  FixtureNameResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -42,6 +44,8 @@ export type StudioEngine = {
   /** Names the fixture's top-level keys that could hold the payload, best match first. */
   envelope(specId: string, body: EnvelopeBody, call: EngineCall): Promise<EnvelopeResult>;
   merge(specId: string, body: MergeBody, call: EngineCall): Promise<MergeResult>;
+  /** The file name the CLI merge writes for an endpoint URL, optionally under a subdirectory. */
+  fixtureName(query: FixtureNameQuery, call: EngineCall): Promise<FixtureNameResult>;
   aiPrompt(specId: string, body: AiPromptBody, call: EngineCall): Promise<AiPromptResult>;
   cliModels(tool: AiTool, call: EngineCall): Promise<AiModelsResult>;
   /** Which CLIs are installed where the engine runs, and whether a mock answers instead of them. */

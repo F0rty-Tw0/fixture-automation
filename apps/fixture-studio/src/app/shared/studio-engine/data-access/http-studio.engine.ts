@@ -13,6 +13,8 @@ import type {
   DiffResult,
   EnvelopeBody,
   EnvelopeResult,
+  FixtureNameQuery,
+  FixtureNameResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -24,7 +26,7 @@ import type {
 import { untilAborted } from './http-studio-call.ts';
 import { readFillStream } from './http-studio-stream.ts';
 import type { EngineCall, EngineStreamCall, StudioEngine } from '../common/engine.type.ts';
-import { CLI_MODELS_URL, CLI_TOOLS_URL, SPECS_URL } from '../common/studio-api.const.ts';
+import { CLI_MODELS_URL, CLI_TOOLS_URL, FIXTURE_NAME_URL, SPECS_URL } from '../common/studio-api.const.ts';
 import { specActionUrl } from '../utils/api-route.util.ts';
 
 /** `StudioEngine` backed by the Fixture Studio API under `/api`. */
@@ -50,6 +52,13 @@ export class HttpStudioEngine implements StudioEngine {
 
   public async merge(specId: string, body: MergeBody, call: EngineCall): Promise<MergeResult> {
     return untilAborted(this.http.post<MergeResult>(specActionUrl(specId, 'merge'), body), call.signal);
+  }
+
+  public async fixtureName(query: FixtureNameQuery, call: EngineCall): Promise<FixtureNameResult> {
+    const subdirectory = query.subdirectory ?? '';
+    const params = { method: query.method, url: query.url, subdirectory };
+
+    return untilAborted(this.http.get<FixtureNameResult>(FIXTURE_NAME_URL, { params }), call.signal);
   }
 
   public async aiPrompt(specId: string, body: AiPromptBody, call: EngineCall): Promise<AiPromptResult> {

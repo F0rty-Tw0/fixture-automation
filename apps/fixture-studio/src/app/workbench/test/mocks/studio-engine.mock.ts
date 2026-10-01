@@ -9,6 +9,7 @@ export const studioEngineMock = (): StudioEngine => {
     diff: vi.fn(),
     envelope: vi.fn(),
     merge: vi.fn(),
+    fixtureName: vi.fn(),
     aiPrompt: vi.fn(),
     cliModels: vi.fn(),
     cliTools: vi.fn(),

@@ -152,6 +152,12 @@ describe('FEATURE: CopyExportBar', (): void => {
       expect(textAt(fixture, '.bar__file')).toBe('Invoice.json');
     });
 
+    it('WHEN rendered THEN offers Hash filename beside Copy and Export', async (): Promise<void> => {
+      const toggle = await loader.getHarness(MatSlideToggleHarness.with({ ancestor: '.bar__actions' }));
+
+      expect(await toggle.getLabelText()).toBe('Hash filename');
+    });
+
     describe('WHEN hashed naming is turned on', (): void => {
       beforeEach(async (): Promise<void> => {
         await turnOnHashing();

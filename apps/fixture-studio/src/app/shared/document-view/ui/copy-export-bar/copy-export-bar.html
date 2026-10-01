@@ -1,13 +1,14 @@
 <span class="bar__file">{{ shownFileName() }}</span>
 <span class="bar__size">{{ size() }}</span>
 <span class="bar__actions">
+  @if (hashedExport()) {
+  <mat-slide-toggle [checked]="isHashed()" class="bar__hash" (change)="isHashed.set($event.checked)">Hash filename</mat-slide-toggle>
+  }
   <button mat-button type="button" (click)="copy()">Copy</button>
   <button [disabled]="!canExport()" mat-stroked-button type="button" (click)="download()">Export</button>
 </span>
-@if (hashedExport(); as hashed) {
+@if (hashedExport(); as hashed) { @if (isHashed()) {
 <div class="bar__naming">
-  <mat-slide-toggle [checked]="isHashed()" (change)="isHashed.set($event.checked)">Name like the CLI merge</mat-slide-toggle>
-  @if (isHashed()) {
   <mat-form-field appearance="outline" class="bar__url" subscriptSizing="dynamic">
     <mat-label>{{ hashed.method }} URL</mat-label>
     <input #urlField [value]="url()" matInput name="url" (input)="url.set(urlField.value)" />
@@ -21,8 +22,8 @@
       name="subdirectory"
       (input)="rememberSubdirectory(subdirectoryField.value)" />
   </mat-form-field>
-  } @if (hashingNote(); as note) {
+  @if (hashingNote(); as note) {
   <p class="bar__reason" role="status">{{ note }}</p>
   }
 </div>
-}
+} }

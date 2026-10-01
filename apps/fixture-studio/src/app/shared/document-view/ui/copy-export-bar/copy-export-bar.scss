@@ -28,7 +28,13 @@
   display: flex;
   flex: none;
   gap: var(--fs-space-2);
+  align-items: center;
   margin-left: auto;
+}
+
+.bar__hash {
+  margin-right: var(--fs-space-2);
+  font-size: var(--fs-text-sm);
 }
 
 .bar__naming {

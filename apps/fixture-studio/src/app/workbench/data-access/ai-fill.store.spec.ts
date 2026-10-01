@@ -1,7 +1,7 @@
 import type { Provider } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import type { AiFillBody, AiFillResultEvent, DiffBody, MergeBody } from '@fixture-automation/fixture-studio-api/contract';
+import type { AiFillBody, AiFillResultEvent, DiffBody, MergeBody, MergeResult } from '@fixture-automation/fixture-studio-api/contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AiFillStore } from './ai-fill.store.ts';
@@ -42,6 +42,11 @@ const EXPECTED_FILL: AiFillBody = {
 const OTHER_FIXTURE = { id: 'in_2' };
 const OTHER_DIFF: DiffBody = { endpointId: 'GET /v1/invoices', fixture: OTHER_FIXTURE, requiredOnly: false };
 const OTHER_COMPARE: DiffRequest = { specId: 'spec-1', body: OTHER_DIFF };
+
+/** Lets awaited promises resume without a macrotask, so no effect runs and no resource notices a new request. */
+const flushMicrotasks = async (): Promise<void> => {
+  for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+};
 
 describe('FEATURE: AI fill store', (): void => {
   let engine: StudioEngine;
@@ -172,7 +177,58 @@ describe('FEATURE: AI fill store', (): void => {
       expect(store.merged()).toBeUndefined();
     });
 
-    it('WHEN a re-run fails after a merge THEN keeps the last answer and merge', async (): Promise<void> => {
+    it('WHEN started again after a merge THEN drops the last answer and merge at once', async (): Promise<void> => {
+      resolveFill(RESULT);
+      await settle();
+
+      store.start({ ...CLI_RUN });
+
+      expect(store.answer()).toBeUndefined();
+      expect(store.merged()).toBeUndefined();
+      expect(store.shownAnswer()).toBeUndefined();
+    });
+
+    describe('AND its merge is still in flight', (): void => {
+      let resolveMerge: (merge: MergeResult) => void;
+
+      beforeEach(async (): Promise<void> => {
+        const pendingMerge = async (): Promise<MergeResult> => {
+          return new Promise<MergeResult>((resolve) => {
+            resolveMerge = resolve;
+          });
+        };
+        const expectMergeAsked = (): void => {
+          TestBed.tick();
+          expect(engine.merge).toHaveBeenCalled();
+        };
+
+        vi.mocked(engine.merge).mockImplementationOnce(pendingMerge);
+        resolveFill(RESULT);
+        await vi.waitFor(expectMergeAsked);
+      });
+
+      it.each([
+        ['a new run starts', (): void => store.start({ ...CLI_RUN })],
+        ['the run is cancelled', (): void => store.cancel()],
+        ['the compare changes', (): void => TestBed.inject(ComparisonStore).compare(OTHER_COMPARE)]
+      ])('WHEN %s before it lands THEN never shows it', async (_label, leave): Promise<void> => {
+        leave();
+        resolveMerge(MERGE_RESULT_STUB);
+        await flushMicrotasks();
+
+        expect(store.merged()).toBeUndefined();
+      });
+    });
+
+    it('WHEN the last answer lands after a new run started THEN never shows it', async (): Promise<void> => {
+      store.start({ ...CLI_RUN });
+      resolveFill(RESULT);
+      await flushMicrotasks();
+
+      expect(store.answer()).toBeUndefined();
+    });
+
+    it('WHEN a re-run fails after a merge THEN shows nothing of the earlier run', async (): Promise<void> => {
       resolveFill(RESULT);
       await settle();
       vi.mocked(engine.cliFill).mockRejectedValueOnce(new Error('claude exited with code 1.'));
@@ -181,8 +237,8 @@ describe('FEATURE: AI fill store', (): void => {
       await settle();
 
       expect(store.run.status()).toBe('error');
-      expect(store.answer()).toStrictEqual(RESULT);
-      expect(store.merged()).toStrictEqual({ answer: RESULT, merge: MERGE_RESULT_STUB });
+      expect(store.answer()).toBeUndefined();
+      expect(store.merged()).toBeUndefined();
     });
   });
 

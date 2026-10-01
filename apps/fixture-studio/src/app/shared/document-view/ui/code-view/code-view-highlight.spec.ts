@@ -2,7 +2,7 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { highlightExtension, showHighlights } from './code-view-highlight.ts';
+import { fixAtLine, highlightExtension, showHighlights } from './code-view-highlight.ts';
 import { rangeRectsMock } from '../../../../test/mocks/browser.mock.ts';
 import type { LineHighlight } from '../../common/document-view.type.ts';
 
@@ -59,9 +59,14 @@ describe('FEATURE: code view line highlights', (): void => {
 
     it('WHEN rendered THEN the glyph names the outcome too, so it does not rest on colour alone', (): void => {
       const markers = view.dom.querySelectorAll('.cm-fixMarker');
-      const glyphs = Array.from(markers, (marker: Element): string => `${marker.textContent}:${marker.getAttribute('title')}`);
+      const glyphs = Array.from(markers, (marker: Element): string | null => marker.textContent);
 
-      expect(glyphs).toStrictEqual([`+S:${CUSTOMER.label}`, `+×:${CUSTOMER_ID.label}`, `!A:${PAST_THE_END.label}`]);
+      expect(glyphs).toStrictEqual(['+S', '+×', '!A']);
+    });
+
+    it('WHEN a line is looked up THEN gives the narrowest highlight on it', (): void => {
+      expect(fixAtLine(view.state, 3)).toBe(CUSTOMER_ID);
+      expect(fixAtLine(view.state, 1)).toBeUndefined();
     });
 
     it('WHEN the document is replaced THEN drops them', (): void => {

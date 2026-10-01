@@ -265,3 +265,39 @@ fs-code-view .cm-editor .cm-fixMarker {
   color: var(--fs-fix);
   cursor: help;
 }
+
+// Fix tooltip: shown on hovering a highlighted line or its gutter glyph. It says what the mark means, why the value
+// was broken (`must be string`), and what the fixture held, so a lone `0` marked broken explains itself.
+fs-code-view .cm-editor .cm-tooltip.cm-fixTooltip {
+  display: grid;
+  gap: var(--fs-space-1);
+  max-width: 28rem;
+  padding: var(--fs-space-2) var(--fs-space-3);
+  font-family: var(--fs-font-sans);
+  font-size: var(--fs-text-sm);
+  line-height: 1.4;
+  color: var(--fs-ink);
+  background: var(--fs-surface);
+  border: 1px solid var(--fs-line-strong);
+  border-left: 3px solid var(--fs-fix);
+  border-radius: var(--fs-radius-sm);
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--fs-ink) 18%, transparent);
+}
+
+fs-code-view .cm-editor .cm-fixTooltip-label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+fs-code-view .cm-editor .cm-fixTooltip-found {
+  color: var(--fs-ink-muted);
+}
+
+fs-code-view .cm-editor .cm-fixTooltip-found code {
+  padding: 0 var(--fs-space-1);
+  font-family: var(--fs-font-mono);
+  color: var(--fs-ink);
+  overflow-wrap: anywhere;
+  background: var(--fs-surface-sunken);
+  border-radius: var(--fs-radius-sm);
+}

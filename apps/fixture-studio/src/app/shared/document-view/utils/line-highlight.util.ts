@@ -6,6 +6,9 @@ import type { ChangedLines, LineHighlight, PathHighlight } from '../common/docum
 
 type PathLines = Map<string, ChangedLines>;
 
+/** Everything a highlight carries onto its lines; the path becomes the label. */
+type HighlightMarks = Omit<PathHighlight, 'path'>;
+
 const childEntries = (value: unknown): [string, unknown][] => {
   if (Array.isArray(value)) return value.map((item: unknown, index: number): [string, unknown] => [String(index), item]);
 
@@ -49,12 +52,12 @@ const jsonPathLines = (content: string): PathLines => {
   return lines;
 };
 
-const labelOf = (highlight: PathHighlight): string => {
-  const outcome = FIX_OUTCOME_LABELS[highlight.outcome];
+const labelOf = (path: string, marks: HighlightMarks): string => {
+  const outcome = FIX_OUTCOME_LABELS[marks.outcome];
 
-  if (highlight.outcome === 'broken') return `${highlight.path} · ${outcome}`;
+  if (marks.outcome === 'broken') return `${path} · ${outcome}`;
 
-  return `${highlight.path} · ${FIX_ORIGIN_LABELS[highlight.origin]} · ${outcome}`;
+  return `${path} · ${FIX_ORIGIN_LABELS[marks.origin]} · ${outcome}`;
 };
 
 /**
@@ -72,8 +75,9 @@ export const lineHighlights = (content: string, highlights: PathHighlight[]): Li
 
     if (span === undefined || segments.length === 0) return [];
 
-    const label = labelOf(highlight);
-    const line: LineHighlight = { ...span, origin: highlight.origin, outcome: highlight.outcome, label };
+    const { path, ...marks } = highlight;
+    const label = labelOf(path, marks);
+    const line: LineHighlight = { ...span, ...marks, label };
 
     return [line];
   };

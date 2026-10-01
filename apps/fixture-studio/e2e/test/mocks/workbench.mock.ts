@@ -56,6 +56,21 @@ export const aiFillMock = (events: AiFillEvent[] = FILL_EVENTS_STUB): RecordingR
   return recording;
 };
 
+/** Answers the first `ai-fill` at once; a later one falls through to the next route, e.g. a live stream left open. */
+export const aiFillOnceMock = (events: AiFillEvent[] = FILL_EVENTS_STUB): RecordingRoute => {
+  const first = aiFillMock(events);
+
+  const answerFirstOnly = async (route: Route): Promise<void> => {
+    if (first.bodies.length > 0) return route.fallback();
+
+    return first.handler(route);
+  };
+
+  const recording: RecordingRoute = { handler: answerFirstOnly, bodies: first.bodies };
+
+  return recording;
+};
+
 /** Answers each compare with the diff of the endpoint its body names, so every endpoint's steps get their own result. */
 export const diffByEndpointMock = (results: DiffByEndpoint = DIFF_BY_ENDPOINT_STUB): RecordingRoute => {
   const bodies: unknown[] = [];

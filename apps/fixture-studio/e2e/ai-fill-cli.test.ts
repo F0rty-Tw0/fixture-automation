@@ -3,7 +3,7 @@ import type { Download } from '@playwright/test';
 import { expect, test } from './ai-fill.fixture.ts';
 import { AI_FILL_ROUTE, MERGE_ROUTE } from './test/common/playwright.const.ts';
 import type { AiFillOptions } from './test/common/playwright.type.ts';
-import { aiFillMock, mergeMock } from './test/mocks/workbench.mock.ts';
+import { aiFillMock, aiFillOnceMock, mergeMock } from './test/mocks/workbench.mock.ts';
 import {
   cancelFill,
   chromeOptIn,
@@ -142,6 +142,26 @@ test.describe('FEATURE: AI fill with the local CLI', () => {
     await test.step('AND the CLI ends the stream', async (): Promise<void> => cliStream.end());
 
     await test.step('THEN the merge is valid', async (): Promise<void> => expectValidMerge(page, FILLED_COUNT));
+  });
+
+  test('GIVEN a merged fill, filling again drops it while the new run works', async ({ cliStream, page }): Promise<void> => {
+    const routes = [apiRoute(AI_FILL_ROUTE, aiFillOnceMock()), apiRoute(MERGE_ROUTE, mergeMock())];
+    const options: AiFillOptions = { routes };
+
+    await test.step('WHEN the AI fill step of the compared invoice is opened', async (): Promise<void> =>
+      openInvoiceAiFill(page, options));
+
+    await test.step('AND the missing values are filled', async (): Promise<void> => fillMissingValues(page));
+
+    await test.step('THEN the merge is valid', async (): Promise<void> => expectValidMerge(page, FILLED_COUNT));
+
+    await test.step('WHEN the missing values are filled again', async (): Promise<void> => fillMissingValues(page));
+
+    await test.step('AND the new run reports progress', async (): Promise<void> => cliStream.write(PROGRESS_LINE));
+
+    await test.step('THEN its progress is logged', async (): Promise<void> => expectLogLine(page, PROGRESS_EVENT_STUB.text));
+
+    await test.step('AND the earlier merge is gone while it works', async (): Promise<void> => expectNoMergeResult(page));
   });
 
   test('GIVEN a running CLI fill, cancel aborts its request', async ({ cliStream, page }): Promise<void> => {

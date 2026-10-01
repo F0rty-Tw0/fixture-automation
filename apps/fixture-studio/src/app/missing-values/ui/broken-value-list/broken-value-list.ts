@@ -3,7 +3,7 @@ import type { Signal } from '@angular/core';
 
 import type { BrokenValue } from '@fixture-automation/fixture-studio-api/contract';
 
-import { valuePreview } from '../../utils/value-preview.util.ts';
+import { valuePreview } from '../../../shared/json/utils/value-preview.util.ts';
 
 /** A value longer than this is cut in the list; the row's title still shows it up to the same cut. */
 const PREVIEW_LIMIT = 120;

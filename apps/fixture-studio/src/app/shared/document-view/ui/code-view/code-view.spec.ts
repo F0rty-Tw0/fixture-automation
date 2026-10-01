@@ -169,11 +169,19 @@ describe('FEATURE: CodeView', (): void => {
       await fixture.whenStable();
     });
 
-    it('WHEN rendered THEN marks the value by its outcome and names it in the tooltip', (): void => {
+    it('WHEN rendered THEN marks the value by its outcome', (): void => {
       const line = highlightedLine('.cm-line.cm-fix-ai');
 
       expect(line.textContent).toContain('"total": 1200');
-      expect(line.title).toBe('total · Was missing · Filled by AI');
+    });
+
+    it('WHEN its line is hovered THEN names it in the tooltip', (): void => {
+      const line = highlightedLine('.cm-line.cm-fix-ai');
+      const move = new MouseEvent('mousemove', { bubbles: true });
+
+      line.dispatchEvent(move);
+
+      expect(highlightedLine('.cm-fixTooltip').textContent).toBe('total · Was missing · Filled by AI');
     });
 
     it('WHEN rendered THEN puts the origin glyph in the gutter beside it', (): void => {

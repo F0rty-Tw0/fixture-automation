@@ -1,5 +1,5 @@
 import { RangeSet, StateEffect, StateField } from '@codemirror/state';
-import type { Extension, Range, Text, Transaction, TransactionSpec } from '@codemirror/state';
+import type { EditorState, Extension, Range, Text, Transaction, TransactionSpec } from '@codemirror/state';
 import { Decoration, EditorView, GutterMarker, gutter } from '@codemirror/view';
 import type { DecorationSet } from '@codemirror/view';
 
@@ -9,9 +9,10 @@ import type { LineHighlight } from '../../common/document-view.type.ts';
 type HighlightState = {
   readonly lines: DecorationSet;
   readonly markers: RangeSet<GutterMarker>;
+  readonly byLine: Map<number, LineHighlight>;
 };
 
-/** The origin glyph beside a highlighted value's first line, coloured by its outcome and titled like the line. */
+/** The origin glyph beside a highlighted value's first line, coloured by its outcome; hovering it shows the tooltip. */
 class FixMarker extends GutterMarker {
   private readonly highlight: LineHighlight;
 
@@ -29,7 +30,6 @@ class FixMarker extends GutterMarker {
 
     marker.className = `cm-fixMarker cm-fix-${this.highlight.outcome}`;
     marker.textContent = `${FIX_ORIGIN_MARKERS[this.highlight.origin]}${FIX_OUTCOME_MARKERS[this.highlight.outcome]}`;
-    marker.title = this.highlight.label;
 
     return marker;
   }
@@ -37,7 +37,7 @@ class FixMarker extends GutterMarker {
 
 const NO_MARKERS = RangeSet.of<GutterMarker>([]);
 
-const NO_HIGHLIGHTS: HighlightState = { lines: Decoration.none, markers: NO_MARKERS };
+const NO_HIGHLIGHTS: HighlightState = { lines: Decoration.none, markers: NO_MARKERS, byLine: new Map() };
 
 const setHighlights = StateEffect.define<LineHighlight[]>();
 
@@ -70,8 +70,7 @@ const highlightStateOf = (doc: Text, highlights: LineHighlight[]): HighlightStat
 
   for (const [number, highlight] of byLine) {
     const { from } = doc.line(number);
-    const attributes = { title: highlight.label };
-    const decoration = Decoration.line({ class: `cm-fix cm-fix-${highlight.outcome}`, attributes });
+    const decoration = Decoration.line({ class: `cm-fix cm-fix-${highlight.outcome}` });
 
     lines.push(decoration.range(from));
 
@@ -84,7 +83,7 @@ const highlightStateOf = (doc: Text, highlights: LineHighlight[]): HighlightStat
 
   const lineSet = Decoration.set(lines, true);
   const markerSet = RangeSet.of(markers, true);
-  const state: HighlightState = { lines: lineSet, markers: markerSet };
+  const state: HighlightState = { lines: lineSet, markers: markerSet, byLine };
 
   return state;
 };
@@ -112,6 +111,13 @@ const highlightField = StateField.define<HighlightState>({
 });
 
 export const highlightExtension: Extension = highlightField;
+
+/** The highlight shown on a 1-based line, the narrowest where values nest; none when the editor lacks highlights. */
+export const fixAtLine = (state: EditorState, line: number): LineHighlight | undefined => {
+  const highlights = state.field(highlightField, false);
+
+  return highlights?.byLine.get(line);
+};
 
 /** A transaction that shows `highlights` on the editor's current (or, dispatched with a new document, next) text. */
 export const showHighlights = (highlights: LineHighlight[]): TransactionSpec => {

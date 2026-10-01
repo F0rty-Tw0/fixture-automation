@@ -110,14 +110,14 @@ describe('FEATURE: fill outcome', (): void => {
       expect(outcome.fallbackJson()).toBe(DIFF_RESULT_STUB.completeJson);
     });
 
-    it('WHEN an earlier fill was merged THEN keeps showing that merge instead', async (): Promise<void> => {
+    it('WHEN an earlier fill was merged THEN offers the schema-complete fixture, not that merge', async (): Promise<void> => {
       vi.mocked(engine.cliFill).mockResolvedValueOnce(FILL_RESULT_STUB).mockRejectedValue(CLI_FAILURE);
       vi.mocked(engine.merge).mockResolvedValue(MERGE_RESULT_STUB);
       await runFill();
 
       await runFill();
 
-      expect(outcome.fallbackJson()).toBeUndefined();
+      expect(outcome.fallbackJson()).toBe(DIFF_RESULT_STUB.completeJson);
     });
   });
 
@@ -139,17 +139,16 @@ describe('FEATURE: fill outcome', (): void => {
       await runFill();
     });
 
-    it('WHEN read THEN the sources still belong to the merge on screen', (): void => {
-      expect(outcome.filledPaths()).toStrictEqual([{ path: 'status', source: 'sampler' }]);
+    it('WHEN read THEN the sources are the re-run answer\'s, not the earlier merge\'s', (): void => {
+      expect(outcome.filledPaths()).toStrictEqual([{ path: 'status', source: 'ai' }]);
     });
 
-    it('WHEN read THEN the notes and filled values still belong to the merge on screen', (): void => {
-      expect(outcome.notes()).toStrictEqual(['The model left status out.']);
-      expect(outcome.filledJson()).toBe('{\n  "status": "open"\n}\n');
+    it('WHEN read THEN the earlier notes are gone', (): void => {
+      expect(outcome.notes()).toStrictEqual([]);
     });
   });
 
-  it('GIVEN an answer whose merge fails and no earlier merge WHEN read THEN still shows that answer', async (): Promise<void> => {
+  it('GIVEN an answer whose merge fails WHEN read THEN still shows that answer', async (): Promise<void> => {
     vi.mocked(engine.cliFill).mockResolvedValue(SALVAGED);
     vi.mocked(engine.merge).mockRejectedValue(new Error('merge failed'));
 

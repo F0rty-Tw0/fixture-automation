@@ -150,12 +150,12 @@ describe('FEATURE: AiFillPanel results', (): void => {
       expect(textsAt(fixture, '.sources__source')).toStrictEqual(['Filled by AI']);
     });
 
-    it('WHEN a re-run fails THEN keeps the merged fixture and adds the error', async (): Promise<void> => {
+    it('WHEN a re-run fails THEN drops the earlier merge and offers the fallback beside the error', async (): Promise<void> => {
       fillWith(CLI_ERROR);
       await render();
 
-      expect(textAt(fixture, '.merge__badge')).toBe('Valid against the schema · 1 values filled');
-      expect(region('Generated fallback')).toBeNull();
+      expect(hostOf(fixture).querySelector('.merge__badge')).toBeNull();
+      expect(region('Generated fallback')).not.toBeNull();
       expect(textAt(fixture, '.notice__message')).toBe('claude exited with code 1.');
     });
   });

@@ -13,6 +13,7 @@ import {
   compareWithSchema,
   expectComparing,
   expectEnvelope,
+  expectGlyphTooltip,
   expectHighlightLegend,
   expectHighlightedValue,
   expectInsertedLine,
@@ -49,6 +50,16 @@ const SENT_DIFF = {
   replacePlaceholders: true
 };
 
+/** The partial invoice holding the sampler's placeholder `0` that `BROKEN_AMOUNT_STUB` reports. */
+const PLACEHOLDER_INVOICE = { ...PARTIAL_INVOICE_STUB, amount_due: BROKEN_AMOUNT_STUB.value };
+
+/** The tooltip on the placeholder `amount_due: 0`: what the mark means, why, and what the fixture held. */
+const PLACEHOLDER_TOOLTIP = [
+  'amount_due · Broken in your fixture',
+  'Looks like a placeholder: the schema sampler writes this value when the spec gives no example',
+  'In your fixture: 0'
+];
+
 const BROKEN_TS_MESSAGE = "Line 5: a function call can't be read without running the file; use plain literals.";
 
 test.describe('FEATURE: compare an existing fixture', () => {
@@ -70,7 +81,7 @@ test.describe('FEATURE: compare an existing fixture', () => {
       expectHighlightLegend(page, ['S Generated from the schema', '+ Was missing']));
 
     await test.step('AND the memo the schema sampler filled is highlighted', async (): Promise<void> =>
-      expectHighlightedValue(page, 'invoice.complete.json', 'memo · Was missing · Generated from the schema'));
+      expectHighlightedValue(page, 'invoice.complete.json', '"memo"', ['memo · Was missing · Generated from the schema']));
   });
 
   test('GIVEN a TypeScript fixture, it is read as literals without running it', async ({ page }): Promise<void> => {
@@ -202,6 +213,19 @@ test.describe('FEATURE: compare an existing fixture', () => {
     await test.step('WHEN the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
 
     await test.step('THEN the AI fill step is open', async (): Promise<void> => expectAiFillOpen(page));
+  });
+
+  test('GIVEN a placeholder 0, hovering its gutter glyph says why it is broken', async ({ page }): Promise<void> => {
+    const routes = [apiRoute(DIFF_ROUTE, diffMock(BROKEN_DIFF_RESULT_STUB))];
+    const pasted = JSON.stringify(PLACEHOLDER_INVOICE);
+
+    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
+
+    await test.step('AND an invoice whose amount is the placeholder 0 is pasted', async (): Promise<void> =>
+      pasteFixture(page, pasted));
+
+    await test.step('THEN hovering its glyph shows, on top, why the 0 is broken', async (): Promise<void> =>
+      expectGlyphTooltip(page, '!', PLACEHOLDER_TOOLTIP));
   });
 
   test('GIVEN broken values, keeping them compares again without refilling them', async ({ page }): Promise<void> => {

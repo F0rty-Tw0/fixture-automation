@@ -144,13 +144,49 @@ export const expectHighlightLegend = async (page: Page, entries: string[]): Prom
   await expect(items).toHaveText(entries);
 };
 
-/**
- * A highlighted value's lines carry its meaning as a tooltip, e.g. `memo · Was missing · Generated from the schema`;
- * CodeMirror exposes no role for a line, so this reads the line element by its title.
- */
-export const expectHighlightedValue = async (page: Page, fileName: string, label: string): Promise<void> => {
-  const editor = compareStep(page).getByRole('textbox', { name: fileName, exact: true });
-  const line = editor.locator(`.cm-line[title="${label}"]`);
+/** The tooltip shown while a fix highlight is hovered; CodeMirror exposes no role for a tooltip, so this reads its class. */
+const fixTooltip = (page: Page): Locator => compareStep(page).locator('.cm-fixTooltip');
 
-  await expect(line).toBeVisible();
+/** Whether the tooltip is what shows just inside its top and bottom edges, so no scroller clips it and nothing covers it. */
+const isOnTop = (tooltip: Element): boolean => {
+  const box = tooltip.getBoundingClientRect();
+  const middle = box.left + box.width / 2;
+  const edges = [box.top + 2, box.bottom - 2];
+
+  const isTooltipAt = (y: number): boolean => {
+    const element = document.elementFromPoint(middle, y);
+
+    return element !== null && tooltip.contains(element);
+  };
+
+  return edges.every(isTooltipAt);
+};
+
+/** The tooltip reads `rows` and can be seen: its text alone would pass while a scroller clips it away. */
+const expectFixTooltip = async (page: Page, rows: string[]): Promise<void> => {
+  const tooltip = fixTooltip(page);
+  const tooltipOnTop = async (): Promise<boolean> => tooltip.evaluate(isOnTop);
+
+  await expect(tooltip.locator(':scope > *')).toHaveText(rows);
+  await expect.poll(tooltipOnTop).toBe(true);
+};
+
+/**
+ * Hovering a highlighted value shows its meaning in a tooltip, e.g. `memo · Was missing · Generated from the schema`;
+ * CodeMirror exposes no role for a line, so this finds the line by its highlight class.
+ */
+export const expectHighlightedValue = async (page: Page, fileName: string, text: string, rows: string[]): Promise<void> => {
+  const editor = compareStep(page).getByRole('textbox', { name: fileName, exact: true });
+  const line = editor.locator('.cm-line.cm-fix').filter({ hasText: text });
+
+  await line.hover();
+  await expectFixTooltip(page, rows);
+};
+
+/** Hovering a gutter glyph (`!` alone marks a value broken in the existing fixture) shows the same tooltip as its line. */
+export const expectGlyphTooltip = async (page: Page, glyph: string, rows: string[]): Promise<void> => {
+  const marker = compareStep(page).locator('.cm-fixMarker').getByText(glyph, { exact: true });
+
+  await marker.hover();
+  await expectFixTooltip(page, rows);
 };

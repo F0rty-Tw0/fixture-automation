@@ -15,7 +15,7 @@ export class FillOutcome {
   /** Plain-language notes from the answer on screen, e.g. why part of it came from the schema sampler. */
   public readonly notes: Signal<string[]> = computed(() => this.store.shownAnswer()?.notes ?? []);
 
-  /** The answer on screen as JSON: shown even when merging it failed and no earlier merge stands in. */
+  /** The answer on screen as JSON: shown even when merging it failed. */
   public readonly filledJson: Signal<string | undefined> = computed(() => {
     const answer = this.store.shownAnswer();
 
@@ -44,8 +44,8 @@ export class FillOutcome {
   });
 
   /**
-   * The diff's schema-complete fixture, offered when the fill or its merge failed, or the fill was cancelled, and no
-   * earlier merge of this compare is left to show: the user always leaves with a fixture.
+   * The diff's schema-complete fixture, offered when the fill or its merge failed, or the fill was cancelled, and this
+   * run has no merge to show: the user always leaves with a fixture.
    */
   public readonly fallbackJson: Signal<string | undefined> = computed(() => {
     const runStatus = this.store.run.status();

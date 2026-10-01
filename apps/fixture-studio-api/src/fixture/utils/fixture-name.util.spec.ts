@@ -36,6 +36,20 @@ describe('FEATURE: fixture file name', (): void => {
     });
   });
 
+  describe('GIVEN the path template, as the wizard route flow reuses it', (): void => {
+    it.each(['v1/invoices/{id}', '/v1/invoices/{id}'])(
+      'WHEN %s is named THEN matches the file the wizard route flow writes',
+      async (url): Promise<void> => {
+        const query: FixtureNameQuery = { method: 'GET', url };
+        const merged = await mergedFileName('GET,v1/invoices/{id}', undefined);
+
+        const result = fixtureFileName(query);
+
+        expect(result).toStrictEqual({ fileName: merged });
+      }
+    );
+  });
+
   describe('GIVEN a lowercase method and a blank subdirectory', (): void => {
     it('WHEN named THEN hashes like the uppercase method without a prefix', (): void => {
       const query: FixtureNameQuery = { method: 'get', url: 'v1/invoices', subdirectory: ' ' };

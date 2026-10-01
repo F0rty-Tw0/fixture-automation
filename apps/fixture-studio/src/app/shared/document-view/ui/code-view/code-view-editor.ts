@@ -9,6 +9,7 @@ import { classHighlighter } from '@lezer/highlight';
 import { basicSetup } from 'codemirror';
 
 import { highlightExtension } from './code-view-highlight.ts';
+import { fixTooltipExtension } from './code-view-tooltip.ts';
 import type { ChangedLines, CodeLanguage } from '../../common/document-view.type.ts';
 
 export const languageExtension = (language: CodeLanguage): Extension => {
@@ -19,7 +20,7 @@ export const languageExtension = (language: CodeLanguage): Extension => {
 
 /**
  * A read-only editor labelled for assistive tech; its language sits in `languageSlot` so it can be swapped later, and
- * it can show line highlights.
+ * it can show line highlights with a tooltip on hover.
  */
 export const editorExtensions = (label: string, language: CodeLanguage, languageSlot: Compartment): Extension[] => {
   const attributes = { 'aria-label': label, 'aria-readonly': 'true' };
@@ -30,7 +31,8 @@ export const editorExtensions = (label: string, language: CodeLanguage, language
     EditorState.readOnly.of(true),
     EditorView.contentAttributes.of(attributes),
     languageSlot.of(languageExtension(language)),
-    highlightExtension
+    highlightExtension,
+    fixTooltipExtension
   ];
 };
 

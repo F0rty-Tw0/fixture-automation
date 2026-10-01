@@ -94,6 +94,15 @@ describe('FEATURE: line highlights', (): void => {
       expect(lineHighlights(INVOICE_JSON, [highlight])).toStrictEqual([expected]);
     });
 
+    it('WHEN a highlight says why its value is broken THEN keeps the reason and the value for the tooltip', (): void => {
+      const highlight: PathHighlight = { path: 'id', origin: 'broken', outcome: 'broken', reason: 'must be integer', found: '"in_1"' };
+
+      const [line] = lineHighlights(INVOICE_JSON, [highlight]);
+
+      expect(line?.reason).toBe('must be integer');
+      expect(line?.found).toBe('"in_1"');
+    });
+
     it('WHEN a merge error names a JSON pointer THEN highlights the value it points at', (): void => {
       const highlight: PathHighlight = { path: '/lines/0/sku', origin: 'broken', outcome: 'unfilled' };
 

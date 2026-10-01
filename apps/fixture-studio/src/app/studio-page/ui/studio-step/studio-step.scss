@@ -141,9 +141,11 @@
   overflow-wrap: anywhere;
 }
 
+// `backwards`, not `both`: a transform animation still filling after it ends contains `position: fixed` children, so
+// CodeMirror's tooltips fall back to absolute and the diff's scroller cuts them off.
 .step__body {
   min-width: 0;
-  animation: step-in var(--fs-duration) var(--fs-ease-out) both;
+  animation: step-in var(--fs-duration) var(--fs-ease-out) backwards;
 }
 
 @keyframes step-in {

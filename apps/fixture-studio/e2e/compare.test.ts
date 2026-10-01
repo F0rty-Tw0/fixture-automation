@@ -13,6 +13,7 @@ import {
   compareWithSchema,
   expectComparing,
   expectEnvelope,
+  expectGlyphTooltip,
   expectHighlightLegend,
   expectHighlightedValue,
   expectInsertedLine,
@@ -49,6 +50,13 @@ const SENT_DIFF = {
   replacePlaceholders: true
 };
 
+/** The tooltip on the placeholder `amount_due: 0`: what the mark means, why, and what the fixture held. */
+const PLACEHOLDER_TOOLTIP = [
+  'amount_due · Broken in your fixture',
+  'Looks like a placeholder: the schema sampler writes this value when the spec gives no example',
+  'In your fixture: 0'
+];
+
 const BROKEN_TS_MESSAGE = "Line 5: a function call can't be read without running the file; use plain literals.";
 
 test.describe('FEATURE: compare an existing fixture', () => {
@@ -70,7 +78,7 @@ test.describe('FEATURE: compare an existing fixture', () => {
       expectHighlightLegend(page, ['S Generated from the schema', '+ Was missing']));
 
     await test.step('AND the memo the schema sampler filled is highlighted', async (): Promise<void> =>
-      expectHighlightedValue(page, 'invoice.complete.json', 'memo · Was missing · Generated from the schema'));
+      expectHighlightedValue(page, 'invoice.complete.json', '"memo"', ['memo · Was missing · Generated from the schema']));
   });
 
   test('GIVEN a TypeScript fixture, it is read as literals without running it', async ({ page }): Promise<void> => {
@@ -196,6 +204,9 @@ test.describe('FEATURE: compare an existing fixture', () => {
 
     await test.step('AND the fill counts both', async (): Promise<void> =>
       expectFillCount(page, BROKEN_DIFF_RESULT_STUB.missingPaths.length));
+
+    await test.step('AND hovering its gutter glyph says why a lone 0 is broken', async (): Promise<void> =>
+      expectGlyphTooltip(page, '!', PLACEHOLDER_TOOLTIP));
 
     await test.step('AND AI fill waits until the user continues', async (): Promise<void> => expectAiFillWaiting(page));
 

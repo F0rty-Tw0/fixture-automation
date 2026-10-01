@@ -13,3 +13,8 @@ export const PASTED_SOURCE_NAME = 'Pasted text';
 
 /** What an envelope detection that failed or found nothing offers: compare the fixture as the payload. */
 export const NO_ENVELOPE: EnvelopeResult = { candidates: [], detected: undefined };
+
+/** Plain wording for broken reasons that read as jargon; any other reason (a schema message) shows as it is. */
+export const BROKEN_REASON_TEXT: Record<string, string> = {
+  'openapi-sampler placeholder': 'Looks like a placeholder: the schema sampler writes this value when the spec gives no example'
+};

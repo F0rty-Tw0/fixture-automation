@@ -3,8 +3,27 @@ import type { BrokenValue, DiffResult, FillSource } from '@fixture-automation/fi
 import type { FixOrigin, PathHighlight } from '../../shared/document-view/common/document-view.type.ts';
 import { pathSegments, pointerOf } from '../../shared/json/utils/json-path.util.ts';
 import { isRecord } from '../../shared/json/utils/record.util.ts';
+import { valuePreview } from '../../shared/json/utils/value-preview.util.ts';
+import { BROKEN_REASON_TEXT } from '../common/comparison.const.ts';
+
+type BrokenDetail = Pick<PathHighlight, 'found' | 'reason'>;
 
 const ERROR_SEPARATOR = ': ';
+
+/** A found value longer than this is cut, so a whole object never fills the tooltip. */
+const FOUND_LIMIT = 60;
+
+const NO_DETAIL: BrokenDetail = {};
+
+/** Why a value is broken in plain words, and the value itself on one line. */
+const detailOf = (value: BrokenValue): BrokenDetail => {
+  const reason = BROKEN_REASON_TEXT[value.reason] ?? value.reason;
+  const detail: BrokenDetail = { reason, found: valuePreview(value.value, FOUND_LIMIT) };
+
+  return detail;
+};
+
+const detailEntryOf = (value: BrokenValue): [string, BrokenDetail] => [value.path, detailOf(value)];
 
 const startsWithSegments = (segments: string[], prefix: string[]): boolean => {
   const isLongEnough = segments.length >= prefix.length;
@@ -32,11 +51,14 @@ const withEnvelope = (segments: string[], objectShape: string | undefined): stri
  * user chose to keep: no fill touches those, so they stay broken.
  */
 export const targetHighlights = (result: DiffResult, sources: Record<string, FillSource>, fallback: FillSource): PathHighlight[] => {
+  const brokenDetails = new Map(result.broken.map(detailEntryOf));
+
   const targetOf = (path: string): PathHighlight => {
     const isReplaced = result.replacedPaths.includes(path);
     const origin: FixOrigin = isReplaced ? 'broken' : 'missing';
     const outcome = sources[path] ?? fallback;
-    const highlight: PathHighlight = { path, origin, outcome };
+    const detail = brokenDetails.get(path) ?? NO_DETAIL;
+    const highlight: PathHighlight = { ...detail, path, origin, outcome };
 
     return highlight;
   };
@@ -44,7 +66,8 @@ export const targetHighlights = (result: DiffResult, sources: Record<string, Fil
   const isKept = (value: BrokenValue): boolean => !result.missingPaths.includes(value.path);
 
   const keptOf = (value: BrokenValue): PathHighlight => {
-    const highlight: PathHighlight = { path: value.path, origin: 'broken', outcome: 'unfilled' };
+    const detail = detailOf(value);
+    const highlight: PathHighlight = { ...detail, path: value.path, origin: 'broken', outcome: 'unfilled' };
 
     return highlight;
   };
@@ -58,7 +81,8 @@ export const targetHighlights = (result: DiffResult, sources: Record<string, Fil
 /** The broken values of the existing fixture, as the compare found them. */
 export const brokenHighlights = (result: DiffResult): PathHighlight[] => {
   const brokenOf = (value: BrokenValue): PathHighlight => {
-    const highlight: PathHighlight = { path: value.path, origin: 'broken', outcome: 'broken' };
+    const detail = detailOf(value);
+    const highlight: PathHighlight = { ...detail, path: value.path, origin: 'broken', outcome: 'broken' };
 
     return highlight;
   };
@@ -96,7 +120,7 @@ const errorPathOf = (path: string, envelope: string | undefined): string => {
 };
 
 /**
- * Merge errors (`path: message`) as still-broken values. Their paths are relative to the payload, so `envelope` (from
+ * Merge errors (`path: message`) as still-broken values, the message as their reason. Their paths are relative to the payload, so `envelope` (from
  * `payloadEnvelope`) is put in front; an error at the root names no value and is left out. A value near an absent
  * path was missing.
  */
@@ -115,7 +139,8 @@ export const errorHighlights = (errors: string[], result: DiffResult, envelope: 
     const segments = pathSegments(path);
     const isNearAbsent = absentSegments.some((absent) => isRelatedPath(absent, segments));
     const origin: FixOrigin = isNearAbsent ? 'missing' : 'broken';
-    const highlight: PathHighlight = { path, origin, outcome: 'unfilled' };
+    const reason = error.slice(separator + ERROR_SEPARATOR.length);
+    const highlight: PathHighlight = { path, origin, outcome: 'unfilled', reason };
 
     return [highlight];
   };

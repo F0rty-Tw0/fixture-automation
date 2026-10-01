@@ -17,6 +17,9 @@ export const ON_DEVICE_PROMPT_BYTE_LIMIT = 100_000;
 
 export const AI_OPT_IN_STORAGE_KEY = 'fixture-studio.use-chrome-ai';
 
+/** The subdirectory last typed for a hashed export of the final fixture. */
+export const EXPORT_SUBDIRECTORY_STORAGE_KEY = 'fixture-studio.export-subdirectory';
+
 export const DEFAULT_AI_FILL_FORM: AiFillForm = {
   scenario: '',
   tool: 'claude',

@@ -188,27 +188,44 @@ describe('FEATURE: AI fill store', (): void => {
       expect(store.shownAnswer()).toBeUndefined();
     });
 
-    it('WHEN the last merge lands after a new run started THEN never shows it', async (): Promise<void> => {
-      let resolveMerge: (merge: MergeResult) => void = (): void => undefined;
-      const pendingMerge = async (): Promise<MergeResult> => {
-        return new Promise<MergeResult>((resolve) => {
-          resolveMerge = resolve;
-        });
-      };
-      const expectMergeAsked = (): void => {
-        TestBed.tick();
-        expect(engine.merge).toHaveBeenCalled();
-      };
+    describe('AND its merge is still in flight', (): void => {
+      let resolveMerge: (merge: MergeResult) => void;
 
-      vi.mocked(engine.merge).mockImplementationOnce(pendingMerge);
-      resolveFill(RESULT);
-      await vi.waitFor(expectMergeAsked);
+      beforeEach(async (): Promise<void> => {
+        const pendingMerge = async (): Promise<MergeResult> => {
+          return new Promise<MergeResult>((resolve) => {
+            resolveMerge = resolve;
+          });
+        };
+        const expectMergeAsked = (): void => {
+          TestBed.tick();
+          expect(engine.merge).toHaveBeenCalled();
+        };
 
+        vi.mocked(engine.merge).mockImplementationOnce(pendingMerge);
+        resolveFill(RESULT);
+        await vi.waitFor(expectMergeAsked);
+      });
+
+      it.each([
+        ['a new run starts', (): void => store.start({ ...CLI_RUN })],
+        ['the run is cancelled', (): void => store.cancel()],
+        ['the compare changes', (): void => TestBed.inject(ComparisonStore).compare(OTHER_COMPARE)]
+      ])('WHEN %s before it lands THEN never shows it', async (_label, leave): Promise<void> => {
+        leave();
+        resolveMerge(MERGE_RESULT_STUB);
+        await flushMicrotasks();
+
+        expect(store.merged()).toBeUndefined();
+      });
+    });
+
+    it('WHEN the last answer lands after a new run started THEN never shows it', async (): Promise<void> => {
       store.start({ ...CLI_RUN });
-      resolveMerge(MERGE_RESULT_STUB);
+      resolveFill(RESULT);
       await flushMicrotasks();
 
-      expect(store.merged()).toBeUndefined();
+      expect(store.answer()).toBeUndefined();
     });
 
     it('WHEN a re-run fails after a merge THEN shows nothing of the earlier run', async (): Promise<void> => {

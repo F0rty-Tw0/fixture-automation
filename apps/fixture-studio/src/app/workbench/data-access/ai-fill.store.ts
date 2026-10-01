@@ -5,6 +5,7 @@ import type { AiFillProgressEvent, AiFillResultEvent, MergeResult } from '@fixtu
 
 import { CHROME_AI_PROVIDER } from './chrome-built-in-ai.provider.ts';
 import { ComparisonStore } from './comparison.store.ts';
+import { RunToken } from './run-token.ts';
 import type { EngineCall, EngineStreamCall } from '../../shared/studio-engine/common/engine.type.ts';
 import { STUDIO_ENGINE } from '../../shared/studio-engine/common/studio-engine.token.ts';
 import { AI_LOG_BLOCK_LIMIT, AI_LOG_LIMIT, DEFAULT_AI_FILL_FORM } from '../common/ai-fill.const.ts';
@@ -32,11 +33,8 @@ export class AiFillStore {
 
   /** Clearing a resource's params does not abort its in-flight loader, so cancel aborts through this. */
   private activeRun: AbortController | undefined;
-  /**
-   * Bumps on every start and cancel. A loader keeps its result off screen once its run is no longer current: a merge can
-   * land after `start()` and before the resource notices the new request, so its abort signal is not set yet.
-   */
-  private currentRun = 0;
+  /** `start()`, `cancel()` and a new compare each begin a new run; a result of an earlier run never reaches the screen. */
+  private readonly runs = new RunToken(this.compared);
   private readonly settledChromeRuns = signal(0);
 
   /** Counts "Download model" clicks; each one starts a download. */
@@ -94,12 +92,9 @@ export class AiFillStore {
         onDownload: (ratio): void => this.downloadRatio.set(ratio)
       };
 
-      const startedRun = this.currentRun;
-      const answer = await this.fillWith(params, options);
+      const keepAnswer = (answer: AiFillResultEvent): void => this.answer.set(answer);
 
-      if (startedRun === this.currentRun) this.answer.set(answer);
-
-      return answer;
+      return this.runs.keepIfCurrent(async () => this.fillWith(params, options), keepAnswer);
     }
   });
 
@@ -129,13 +124,14 @@ export class AiFillStore {
     params: () => this.mergeRequest(),
     loader: async ({ params, abortSignal }): Promise<MergeResult> => {
       const call: EngineCall = { signal: abortSignal };
-      const startedRun = this.currentRun;
-      const merge = await this.engine.merge(params.specId, params.body, call);
-      const merged: MergedFill = { answer: params.answer, merge };
 
-      if (startedRun === this.currentRun) this.merged.set(merged);
+      const keepMerge = (merge: MergeResult): void => {
+        const merged: MergedFill = { answer: params.answer, merge };
 
-      return merge;
+        this.merged.set(merged);
+      };
+
+      return this.runs.keepIfCurrent(async () => this.engine.merge(params.specId, params.body, call), keepMerge);
     }
   });
 
@@ -149,7 +145,7 @@ export class AiFillStore {
 
   /** Starts a fresh fill: every trace of the previous one (answer, merge, log, cancel) goes first. */
   public start(request: AiRunRequest): void {
-    this.currentRun++;
+    this.runs.renew();
     this.isCancelled.set(false);
     this.answer.set(undefined);
     this.merged.set(undefined);
@@ -166,7 +162,7 @@ export class AiFillStore {
 
   /** Aborts the running call; the provider stops (the API kills the CLI when the request closes). */
   public cancel(): void {
-    this.currentRun++;
+    this.runs.renew();
     this.isCancelled.set(true);
     this.abortActiveRun();
     this.runRequest.set(undefined);

@@ -172,7 +172,18 @@ describe('FEATURE: AI fill store', (): void => {
       expect(store.merged()).toBeUndefined();
     });
 
-    it('WHEN a re-run fails after a merge THEN keeps the last answer and merge', async (): Promise<void> => {
+    it('WHEN started again after a merge THEN drops the last answer and merge at once', async (): Promise<void> => {
+      resolveFill(RESULT);
+      await settle();
+
+      store.start({ ...CLI_RUN });
+
+      expect(store.answer()).toBeUndefined();
+      expect(store.merged()).toBeUndefined();
+      expect(store.shownAnswer()).toBeUndefined();
+    });
+
+    it('WHEN a re-run fails after a merge THEN shows nothing of the earlier run', async (): Promise<void> => {
       resolveFill(RESULT);
       await settle();
       vi.mocked(engine.cliFill).mockRejectedValueOnce(new Error('claude exited with code 1.'));
@@ -181,8 +192,8 @@ describe('FEATURE: AI fill store', (): void => {
       await settle();
 
       expect(store.run.status()).toBe('error');
-      expect(store.answer()).toStrictEqual(RESULT);
-      expect(store.merged()).toStrictEqual({ answer: RESULT, merge: MERGE_RESULT_STUB });
+      expect(store.answer()).toBeUndefined();
+      expect(store.merged()).toBeUndefined();
     });
   });
 

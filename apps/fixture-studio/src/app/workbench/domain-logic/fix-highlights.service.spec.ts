@@ -123,14 +123,14 @@ describe('FEATURE: fix highlights', (): void => {
       expect(lineOf(highlights.merged())).toStrictEqual(['3:missing:sampler', '3:missing:unfilled']);
     });
 
-    it('WHEN a re-run answers without sources but its merge fails THEN keeps the sources of the merge on screen', async (): Promise<void> => {
+    it('WHEN a re-run answers but its merge fails THEN drops the earlier merge and its highlights', async (): Promise<void> => {
       vi.mocked(engine.cliFill).mockResolvedValueOnce(SALVAGED).mockResolvedValueOnce(FILL_RESULT_STUB);
       vi.mocked(engine.merge).mockResolvedValueOnce(MERGE_RESULT_STUB).mockRejectedValueOnce(new Error('merge failed'));
       await runFill();
 
       await runFill();
 
-      expect(lineOf(highlights.merged())).toStrictEqual(['3:missing:sampler']);
+      expect(highlights.merged()).toStrictEqual([]);
     });
   });
 

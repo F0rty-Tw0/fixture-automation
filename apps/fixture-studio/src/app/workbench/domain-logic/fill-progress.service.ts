@@ -15,6 +15,6 @@ export class FillProgress {
 
   public readonly isRunning: Signal<boolean> = this.store.run.isLoading;
 
-  /** The last merge of this compare, still shown while a re-run loads or fails. */
+  /** The merge of the current run; a new run drops the previous one at once. */
   public readonly mergeResult: Signal<MergeResult | undefined> = computed(() => this.store.merged()?.merge);
 }

@@ -17,7 +17,7 @@ const CANCELLED: AiFillProgressEvent = { type: 'progress', stream: 'status', tex
 
 /**
  * One endpoint tab's AI fill: the running provider call, its progress, and the merge of its answer.
- * Everything belongs to one compare: a new fixture or diff drops the run, its log and its merge.
+ * Everything belongs to one compare and one run: a new fixture, diff or fill drops the run, its log and its merge.
  */
 @Service({ autoProvided: false })
 export class AiFillStore {
@@ -50,13 +50,13 @@ export class AiFillStore {
     computation: (): undefined => undefined
   });
 
-  /** The last answer of this compare: it stays while a re-run loads, fails or is cancelled. */
+  /** The answer of the current run; a new run drops it at once, so nothing from an earlier run is shown. */
   public readonly answer = linkedSignal<DiffRequest | undefined, AiFillResultEvent | undefined>({
     source: this.compared,
     computation: (): undefined => undefined
   });
 
-  /** The last merge of this compare with the answer it merged, kept like `answer`. */
+  /** The merge of the current run with the answer it merged, dropped like `answer`. */
   public readonly merged = linkedSignal<DiffRequest | undefined, MergedFill | undefined>({
     source: this.compared,
     computation: (): undefined => undefined
@@ -140,8 +140,11 @@ export class AiFillStore {
     });
   }
 
+  /** Starts a fresh fill: every trace of the previous one (answer, merge, log, cancel) goes first. */
   public start(request: AiRunRequest): void {
     this.isCancelled.set(false);
+    this.answer.set(undefined);
+    this.merged.set(undefined);
     this.log.set([]);
     this.downloadRatio.set(undefined);
     this.runRequest.set(request);

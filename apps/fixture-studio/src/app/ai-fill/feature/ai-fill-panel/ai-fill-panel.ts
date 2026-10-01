@@ -29,7 +29,7 @@ import { ProgressLog } from '../../ui/progress-log/progress-log.ts';
 
 /**
  * Fills the missing paths found by compare with AI, then shows the merged, validated fixture with every value marked by
- * where it came from. A fill that fails still leaves a complete fixture: the last merge, or the schema-complete one.
+ * where it came from. A fill that fails still leaves a complete fixture: the schema-complete one.
  * The on-device model is downloaded by its own button first; filling never starts a download.
  */
 @Component({
@@ -88,7 +88,7 @@ export class AiFillPanel {
     return errors.filter((error): error is ApiErrorBody => error !== undefined);
   });
 
-  /** The schema-complete fixture, standing in when the fill failed and there is no earlier merge. */
+  /** The schema-complete fixture, standing in when the fill failed and this run has no merge. */
   protected readonly fallbackDocument = computed((): FixtureDocument | undefined => {
     const json = this.outcome.fallbackJson();
 

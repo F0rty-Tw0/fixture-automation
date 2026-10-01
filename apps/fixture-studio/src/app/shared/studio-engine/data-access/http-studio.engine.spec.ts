@@ -13,6 +13,8 @@ import type {
   DiffBody,
   EnvelopeBody,
   EnvelopeResult,
+  FixtureNameQuery,
+  FixtureNameResult,
   GenerateBody,
   GenerateResult,
   LoadSpecBody,
@@ -48,6 +50,8 @@ const MERGE_BODY: MergeBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE
 const PROMPT_BODY: AiPromptBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, missing: MISSING_FILE_STUB };
 const FILL_BODY: AiFillBody = { endpointId: 'GET /v1/invoices', fixture: FIXTURE, missing: MISSING_FILE_STUB, tool: 'claude' };
 const MODELS: AiModelsResult = { models: ['mock-model'], source: 'mock' };
+const NAME_QUERY: FixtureNameQuery = { method: 'GET', url: 'v1/invoices/in_1' };
+const NAME_RESULT: FixtureNameResult = { fileName: 'hash.json' };
 
 describe('FEATURE: HttpStudioEngine', (): void => {
   let http: HttpTestingController;
@@ -133,6 +137,23 @@ describe('FEATURE: HttpStudioEngine', (): void => {
       http.expectOne('/api/ai/cli/tools').flush(CLI_TOOLS_RESULT_STUB);
 
       await expect(listing).resolves.toStrictEqual(CLI_TOOLS_RESULT_STUB);
+    });
+
+    it('GIVEN no subdirectory WHEN a fixture is named THEN asks with an empty one and resolves the name', async (): Promise<void> => {
+      const naming = engine.fixtureName(NAME_QUERY, call);
+
+      http.expectOne('/api/fixture-name?method=GET&url=v1/invoices/in_1&subdirectory=').flush(NAME_RESULT);
+
+      await expect(naming).resolves.toStrictEqual(NAME_RESULT);
+    });
+
+    it('GIVEN a subdirectory WHEN a fixture is named THEN asks with it', async (): Promise<void> => {
+      const query: FixtureNameQuery = { ...NAME_QUERY, subdirectory: 'billing' };
+      const naming = engine.fixtureName(query, call);
+
+      http.expectOne('/api/fixture-name?method=GET&url=v1/invoices/in_1&subdirectory=billing').flush(NAME_RESULT);
+
+      await expect(naming).resolves.toStrictEqual(NAME_RESULT);
     });
   });
 

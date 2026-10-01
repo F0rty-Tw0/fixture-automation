@@ -104,6 +104,14 @@ describe('FEATURE: AiFillPanel results', (): void => {
       expect(textAt(fixture, '.fallback__title')).toBe('Generated from the schema');
     });
 
+    it('WHEN rendered THEN the fallback offers the hashed name, once', (): void => {
+      const toggles = hostOf(fixture).querySelectorAll('mat-slide-toggle');
+      const fallbackToggle = region('Generated fallback')?.querySelector('mat-slide-toggle');
+
+      expect(toggles).toHaveLength(1);
+      expect(fallbackToggle).toBeInstanceOf(HTMLElement);
+    });
+
     it('WHEN rendered THEN shows the error after the fallback, not in its place', (): void => {
       const fallback = region('Generated fallback');
       const notice = requiredElement(fixture, 'fs-api-error-notice');
@@ -148,6 +156,24 @@ describe('FEATURE: AiFillPanel results', (): void => {
 
     it('WHEN rendered THEN credits AI for the filled value', (): void => {
       expect(textsAt(fixture, '.sources__source')).toStrictEqual(['Filled by AI']);
+    });
+
+    it('WHEN rendered THEN only the merged fixture offers the hashed name, not the filled values', (): void => {
+      const toggles = hostOf(fixture).querySelectorAll('mat-slide-toggle');
+      const mergeToggle = region('Merge result')?.querySelector('mat-slide-toggle');
+
+      expect(textsAt(fixture, '.fill__section-title')).toContain('Filled values');
+      expect(toggles).toHaveLength(1);
+      expect(mergeToggle).toBeInstanceOf(HTMLElement);
+    });
+
+    it('WHEN hashed naming is turned on THEN names the merged fixture as the API answers', async (): Promise<void> => {
+      requiredElement(fixture, '[aria-label="Merge result"] mat-slide-toggle button').click();
+      TestBed.tick();
+      http.expectOne('/api/fixture-name?method=GET&url=/v1/invoices&subdirectory=').flush({ fileName: 'hash.json' });
+      await render();
+
+      expect(textAt(fixture, '[aria-label="Merge result"] .bar__file')).toBe('hash.json');
     });
 
     it('WHEN a re-run fails THEN drops the earlier merge and offers the fallback beside the error', async (): Promise<void> => {

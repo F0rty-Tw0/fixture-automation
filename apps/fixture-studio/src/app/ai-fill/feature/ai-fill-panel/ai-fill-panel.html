@@ -110,6 +110,7 @@
 <fs-merge-result
   [fileName]="`${view().schemaName}.json`"
   [filledPaths]="outcome.filledPaths()"
+  [hashedExport]="hashedExport()"
   [highlights]="highlights.merged()"
   [merge]="merge"
   [original]="existingPretty()"
@@ -117,6 +118,7 @@
 } @else if (fallbackDocument(); as document) {
 <fs-generated-fallback
   [document]="document"
+  [hashedExport]="hashedExport()"
   [highlights]="highlights.complete()"
   [original]="existingPretty()"
   [originalHighlights]="highlights.existing()"

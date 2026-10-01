@@ -10,6 +10,7 @@ export const STUDIO_API_ROUTES: typeof API_ROUTES = {
   diff: '/specs/:specId/diff',
   envelope: '/specs/:specId/envelope',
   merge: '/specs/:specId/merge',
+  fixtureName: '/fixture-name',
   aiPrompt: '/specs/:specId/ai-prompt',
   aiFill: '/specs/:specId/ai-fill',
   aiModels: '/ai/cli/models',
@@ -17,6 +18,8 @@ export const STUDIO_API_ROUTES: typeof API_ROUTES = {
 };
 
 export const SPECS_URL = `${STUDIO_API_PREFIX}${STUDIO_API_ROUTES.specs}`;
+
+export const FIXTURE_NAME_URL = `${STUDIO_API_PREFIX}${STUDIO_API_ROUTES.fixtureName}`;
 
 export const CLI_MODELS_URL = `${STUDIO_API_PREFIX}${STUDIO_API_ROUTES.aiModels}`;
 

@@ -1,6 +1,31 @@
-<span class="bar__file">{{ fileName() }}</span>
+<span class="bar__file">{{ shownFileName() }}</span>
 <span class="bar__size">{{ size() }}</span>
 <span class="bar__actions">
-  <button mat-button type="button" (click)="copy()">Copy</button>
-  <button mat-stroked-button type="button" (click)="download()">Export</button>
+  @if (hashedExport()) {
+  <mat-slide-toggle [checked]="isHashed()" class="bar__hash" (change)="isHashed.set($event.checked)">Hash filename</mat-slide-toggle>
+  }
+  <span class="bar__buttons">
+    <button mat-button type="button" (click)="copy()">Copy</button>
+    <button [disabled]="!canExport()" mat-stroked-button type="button" (click)="download()">Export</button>
+  </span>
 </span>
+@if (hashedExport(); as hashed) { @if (isHashed()) {
+<div class="bar__naming">
+  <mat-form-field appearance="outline" class="bar__url" subscriptSizing="dynamic">
+    <mat-label>{{ hashed.method }} URL</mat-label>
+    <input #urlField [value]="url()" matInput name="url" (input)="url.set(urlField.value)" />
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="bar__subdirectory" subscriptSizing="dynamic">
+    <mat-label>Subdirectory (optional)</mat-label>
+    <input
+      #subdirectoryField
+      [value]="subdirectory()"
+      matInput
+      name="subdirectory"
+      (input)="rememberSubdirectory(subdirectoryField.value)" />
+  </mat-form-field>
+  @if (hashingNote(); as note) {
+  <p class="bar__reason" role="status">{{ note }}</p>
+  }
+</div>
+} }

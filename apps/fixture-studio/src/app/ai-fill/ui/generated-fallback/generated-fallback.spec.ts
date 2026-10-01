@@ -4,6 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { GeneratedFallback } from './generated-fallback.ts';
+import type { HashedExport } from '../../../shared/document-view/common/document-view.type.ts';
+import { exportNamingMock } from '../../../shared/document-view/test/mocks/export-naming.mock.ts';
 import { jsonDocument } from '../../../shared/document-view/utils/json-document.util.ts';
 import { DIFF_RESULT_STUB } from '../../../test/stubs/studio.stub.ts';
 import { hostOf, textAt, textsAt } from '../../../test/utils/fixture-dom.spec.util.ts';
@@ -32,6 +34,16 @@ describe('FEATURE: GeneratedFallback', (): void => {
 
   it('GIVEN no compare warnings WHEN rendered THEN shows no warning notice', (): void => {
     expect(hostOf(fixture).querySelector('fs-notice-list')).toBeNull();
+  });
+
+  it('GIVEN a hashed export WHEN rendered THEN the file bar offers the hashed name', async (): Promise<void> => {
+    const hashedExport: HashedExport = { method: 'GET', path: '/v1/invoices', naming: exportNamingMock() };
+
+    fixture.componentRef.setInput('hashedExport', hashedExport);
+
+    await fixture.whenStable();
+
+    expect(hostOf(fixture).querySelector('fs-copy-export-bar mat-slide-toggle')).not.toBeNull();
   });
 
   describe('GIVEN compare warnings', (): void => {

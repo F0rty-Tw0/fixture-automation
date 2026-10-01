@@ -3,7 +3,7 @@ import { PARTIAL_INVOICE_JSON_PATH } from './test/common/fixture-file.const.ts';
 import { pickExistingFixture } from './test/pages/compare-panel.page.ts';
 import { expectFoldOpen, toggleFold } from './test/pages/fold.page.ts';
 import { continueToAiFill } from './test/pages/missing-values-step.page.ts';
-import { STEP_HEADINGS, expectFoldedStepInBodyColumn, expectStepFold, toggleStep } from './test/pages/rail.page.ts';
+import { STEP_HEADINGS, expectStepFold, expectToggleAt, toggleLeft, toggleStep } from './test/pages/rail.page.ts';
 import { fillBrokenInvoice, openInvoiceCompare, workbenchRoutes } from './test/pages/workbench.page.ts';
 
 type FoldCase = {
@@ -33,12 +33,14 @@ test.describe('FEATURE: folding steps and sections', () => {
 
       await test.step('THEN the step is open', async (): Promise<void> => expectStepFold(page, heading, true));
 
+      const openLeft = await toggleLeft(page, heading);
+
       await test.step('WHEN its heading is pressed', async (): Promise<void> => toggleStep(page, heading));
 
       await test.step('THEN the step and its body are folded', async (): Promise<void> => expectStepFold(page, heading, false));
 
-      await test.step('AND its heading and status share one row in the body column', async (): Promise<void> =>
-        expectFoldedStepInBodyColumn(page, heading));
+      await test.step('AND its heading and chevron stay on the rail', async (): Promise<void> =>
+        expectToggleAt(page, heading, openLeft));
 
       await test.step('WHEN its heading is pressed again', async (): Promise<void> => toggleStep(page, heading));
 

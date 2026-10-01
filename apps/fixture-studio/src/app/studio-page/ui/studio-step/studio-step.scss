@@ -25,37 +25,9 @@
   display: none;
 }
 
-// A folded step shrinks to one row in the body column: heading, then status, which wraps below when long. Its node
-// stays on the rail, and the folded body shares the cell so it adds no second grid row.
+// A folded step keeps its heading, chevron and status on the rail, where they sat while open, closer to the next one.
 :host([data-expanded='false']) {
   padding-bottom: var(--fs-space-5);
-
-  .step__head {
-    position: static;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--fs-space-3);
-    align-items: baseline;
-  }
-
-  .step__head,
-  .step__body {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
-  // Unstretched, the folded body collapses to nothing instead of covering the heading's toggle.
-  .step__body {
-    align-self: start;
-  }
-
-  .step__node {
-    left: 0;
-  }
-
-  .step__status {
-    margin: 0;
-  }
 }
 
 .step__head {
@@ -158,12 +130,5 @@
 @media (width < 56rem) {
   :host {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  :host([data-expanded='false']) {
-    .step__head,
-    .step__body {
-      grid-column: 1;
-    }
   }
 }

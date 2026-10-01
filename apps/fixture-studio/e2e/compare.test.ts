@@ -50,6 +50,9 @@ const SENT_DIFF = {
   replacePlaceholders: true
 };
 
+/** The partial invoice holding the sampler's placeholder `0` that `BROKEN_AMOUNT_STUB` reports. */
+const PLACEHOLDER_INVOICE = { ...PARTIAL_INVOICE_STUB, amount_due: BROKEN_AMOUNT_STUB.value };
+
 /** The tooltip on the placeholder `amount_due: 0`: what the mark means, why, and what the fixture held. */
 const PLACEHOLDER_TOOLTIP = [
   'amount_due · Broken in your fixture',
@@ -205,14 +208,24 @@ test.describe('FEATURE: compare an existing fixture', () => {
     await test.step('AND the fill counts both', async (): Promise<void> =>
       expectFillCount(page, BROKEN_DIFF_RESULT_STUB.missingPaths.length));
 
-    await test.step('AND hovering its gutter glyph says why a lone 0 is broken', async (): Promise<void> =>
-      expectGlyphTooltip(page, '!', PLACEHOLDER_TOOLTIP));
-
     await test.step('AND AI fill waits until the user continues', async (): Promise<void> => expectAiFillWaiting(page));
 
     await test.step('WHEN the user continues to AI fill', async (): Promise<void> => continueToAiFill(page));
 
     await test.step('THEN the AI fill step is open', async (): Promise<void> => expectAiFillOpen(page));
+  });
+
+  test('GIVEN a placeholder 0, hovering its gutter glyph says why it is broken', async ({ page }): Promise<void> => {
+    const routes = [apiRoute(DIFF_ROUTE, diffMock(BROKEN_DIFF_RESULT_STUB))];
+    const pasted = JSON.stringify(PLACEHOLDER_INVOICE);
+
+    await test.step('WHEN the invoice is generated', async (): Promise<void> => openInvoiceCompare(page, { routes }));
+
+    await test.step('AND an invoice whose amount is the placeholder 0 is pasted', async (): Promise<void> =>
+      pasteFixture(page, pasted));
+
+    await test.step('THEN hovering its glyph shows, on top, why the 0 is broken', async (): Promise<void> =>
+      expectGlyphTooltip(page, '!', PLACEHOLDER_TOOLTIP));
   });
 
   test('GIVEN broken values, keeping them compares again without refilling them', async ({ page }): Promise<void> => {

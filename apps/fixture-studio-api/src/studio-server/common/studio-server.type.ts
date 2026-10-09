@@ -20,6 +20,8 @@ type ServerRuntime = {
   readonly computeTimeoutMs: number;
   /** Load a spec worker at start-up so the first diff or merge is fast; tests leave it off. */
   readonly warmSpecWorker: boolean;
+  /** Absolute path of the built UI, served at `/`; set only in bundled mode. */
+  readonly uiRoot?: string;
 };
 
 export type StudioServerOptions = RequestAccess & ServerRuntime;

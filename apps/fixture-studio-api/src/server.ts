@@ -1,3 +1,4 @@
+import fastifyStatic from '@fastify/static';
 import server from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -36,6 +37,12 @@ export const buildServer = (options: StudioServerOptions): FastifyInstance => {
   fastify.setNotFoundHandler(sendNotFound);
   fastify.addHook('onClose', closeWorkers);
   void fastify.register(apiRoutes, routesOptions);
+
+  if (options.uiRoot !== undefined) {
+    const uiOptions = { root: options.uiRoot, prefix: '/' };
+
+    void fastify.register(fastifyStatic, uiOptions);
+  }
 
   if (options.warmSpecWorker) workers.warm();
 

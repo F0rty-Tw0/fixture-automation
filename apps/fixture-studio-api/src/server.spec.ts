@@ -1,11 +1,16 @@
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import type { ApiErrorBody } from './contract/common/studio-api.type.ts';
 import { buildServer } from './server.ts';
+import type { StudioServerOptions } from './studio-server/common/studio-server.type.ts';
 import { allowedHosts, allowedOrigins } from './studio-server/utils/allowed-origins.util.ts';
 import { studioAiMock } from './test/mocks/studio-ai.mock.ts';
+import { staticUiFolder } from './test/utils/static-ui.spec.util.ts';
 import { studioServer } from './test/utils/studio-spec.spec.util.ts';
 
 const MISSING_SPEC_URL = '/api/specs/missing/generate';
@@ -15,6 +20,17 @@ const FORBIDDEN_ORIGIN: ApiErrorBody = {
   fix: 'open Fixture Studio from an allowed origin, or add yours to STUDIO_ALLOWED_ORIGINS'
 };
 const GENERATE_BODY = { endpointIds: ['GET /a'], formats: ['json'], requiredOnly: false };
+const UI_HOST = '127.0.0.1:3999';
+const UI_ORIGINS = allowedOrigins(undefined, 3999);
+const UI_HOSTS = allowedHosts(3999, UI_ORIGINS);
+const UI_SERVER_OPTIONS: StudioServerOptions = {
+  allowedOrigins: UI_ORIGINS,
+  allowedHosts: UI_HOSTS,
+  logger: false,
+  ai: MOCK_AI,
+  computeTimeoutMs: 15_000,
+  warmSpecWorker: false
+};
 
 describe('FEATURE: studio server', (): void => {
   let fastify: FastifyInstance;
@@ -151,6 +167,99 @@ describe('FEATURE: studio server', (): void => {
         expect(response.statusCode).toBe(400);
         expect(body.message).toContain('JSON');
         expect(body.fix).toBeUndefined();
+      });
+    });
+  });
+
+  describe('SCENARIO: static UI', (): void => {
+    describe('GIVEN a built UI at uiRoot on port 3999', (): void => {
+      let folder: string;
+
+      beforeEach(async (): Promise<void> => {
+        folder = await staticUiFolder();
+        const uiRoot = join(folder, 'ui');
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, uiRoot });
+      });
+
+      afterEach(async (): Promise<void> => {
+        await rm(folder, { recursive: true, force: true });
+      });
+
+      it('WHEN the browser navigates to / THEN answers the index page as HTML', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'none', 'sec-fetch-mode': 'navigate' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/', headers });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('<p>ui</p>');
+        expect(response.headers['content-type']).toMatch(/^text\/html/u);
+      });
+
+      it('WHEN the page loads /app.js from the same origin THEN answers 200', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'same-origin' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/app.js', headers });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it('WHEN a missing asset is requested THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST };
+
+        const response = await fastify.inject({ method: 'GET', url: '/missing.js', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /missing.js' });
+      });
+
+      it('WHEN an unknown API route is called THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST };
+
+        const response = await fastify.inject({ method: 'GET', url: '/api/nope', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /api/nope' });
+      });
+
+      it.each([
+        ['/..%2fpackage.json', 404, 'route not found: GET /..%2fpackage.json'],
+        ['/%2e%2e/package.json', 404, 'route not found: GET /package.json']
+      ])(
+        'WHEN %s climbs out of uiRoot THEN answers %i without leaking the file',
+        async (url: string, statusCode: number, message: string): Promise<void> => {
+          const headers = { host: UI_HOST };
+
+          const response = await fastify.inject({ method: 'GET', url, headers });
+
+          expect(response.body).not.toContain('sentinel');
+          expect(response.statusCode).toBe(statusCode);
+          expect(response.json<ApiErrorBody>().message).toBe(message);
+        }
+      );
+
+      it('WHEN the page posts to the API from its own origin THEN reaches the route', async (): Promise<void> => {
+        const headers = { host: UI_HOST, origin: `http://${UI_HOST}` };
+
+        const response = await fastify.inject({ method: 'POST', url: MISSING_SPEC_URL, headers, payload: GENERATE_BODY });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json<ApiErrorBody>().message).toBe('spec not found');
+      });
+    });
+
+    describe('GIVEN no uiRoot', (): void => {
+      beforeEach((): void => {
+        fastify = buildServer(UI_SERVER_OPTIONS);
+      });
+
+      it('WHEN the browser navigates to / THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'none', 'sec-fetch-mode': 'navigate' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /' });
       });
     });
   });

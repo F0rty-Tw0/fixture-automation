@@ -4,18 +4,17 @@ import { fileURLToPath } from 'node:url';
 
 import { aiMissingFixture, detectAiTools, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
-import type { FastifyInstance } from 'fastify';
 
 import type { StudioAi } from './ai/common/ai.type.ts';
 import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import { buildServer } from './server.ts';
-import type { StudioArgs, StudioEnv } from './studio-server/common/studio-server.type.ts';
+import type { StudioArgs, StudioEnv, StudioLaunch } from './studio-server/common/studio-server.type.ts';
 import { studioArgs } from './studio-server/config/studio-args.schema.ts';
 import { studioEnv } from './studio-server/config/studio-env.schema.ts';
 import { studioLogger } from './studio-server/config/studio-logger.config.ts';
 import { openBrowser } from './studio-server/data-access/open-browser.client.ts';
+import { launchStudio } from './studio-server/domain-logic/studio-launch.ts';
 
-const HOST = '127.0.0.1';
 const CLI_AI: StudioAi = { fill: aiMissingFixture, discover: discoverModels, detect: detectAiTools, isMock: false };
 /** Present only in the published package, which ships the built UI next to this module. */
 const UI_INDEX = fileURLToPath(new URL('./ui/index.html', import.meta.url));
@@ -49,17 +48,8 @@ const readSettings = (isBundled: boolean): StudioSettings | undefined => {
   }
 };
 
-/** Prints the bundled UI's URL and, unless `--no-open`, opens it; a missing browser only logs a warning. */
-const announceUi = (fastify: FastifyInstance, url: string, args: StudioArgs): void => {
-  process.stdout.write(`Fixture Studio: ${url}\n`);
-
-  if (!args.isOpen) return;
-
-  const warnNoBrowser = (error: Error): void => {
-    fastify.log.warn({ err: error }, 'could not open a browser; open the URL yourself');
-  };
-
-  openBrowser(url, warnNoBrowser);
+const writeStdout = (text: string): void => {
+  process.stdout.write(text);
 };
 
 const start = async (env: StudioEnv, args: StudioArgs, isBundled: boolean): Promise<void> => {
@@ -80,17 +70,9 @@ const start = async (env: StudioEnv, args: StudioArgs, isBundled: boolean): Prom
 
   if (env.isAiMock) fastify.log.warn('STUDIO_AI_MOCK=1: AI routes answer with canned progress and sampled values; no CLI runs');
 
-  try {
-    await fastify.listen({ host: HOST, port: env.port });
-  } catch (error: unknown) {
-    fastify.log.error({ err: error }, 'Fixture Studio API failed to start');
-    process.exitCode = 1;
-    await fastify.close();
+  const launch: StudioLaunch = { fastify, port: env.port, isBundled, isOpen: args.isOpen, openBrowser, writeStdout };
 
-    return;
-  }
-
-  if (isBundled) announceUi(fastify, `http://${HOST}:${env.port}`, args);
+  process.exitCode = await launchStudio(launch);
 };
 
 const isBundled = existsSync(UI_INDEX);

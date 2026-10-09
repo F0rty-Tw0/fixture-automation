@@ -1,4 +1,4 @@
-import type { FastifyServerOptions } from 'fastify';
+import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 
 import type { StudioAi } from '../../ai/common/ai.type.ts';
 import type { ApiErrorBody } from '../../contract/common/studio-api.type.ts';
@@ -44,6 +44,24 @@ export type StudioArgs = {
   readonly port: number | undefined;
   /** False for `--no-open`. */
   readonly isOpen: boolean;
+};
+
+/** Opens `url` in the default browser; a failure goes to `onError` instead of throwing. */
+type BrowserOpener = (url: string, onError: (error: Error) => void) => void;
+
+/** Writes text to standard output. */
+type StdoutWriter = (text: string) => void;
+
+/** What starting the API needs; the browser opener and stdout are injected so a spec can watch them. */
+export type StudioLaunch = {
+  readonly fastify: FastifyInstance;
+  readonly port: number;
+  /** The published package, which serves its own UI and so announces its URL. */
+  readonly isBundled: boolean;
+  /** False for `--no-open`. */
+  readonly isOpen: boolean;
+  readonly openBrowser: BrowserOpener;
+  readonly writeStdout: StdoutWriter;
 };
 
 /** The request headers the access guard judges. */

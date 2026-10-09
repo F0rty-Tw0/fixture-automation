@@ -39,7 +39,7 @@ export const missingFixture = async (name: string): Promise<MissingFile> => {
 
 /** A ready server with the default origins, the `localhost:80` host `inject` sends, logging off, and the given AI and compute budget. */
 export const studioServer = async (ai: StudioAi, computeTimeoutMs = 15_000): Promise<FastifyInstance> => {
-  const origins = allowedOrigins(undefined);
+  const origins = allowedOrigins(undefined, 3333);
   const hosts = allowedHosts(80, origins);
   const fastify = buildServer({
     allowedOrigins: origins,

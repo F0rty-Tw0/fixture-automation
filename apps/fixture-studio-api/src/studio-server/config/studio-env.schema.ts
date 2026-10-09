@@ -35,7 +35,7 @@ export const studioEnv = (env: Record<string, string | undefined>): StudioEnv =>
     DEFAULT_COMPUTE_TIMEOUT_MS,
     MAX_TIMER_MS
   );
-  const origins = allowedOrigins(env['STUDIO_ALLOWED_ORIGINS']);
+  const origins = allowedOrigins(env['STUDIO_ALLOWED_ORIGINS'], port);
   const hosts = allowedHosts(port, origins);
   const isAiMock = env['STUDIO_AI_MOCK'] === '1';
   const isProduction = env['NODE_ENV'] === 'production';

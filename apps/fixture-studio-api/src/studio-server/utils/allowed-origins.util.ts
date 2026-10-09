@@ -16,12 +16,14 @@ const normalizedOrigin = (entry: string): string => {
   return origin;
 };
 
-/** The Angular dev server origins plus every entry of a comma-separated `STUDIO_ALLOWED_ORIGINS` value, normalized. */
-export const allowedOrigins = (extraOrigins: string | undefined): string[] => {
+/** The Angular dev server origins, the API's own loopback origins on `port` (which its same-origin UI sends), then every entry of a comma-separated `STUDIO_ALLOWED_ORIGINS` value, normalized. */
+export const allowedOrigins = (extraOrigins: string | undefined, port: number): string[] => {
+  const loopback = [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
+  const self = loopback.map(normalizedOrigin);
   const entries = extraOrigins?.split(',') ?? [];
   const trimmed = entries.map((entry: string): string => entry.trim());
   const extra = trimmed.filter(Boolean).map(normalizedOrigin);
-  const unique = new Set([...DEFAULT_ALLOWED_ORIGINS, ...extra]);
+  const unique = new Set([...DEFAULT_ALLOWED_ORIGINS, ...self, ...extra]);
 
   return [...unique];
 };

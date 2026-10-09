@@ -91,7 +91,7 @@ describe('FEATURE: studio server', (): void => {
 
     describe('GIVEN the e2e setup: API on 3334 behind a proxy on 127.0.0.1:4300', (): void => {
       beforeEach((): void => {
-        const origins = allowedOrigins('http://127.0.0.1:4300');
+        const origins = allowedOrigins('http://127.0.0.1:4300', 3334);
         const hosts = allowedHosts(3334, origins);
 
         fastify = buildServer({

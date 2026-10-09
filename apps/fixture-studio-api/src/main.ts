@@ -1,26 +1,38 @@
+import { existsSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { aiMissingFixture, detectAiTools, discoverModels } from '@fixture-automation/openapi-ai-fixtures';
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
+import type { FastifyInstance } from 'fastify';
 
 import type { StudioAi } from './ai/common/ai.type.ts';
 import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import { buildServer } from './server.ts';
-import type { StudioEnv } from './studio-server/common/studio-server.type.ts';
+import type { StudioArgs, StudioEnv } from './studio-server/common/studio-server.type.ts';
 import { studioArgs } from './studio-server/config/studio-args.schema.ts';
 import { studioEnv } from './studio-server/config/studio-env.schema.ts';
+import { studioLogger } from './studio-server/config/studio-logger.config.ts';
+import { openBrowser } from './studio-server/data-access/open-browser.client.ts';
 
 const HOST = '127.0.0.1';
 const CLI_AI: StudioAi = { fill: aiMissingFixture, discover: discoverModels, detect: detectAiTools, isMock: false };
-const printOptions = { all: true, relativeUrl: true, translateTime: 'SYS:HH:MM:ss' };
-const prettyTransport = { target: 'pino-http-print', options: printOptions };
-const developmentLogger = { level: 'debug', transport: prettyTransport };
-const productionLogger = { level: 'info' };
+/** Present only in the published package, which ships the built UI next to this module. */
+const UI_INDEX = fileURLToPath(new URL('./ui/index.html', import.meta.url));
+
+type StudioSettings = {
+  readonly env: StudioEnv;
+  readonly args: StudioArgs;
+};
 
 /** The settings from the environment and flags, or `undefined` after printing why they are invalid in the CLIs' `what` / `fix` form. */
-const readEnv = (): StudioEnv | undefined => {
+const readSettings = (): StudioSettings | undefined => {
   try {
     const args = studioArgs(process.argv.slice(2));
+    const env = studioEnv(process.env, args);
+    const settings: StudioSettings = { env, args };
 
-    return studioEnv(process.env, args);
+    return settings;
   } catch (error: unknown) {
     if (!(error instanceof FixtureError)) throw error;
 
@@ -35,11 +47,28 @@ const readEnv = (): StudioEnv | undefined => {
   }
 };
 
-const start = async (env: StudioEnv): Promise<void> => {
-  const logger = env.isProduction ? productionLogger : developmentLogger;
+/** Prints the bundled UI's URL and, unless `--no-open`, opens it; a missing browser only logs a warning. */
+const announceUi = (fastify: FastifyInstance, url: string, args: StudioArgs): void => {
+  process.stdout.write(`Fixture Studio: ${url}\n`);
+
+  if (!args.isOpen) return;
+
+  const warnNoBrowser = (error: Error): void => {
+    fastify.log.warn({ err: error }, 'could not open a browser; open the URL yourself');
+  };
+
+  openBrowser(url, warnNoBrowser);
+};
+
+const start = async (env: StudioEnv, args: StudioArgs): Promise<void> => {
+  const isBundled = existsSync(UI_INDEX);
+  const logger = studioLogger({ isProduction: env.isProduction, isBundled });
   const ai = env.isAiMock ? MOCK_AI : CLI_AI;
   const { allowedOrigins, allowedHosts, computeTimeoutMs } = env;
-  const fastify = buildServer({ allowedOrigins, allowedHosts, logger, ai, computeTimeoutMs, warmSpecWorker: true });
+  const bundledUi = { uiRoot: dirname(UI_INDEX) };
+  const noUi = {};
+  const uiOption = isBundled ? bundledUi : noUi;
+  const fastify = buildServer({ allowedOrigins, allowedHosts, logger, ai, computeTimeoutMs, warmSpecWorker: true, ...uiOption });
 
   const close = (): void => {
     void fastify.close();
@@ -56,9 +85,13 @@ const start = async (env: StudioEnv): Promise<void> => {
     fastify.log.error({ err: error }, 'Fixture Studio API failed to start');
     process.exitCode = 1;
     await fastify.close();
+
+    return;
   }
+
+  if (isBundled) announceUi(fastify, `http://${HOST}:${env.port}`, args);
 };
 
-const env = readEnv();
+const settings = readSettings();
 
-if (env !== undefined) await start(env);
+if (settings !== undefined) await start(settings.env, settings.args);

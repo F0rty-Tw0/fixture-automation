@@ -22,6 +22,8 @@ type ServerRuntime = {
   readonly warmSpecWorker: boolean;
   /** Absolute path of the built UI, served at `/`; set only in bundled mode. */
   readonly uiRoot?: string;
+  /** The spec worker module the bundled package ships next to its main module; unset, the one beside the sources runs. */
+  readonly specWorkerUrl?: URL;
 };
 
 export type StudioServerOptions = RequestAccess & ServerRuntime;

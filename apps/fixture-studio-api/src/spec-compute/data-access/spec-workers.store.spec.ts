@@ -3,11 +3,14 @@ import { Worker } from 'node:worker_threads';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { SpecWorkers } from './spec-workers.store.ts';
+import { SpecWorkers, workerSpawn } from './spec-workers.store.ts';
 
 const READY_SOURCE =
   "const { parentPort } = require('node:worker_threads'); setInterval(() => {}, 1000); parentPort.postMessage('ready');";
 const CRASH_SOURCE = "throw new Error('boot failed');";
+const MODULE_SOURCE =
+  "import { parentPort } from 'node:worker_threads'; parentPort.postMessage('ready'); parentPort.postMessage('from the module'); setInterval(() => {}, 1000);";
+const MODULE_URL = new URL(`data:text/javascript,${encodeURIComponent(MODULE_SOURCE)}`);
 
 describe('FEATURE: spec workers', (): void => {
   const spawned: Worker[] = [];
@@ -118,6 +121,22 @@ describe('FEATURE: spec workers', (): void => {
 
       expect(worker).toBe(spawned[0]);
       expect(spawned).toHaveLength(1);
+    });
+  });
+
+  describe('GIVEN a worker module URL, as the bundled package passes', (): void => {
+    it('WHEN a pool spawning from it is taken from THEN the worker runs that module', async (): Promise<void> => {
+      const spawn = workerSpawn(MODULE_URL);
+      const workers = new SpecWorkers(spawn);
+
+      const worker = await workers.take();
+
+      spawned.push(worker);
+      await workers.close();
+      const messages: unknown[] = await once(worker, 'message');
+      const [nextMessage] = messages;
+
+      expect(nextMessage).toBe('from the module');
     });
   });
 });

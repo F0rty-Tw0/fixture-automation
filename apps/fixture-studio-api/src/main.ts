@@ -19,6 +19,8 @@ const HOST = '127.0.0.1';
 const CLI_AI: StudioAi = { fill: aiMissingFixture, discover: discoverModels, detect: detectAiTools, isMock: false };
 /** Present only in the published package, which ships the built UI next to this module. */
 const UI_INDEX = fileURLToPath(new URL('./ui/index.html', import.meta.url));
+/** The spec worker the package build emits next to this module; the bundle has no `spec-compute/feature/` folder. */
+const SPEC_WORKER_URL = new URL('./spec-compute.worker.js', import.meta.url);
 
 type StudioSettings = {
   readonly env: StudioEnv;
@@ -65,10 +67,10 @@ const start = async (env: StudioEnv, args: StudioArgs): Promise<void> => {
   const logger = studioLogger({ isProduction: env.isProduction, isBundled });
   const ai = env.isAiMock ? MOCK_AI : CLI_AI;
   const { allowedOrigins, allowedHosts, computeTimeoutMs } = env;
-  const bundledUi = { uiRoot: dirname(UI_INDEX) };
-  const noUi = {};
-  const uiOption = isBundled ? bundledUi : noUi;
-  const fastify = buildServer({ allowedOrigins, allowedHosts, logger, ai, computeTimeoutMs, warmSpecWorker: true, ...uiOption });
+  const bundledFiles = { uiRoot: dirname(UI_INDEX), specWorkerUrl: SPEC_WORKER_URL };
+  const sourceFiles = {};
+  const fileOptions = isBundled ? bundledFiles : sourceFiles;
+  const fastify = buildServer({ allowedOrigins, allowedHosts, logger, ai, computeTimeoutMs, warmSpecWorker: true, ...fileOptions });
 
   const close = (): void => {
     void fastify.close();

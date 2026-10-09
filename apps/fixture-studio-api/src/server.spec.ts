@@ -10,6 +10,8 @@ import { buildServer } from './server.ts';
 import type { StudioServerOptions } from './studio-server/common/studio-server.type.ts';
 import { allowedHosts, allowedOrigins } from './studio-server/utils/allowed-origins.util.ts';
 import { studioAiMock } from './test/mocks/studio-ai.mock.ts';
+import { listeningPort } from './test/utils/held-port.spec.util.ts';
+import { rawGet } from './test/utils/raw-http.spec.util.ts';
 import { staticUiFolder } from './test/utils/static-ui.spec.util.ts';
 import { studioServer } from './test/utils/studio-spec.spec.util.ts';
 
@@ -222,22 +224,6 @@ describe('FEATURE: studio server', (): void => {
         expect(response.json()).toStrictEqual({ message: 'route not found: GET /api/nope' });
       });
 
-      it.each([
-        ['/..%2fpackage.json', 404, 'route not found: GET /..%2fpackage.json'],
-        ['/%2e%2e/package.json', 404, 'route not found: GET /package.json']
-      ])(
-        'WHEN %s climbs out of uiRoot THEN answers %i without leaking the file',
-        async (url: string, statusCode: number, message: string): Promise<void> => {
-          const headers = { host: UI_HOST };
-
-          const response = await fastify.inject({ method: 'GET', url, headers });
-
-          expect(response.body).not.toContain('sentinel');
-          expect(response.statusCode).toBe(statusCode);
-          expect(response.json<ApiErrorBody>().message).toBe(message);
-        }
-      );
-
       it('WHEN the page posts to the API from its own origin THEN reaches the route', async (): Promise<void> => {
         const headers = { host: UI_HOST, origin: `http://${UI_HOST}` };
 
@@ -246,6 +232,48 @@ describe('FEATURE: studio server', (): void => {
         expect(response.statusCode).toBe(404);
         expect(response.json<ApiErrorBody>().message).toBe('spec not found');
       });
+    });
+
+    describe('GIVEN a built UI at uiRoot behind a real loopback socket', (): void => {
+      let folder: string;
+      let port: number;
+
+      beforeEach(async (): Promise<void> => {
+        folder = await staticUiFolder();
+        const uiRoot = join(folder, 'ui');
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, uiRoot });
+        await fastify.listen({ host: '127.0.0.1', port: 0 });
+        port = listeningPort(fastify.server);
+      });
+
+      afterEach(async (): Promise<void> => {
+        await rm(folder, { recursive: true, force: true });
+      });
+
+      it('WHEN / is fetched over the socket THEN answers the index page', async (): Promise<void> => {
+        const response = await rawGet(port, '/', UI_HOST);
+
+        expect(response).toMatch(/^HTTP\/1\.1 200 /u);
+        expect(response).toContain('<p>ui</p>');
+      });
+
+      it.each([
+        '/../package.json',
+        '/%2e%2e/package.json',
+        '/..%2fpackage.json',
+        '/..%5cpackage.json',
+        '/%2e%2e%2fpackage.json',
+        '/ui/../../package.json'
+      ])(
+        'WHEN the un-normalized path %s reaches the socket THEN answers 403 or 404 without leaking the file',
+        async (path: string): Promise<void> => {
+          const response = await rawGet(port, path, UI_HOST);
+
+          expect(response).toMatch(/^HTTP\/1\.1 40[34] /u);
+          expect(response).not.toContain('sentinel');
+        }
+      );
     });
 
     describe('GIVEN no uiRoot', (): void => {

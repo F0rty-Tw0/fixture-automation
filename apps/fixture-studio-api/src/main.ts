@@ -5,6 +5,7 @@ import type { StudioAi } from './ai/common/ai.type.ts';
 import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import { buildServer } from './server.ts';
 import type { StudioEnv } from './studio-server/common/studio-server.type.ts';
+import { studioArgs } from './studio-server/config/studio-args.schema.ts';
 import { studioEnv } from './studio-server/config/studio-env.schema.ts';
 
 const HOST = '127.0.0.1';
@@ -14,10 +15,12 @@ const prettyTransport = { target: 'pino-http-print', options: printOptions };
 const developmentLogger = { level: 'debug', transport: prettyTransport };
 const productionLogger = { level: 'info' };
 
-/** The settings, or `undefined` after printing why they are invalid in the CLIs' `what` / `fix` form. */
+/** The settings from the environment and flags, or `undefined` after printing why they are invalid in the CLIs' `what` / `fix` form. */
 const readEnv = (): StudioEnv | undefined => {
   try {
-    return studioEnv(process.env);
+    const args = studioArgs(process.argv.slice(2));
+
+    return studioEnv(process.env, args);
   } catch (error: unknown) {
     if (!(error instanceof FixtureError)) throw error;
 

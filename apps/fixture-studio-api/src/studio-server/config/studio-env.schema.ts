@@ -1,6 +1,6 @@
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-import type { StudioEnv } from '../common/studio-server.type.ts';
+import type { StudioArgs, StudioEnv } from '../common/studio-server.type.ts';
 import { allowedHosts, allowedOrigins } from '../utils/allowed-origins.util.ts';
 
 const DEFAULT_PORT = 3333;
@@ -26,9 +26,13 @@ const positiveInteger = (name: string, raw: string | undefined, fallback: number
   return value;
 };
 
-/** The API's start-up settings from environment variables; an invalid value fails with a `FixtureError` before anything listens. */
-export const studioEnv = (env: Record<string, string | undefined>): StudioEnv => {
-  const port = positiveInteger('STUDIO_API_PORT', env['STUDIO_API_PORT'], DEFAULT_PORT, MAX_PORT);
+/**
+ * The API's start-up settings from environment variables and flags, `--port` over `STUDIO_API_PORT`; an invalid value fails with a
+ * `FixtureError` before anything listens.
+ */
+export const studioEnv = (env: Record<string, string | undefined>, args: StudioArgs): StudioEnv => {
+  const envPort = positiveInteger('STUDIO_API_PORT', env['STUDIO_API_PORT'], DEFAULT_PORT, MAX_PORT);
+  const port = args.port ?? envPort;
   const computeTimeoutMs = positiveInteger(
     'STUDIO_COMPUTE_TIMEOUT_MS',
     env['STUDIO_COMPUTE_TIMEOUT_MS'],

@@ -28,9 +28,9 @@ const positiveInteger = (name: string, raw: string | undefined, fallback: number
 
 /**
  * The API's start-up settings from environment variables and flags, `--port` over `STUDIO_API_PORT`; an invalid value fails with a
- * `FixtureError` before anything listens.
+ * `FixtureError` before anything listens. `isBundled` (the published package, serving its own UI) drops the Angular dev server origins.
  */
-export const studioEnv = (env: Record<string, string | undefined>, args: StudioArgs): StudioEnv => {
+export const studioEnv = (env: Record<string, string | undefined>, args: StudioArgs, isBundled: boolean): StudioEnv => {
   const envPort = positiveInteger('STUDIO_API_PORT', env['STUDIO_API_PORT'], DEFAULT_PORT, MAX_PORT);
   const port = args.port ?? envPort;
   const computeTimeoutMs = positiveInteger(
@@ -39,7 +39,7 @@ export const studioEnv = (env: Record<string, string | undefined>, args: StudioA
     DEFAULT_COMPUTE_TIMEOUT_MS,
     MAX_TIMER_MS
   );
-  const origins = allowedOrigins(env['STUDIO_ALLOWED_ORIGINS'], port);
+  const origins = allowedOrigins(env['STUDIO_ALLOWED_ORIGINS'], port, isBundled);
   const hosts = allowedHosts(port, origins);
   const isAiMock = env['STUDIO_AI_MOCK'] === '1';
   const isProduction = env['NODE_ENV'] === 'production';

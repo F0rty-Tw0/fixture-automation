@@ -1,6 +1,7 @@
 import { FixtureError } from '@fixture-automation/openapi-fixtures';
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const DEV_SERVER_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const NO_ORIGINS: string[] = [];
 const ORIGIN_FIX = 'list origins like http://localhost:4200 in STUDIO_ALLOWED_ORIGINS';
 
 /** `scheme://host[:port]` as a browser sends it in `Origin`; a trailing slash or path is dropped. */
@@ -16,14 +17,19 @@ const normalizedOrigin = (entry: string): string => {
   return origin;
 };
 
-/** The Angular dev server origins, the API's own loopback origins on `port` (which its same-origin UI sends), then every entry of a comma-separated `STUDIO_ALLOWED_ORIGINS` value, normalized. */
-export const allowedOrigins = (extraOrigins: string | undefined, port: number): string[] => {
+/**
+ * The Angular dev server origins (source mode only; bundled mode serves its own UI, so a page on port 4200 is a stranger),
+ * the API's own loopback origins on `port` (which its same-origin UI sends), then every entry of a comma-separated
+ * `STUDIO_ALLOWED_ORIGINS` value, normalized.
+ */
+export const allowedOrigins = (extraOrigins: string | undefined, port: number, isBundled: boolean): string[] => {
   const loopback = [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
   const self = loopback.map(normalizedOrigin);
   const entries = extraOrigins?.split(',') ?? [];
   const trimmed = entries.map((entry: string): string => entry.trim());
   const extra = trimmed.filter(Boolean).map(normalizedOrigin);
-  const unique = new Set([...DEFAULT_ALLOWED_ORIGINS, ...self, ...extra]);
+  const devServer = isBundled ? NO_ORIGINS : DEV_SERVER_ORIGINS;
+  const unique = new Set([...devServer, ...self, ...extra]);
 
   return [...unique];
 };

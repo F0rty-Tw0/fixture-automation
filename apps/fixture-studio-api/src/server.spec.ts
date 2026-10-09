@@ -21,7 +21,7 @@ const FORBIDDEN_ORIGIN: ApiErrorBody = {
 };
 const GENERATE_BODY = { endpointIds: ['GET /a'], formats: ['json'], requiredOnly: false };
 const UI_HOST = '127.0.0.1:3999';
-const UI_ORIGINS = allowedOrigins(undefined, 3999);
+const UI_ORIGINS = allowedOrigins(undefined, 3999, true);
 const UI_HOSTS = allowedHosts(3999, UI_ORIGINS);
 const UI_SERVER_OPTIONS: StudioServerOptions = {
   allowedOrigins: UI_ORIGINS,
@@ -107,7 +107,7 @@ describe('FEATURE: studio server', (): void => {
 
     describe('GIVEN the e2e setup: API on 3334 behind a proxy on 127.0.0.1:4300', (): void => {
       beforeEach((): void => {
-        const origins = allowedOrigins('http://127.0.0.1:4300', 3334);
+        const origins = allowedOrigins('http://127.0.0.1:4300', 3334, false);
         const hosts = allowedHosts(3334, origins);
 
         fastify = buildServer({

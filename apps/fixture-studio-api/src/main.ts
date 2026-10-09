@@ -28,10 +28,10 @@ type StudioSettings = {
 };
 
 /** The settings from the environment and flags, or `undefined` after printing why they are invalid in the CLIs' `what` / `fix` form. */
-const readSettings = (): StudioSettings | undefined => {
+const readSettings = (isBundled: boolean): StudioSettings | undefined => {
   try {
     const args = studioArgs(process.argv.slice(2));
-    const env = studioEnv(process.env, args);
+    const env = studioEnv(process.env, args, isBundled);
     const settings: StudioSettings = { env, args };
 
     return settings;
@@ -62,8 +62,7 @@ const announceUi = (fastify: FastifyInstance, url: string, args: StudioArgs): vo
   openBrowser(url, warnNoBrowser);
 };
 
-const start = async (env: StudioEnv, args: StudioArgs): Promise<void> => {
-  const isBundled = existsSync(UI_INDEX);
+const start = async (env: StudioEnv, args: StudioArgs, isBundled: boolean): Promise<void> => {
   const logger = studioLogger({ isProduction: env.isProduction, isBundled });
   const ai = env.isAiMock ? MOCK_AI : CLI_AI;
   const { allowedOrigins, allowedHosts, computeTimeoutMs } = env;
@@ -94,6 +93,7 @@ const start = async (env: StudioEnv, args: StudioArgs): Promise<void> => {
   if (isBundled) announceUi(fastify, `http://${HOST}:${env.port}`, args);
 };
 
-const settings = readSettings();
+const isBundled = existsSync(UI_INDEX);
+const settings = readSettings(isBundled);
 
-if (settings !== undefined) await start(settings.env, settings.args);
+if (settings !== undefined) await start(settings.env, settings.args, isBundled);

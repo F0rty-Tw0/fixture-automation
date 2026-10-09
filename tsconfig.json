@@ -28,6 +28,9 @@
     },
     {
       "path": "./apps/fixture-studio"
+    },
+    {
+      "path": "./apps/fixture-studio-cli"
     }
   ]
 }

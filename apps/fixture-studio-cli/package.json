@@ -1,0 +1,74 @@
+{
+  "name": "fixture-studio",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Fixture Studio: generate, enrich, diff and merge OpenAPI fixtures in a local web UI.",
+  "keywords": [
+    "openapi",
+    "fixtures",
+    "mock",
+    "studio"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "bin": {
+    "fixture-studio": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@fastify/static": "catalog:backend",
+    "ajv": "catalog:devDependencies",
+    "ajv-draft-04": "catalog:dependencies",
+    "ajv-formats": "catalog:dependencies",
+    "fastify": "catalog:backend",
+    "fastify-type-provider-zod": "catalog:backend",
+    "openapi-typescript": "catalog:dependencies",
+    "pino-http-print": "catalog:backend",
+    "zod": "catalog:backend"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:devDependencies",
+    "esbuild": "catalog:devDependencies"
+  },
+  "nx": {
+    "name": "fixture-studio-cli",
+    "implicitDependencies": [
+      "@fixture-automation/fixture-studio",
+      "@fixture-automation/fixture-studio-api"
+    ],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node build.ts",
+          "cwd": "{projectRoot}"
+        },
+        "dependsOn": [
+          {
+            "projects": [
+              "@fixture-automation/fixture-studio"
+            ],
+            "target": "build"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "pack": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm pack --pack-destination ../../dist",
+          "cwd": "{projectRoot}"
+        },
+        "dependsOn": [
+          "build"
+        ]
+      }
+    }
+  }
+}

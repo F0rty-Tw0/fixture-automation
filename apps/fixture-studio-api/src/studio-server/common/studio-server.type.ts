@@ -3,7 +3,7 @@ import type { FastifyServerOptions } from 'fastify';
 import type { StudioAi } from '../../ai/common/ai.type.ts';
 import type { ApiErrorBody } from '../../contract/common/studio-api.type.ts';
 
-type StudioLogger = NonNullable<FastifyServerOptions['logger']>;
+export type StudioLogger = NonNullable<FastifyServerOptions['logger']>;
 
 /** Which callers may reach the API at all. */
 export type RequestAccess = {

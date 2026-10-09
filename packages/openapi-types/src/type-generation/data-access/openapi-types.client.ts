@@ -1,5 +1,4 @@
-import openapiTS, { astToString } from 'openapi-typescript';
-
+import { loadTypesRenderer } from './openapi-typescript.client.ts';
 import { isOpenApiDocument } from '../utils/openapi-document.util.ts';
 
 /**
@@ -13,14 +12,14 @@ export async function generateTypes(spec: string | URL | Record<string, unknown>
 
   if (isUrl) {
     const url = new URL(spec);
-    const urlAst = await openapiTS(url);
+    const renderUrl = await loadTypesRenderer();
 
-    return astToString(urlAst);
+    return renderUrl(url);
   }
 
   if (!isOpenApiDocument(spec)) throw new Error('an in-memory OpenAPI document requires openapi and info');
 
-  const ast = await openapiTS(spec);
+  const render = await loadTypesRenderer();
 
-  return astToString(ast);
+  return render(spec);
 }

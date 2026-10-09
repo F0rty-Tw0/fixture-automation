@@ -1,5 +1,7 @@
+import { once } from 'node:events';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { BroadcastChannel } from 'node:worker_threads';
 
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,6 +35,17 @@ const UI_SERVER_OPTIONS: StudioServerOptions = {
   computeTimeoutMs: 15_000,
   warmSpecWorker: false
 };
+const WORKER_CHANNEL = 'server-spec-worker';
+const WORKER_SPAWNED = 'spawned from specWorkerUrl';
+const WORKER_STATEMENTS = [
+  "import { BroadcastChannel, parentPort } from 'node:worker_threads';",
+  `const channel = new BroadcastChannel('${WORKER_CHANNEL}');`,
+  `channel.postMessage('${WORKER_SPAWNED}');`,
+  'channel.close();',
+  "parentPort.postMessage('ready');",
+  'setInterval(() => {}, 1000);'
+];
+const WORKER_SOURCE = WORKER_STATEMENTS.join(' ');
 
 describe('FEATURE: studio server', (): void => {
   let fastify: FastifyInstance;
@@ -288,6 +301,23 @@ describe('FEATURE: studio server', (): void => {
 
         expect(response.statusCode).toBe(404);
         expect(response.json()).toStrictEqual({ message: 'route not found: GET /' });
+      });
+    });
+  });
+
+  describe('SCENARIO: spec worker', (): void => {
+    describe('GIVEN a specWorkerUrl, as the bundled package passes', (): void => {
+      it('WHEN the server warms its spec worker THEN the worker runs that module', async (): Promise<void> => {
+        const channel = new BroadcastChannel(WORKER_CHANNEL);
+        const spawned = once(channel, 'message');
+        const specWorkerUrl = new URL(`data:text/javascript,${encodeURIComponent(WORKER_SOURCE)}`);
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, specWorkerUrl, warmSpecWorker: true });
+        const events: unknown[] = await spawned;
+
+        channel.close();
+
+        expect(events[0]).toMatchObject({ data: WORKER_SPAWNED });
       });
     });
   });

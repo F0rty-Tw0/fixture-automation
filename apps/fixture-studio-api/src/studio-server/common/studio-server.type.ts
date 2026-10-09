@@ -35,6 +35,13 @@ type EnvSettings = {
 /** Start-up settings read from the environment. */
 export type StudioEnv = EnvSettings & RequestAccess;
 
+/** The `fixture-studio` command-line flags. */
+export type StudioArgs = {
+  readonly port: number | undefined;
+  /** False for `--no-open`. */
+  readonly isOpen: boolean;
+};
+
 /** The request headers the access guard judges. */
 export type RequestIdentity = {
   readonly host: string | undefined;

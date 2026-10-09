@@ -7,7 +7,7 @@ import { isRecord } from '../../json/utils/record.util.ts';
 
 const UNREACHABLE_ERROR: ApiErrorBody = {
   message: 'The Fixture Studio API did not answer.',
-  fix: 'Start it with pnpm studio (it listens on 127.0.0.1:3333), then retry.'
+  fix: 'Restart Fixture Studio (pnpm studio, or npx fixture-studio), then retry.'
 };
 
 /** A text response type (the `ai-fill` stream) hands the error body over as a string. */

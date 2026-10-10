@@ -3,29 +3,62 @@ import { describe, expect, it } from 'vitest';
 import { allowedHosts, allowedOrigins } from './allowed-origins.util.ts';
 
 const DEV_ORIGINS = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+const SELF_ORIGINS = ['http://127.0.0.1:3333', 'http://localhost:3333'];
+const DEFAULT_ORIGINS = [...DEV_ORIGINS, ...SELF_ORIGINS];
 
 describe('FEATURE: allowed origins', (): void => {
-  describe('GIVEN no STUDIO_ALLOWED_ORIGINS value', (): void => {
-    it('WHEN the list is built THEN holds only the Angular dev server origins', (): void => {
-      const origins = allowedOrigins(undefined);
+  describe('GIVEN source mode and no STUDIO_ALLOWED_ORIGINS value', (): void => {
+    it('WHEN the list is built THEN holds the Angular dev server origins, then the API origins on the port', (): void => {
+      const origins = allowedOrigins(undefined, 3999, false);
 
-      expect(origins).toStrictEqual(DEV_ORIGINS);
+      expect(origins).toStrictEqual([
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+        'http://127.0.0.1:3999',
+        'http://localhost:3999'
+      ]);
+    });
+  });
+
+  describe('GIVEN bundled mode, where the API serves the UI itself', (): void => {
+    it('WHEN the list is built THEN holds only the API origins on the port, no Angular dev server origin', (): void => {
+      const origins = allowedOrigins(undefined, 3333, true);
+
+      expect(origins).toStrictEqual(SELF_ORIGINS);
+    });
+
+    it('WHEN STUDIO_ALLOWED_ORIGINS lists an origin THEN appends it after the API origins', (): void => {
+      const origins = allowedOrigins('http://localhost:4200', 3333, true);
+
+      expect(origins).toStrictEqual([...SELF_ORIGINS, 'http://localhost:4200']);
+    });
+  });
+
+  describe('GIVEN the API on the http default port', (): void => {
+    it('WHEN the list is built THEN its origins carry no port, as a browser sends them', (): void => {
+      const origins = allowedOrigins(undefined, 80, false);
+
+      expect(origins).toStrictEqual([...DEV_ORIGINS, 'http://127.0.0.1', 'http://localhost']);
     });
   });
 
   describe('GIVEN a comma-separated value with blanks and empty entries', (): void => {
     it('WHEN the list is built THEN appends each trimmed, non-empty origin', (): void => {
-      const origins = allowedOrigins(' http://studio.local:8080 ,, https://x.dev,');
+      const origins = allowedOrigins(' http://studio.local:8080 ,, https://x.dev,', 3333, false);
 
-      expect(origins).toStrictEqual([...DEV_ORIGINS, 'http://studio.local:8080', 'https://x.dev']);
+      expect(origins).toStrictEqual([...DEFAULT_ORIGINS, 'http://studio.local:8080', 'https://x.dev']);
     });
   });
 
   describe('GIVEN origins written loosely', (): void => {
     it('WHEN the list is built THEN each becomes the origin a browser sends, once', (): void => {
-      const origins = allowedOrigins('http://studio.local:8080/, HTTP://Studio.Local:8080/app, http://localhost:4200/');
+      const origins = allowedOrigins(
+        'http://studio.local:8080/, HTTP://Studio.Local:8080/app, http://localhost:4200/, http://127.0.0.1:3333/',
+        3333,
+        false
+      );
 
-      expect(origins).toStrictEqual([...DEV_ORIGINS, 'http://studio.local:8080']);
+      expect(origins).toStrictEqual([...DEFAULT_ORIGINS, 'http://studio.local:8080']);
     });
   });
 
@@ -34,7 +67,7 @@ describe('FEATURE: allowed origins', (): void => {
       ['studio.local', 'allowed origin "studio.local" is not a URL'],
       ['file:///tmp/app.html', 'allowed origin "file:///tmp/app.html" has no http(s) origin']
     ])('WHEN it is %s THEN fails naming it', (entry: string, message: string): void => {
-      expect((): string[] => allowedOrigins(entry)).toThrow(expect.objectContaining({ message }));
+      expect((): string[] => allowedOrigins(entry, 3333, false)).toThrow(expect.objectContaining({ message }));
     });
   });
 

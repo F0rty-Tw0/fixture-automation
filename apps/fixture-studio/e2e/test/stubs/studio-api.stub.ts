@@ -86,7 +86,7 @@ export const UNMOCKED_ERROR_STUB: ApiErrorBody = {
 /** What the UI shows, not what the API sends: the proxy's 502 has no body. */
 export const UNREACHABLE_ERROR_STUB: ApiErrorBody = {
   message: 'The Fixture Studio API did not answer.',
-  fix: 'Start it with pnpm studio (it listens on 127.0.0.1:3333), then retry.'
+  fix: 'Restart Fixture Studio (pnpm studio, or npx fixture-studio), then retry.'
 };
 
 /** The invoice operation of the API's own sample spec, as the live API lists it. */

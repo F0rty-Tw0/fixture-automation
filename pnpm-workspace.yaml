@@ -36,6 +36,7 @@ catalogs:
     '@angular/compiler-cli': 22.1.5
     jsdom: 30.0.1
   backend:
+    '@fastify/static': 10.1.5
     fastify: 5.12.3
     fastify-type-provider-zod: 7.0.0
     pino-http-print: 4.0.0
@@ -53,6 +54,7 @@ catalogs:
     '@playwright/test': 1.63.0
     '@types/node': 24.13.4
     ajv: 8.20.0
+    esbuild: 0.28.2
     eslint: 10.10.0
     jiti: 2.7.0
     lint-suite: 2.1.1

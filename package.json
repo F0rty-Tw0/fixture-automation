@@ -16,7 +16,8 @@
     "test:watch": "vitest --watch",
     "typecheck": "tsc --project tsconfig.tools.json && nx run-many -t typecheck",
     "graph": "nx graph",
-    "studio": "nx run-many -t serve -p @fixture-automation/fixture-studio @fixture-automation/fixture-studio-api"
+    "studio": "nx run-many -t serve -p @fixture-automation/fixture-studio @fixture-automation/fixture-studio-api",
+    "studio:pack": "nx run fixture-studio-cli:pack"
   },
   "private": true,
   "devDependencies": {

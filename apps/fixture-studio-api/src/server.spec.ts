@@ -1,11 +1,20 @@
+import { once } from 'node:events';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { BroadcastChannel } from 'node:worker_threads';
+
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MOCK_AI } from './ai/data-access/ai-mock.client.ts';
 import type { ApiErrorBody } from './contract/common/studio-api.type.ts';
 import { buildServer } from './server.ts';
+import type { StudioServerOptions } from './studio-server/common/studio-server.type.ts';
 import { allowedHosts, allowedOrigins } from './studio-server/utils/allowed-origins.util.ts';
 import { studioAiMock } from './test/mocks/studio-ai.mock.ts';
+import { listeningPort } from './test/utils/held-port.spec.util.ts';
+import { rawGet } from './test/utils/raw-http.spec.util.ts';
+import { staticUiFolder } from './test/utils/static-ui.spec.util.ts';
 import { studioServer } from './test/utils/studio-spec.spec.util.ts';
 
 const MISSING_SPEC_URL = '/api/specs/missing/generate';
@@ -15,6 +24,28 @@ const FORBIDDEN_ORIGIN: ApiErrorBody = {
   fix: 'open Fixture Studio from an allowed origin, or add yours to STUDIO_ALLOWED_ORIGINS'
 };
 const GENERATE_BODY = { endpointIds: ['GET /a'], formats: ['json'], requiredOnly: false };
+const UI_HOST = '127.0.0.1:3999';
+const UI_ORIGINS = allowedOrigins(undefined, 3999, true);
+const UI_HOSTS = allowedHosts(3999, UI_ORIGINS);
+const UI_SERVER_OPTIONS: StudioServerOptions = {
+  allowedOrigins: UI_ORIGINS,
+  allowedHosts: UI_HOSTS,
+  logger: false,
+  ai: MOCK_AI,
+  computeTimeoutMs: 15_000,
+  warmSpecWorker: false
+};
+const WORKER_CHANNEL = 'server-spec-worker';
+const WORKER_SPAWNED = 'spawned from specWorkerUrl';
+const WORKER_STATEMENTS = [
+  "import { BroadcastChannel, parentPort } from 'node:worker_threads';",
+  `const channel = new BroadcastChannel('${WORKER_CHANNEL}');`,
+  `channel.postMessage('${WORKER_SPAWNED}');`,
+  'channel.close();',
+  "parentPort.postMessage('ready');",
+  'setInterval(() => {}, 1000);'
+];
+const WORKER_SOURCE = WORKER_STATEMENTS.join(' ');
 
 describe('FEATURE: studio server', (): void => {
   let fastify: FastifyInstance;
@@ -91,7 +122,7 @@ describe('FEATURE: studio server', (): void => {
 
     describe('GIVEN the e2e setup: API on 3334 behind a proxy on 127.0.0.1:4300', (): void => {
       beforeEach((): void => {
-        const origins = allowedOrigins('http://127.0.0.1:4300');
+        const origins = allowedOrigins('http://127.0.0.1:4300', 3334, false);
         const hosts = allowedHosts(3334, origins);
 
         fastify = buildServer({
@@ -151,6 +182,142 @@ describe('FEATURE: studio server', (): void => {
         expect(response.statusCode).toBe(400);
         expect(body.message).toContain('JSON');
         expect(body.fix).toBeUndefined();
+      });
+    });
+  });
+
+  describe('SCENARIO: static UI', (): void => {
+    describe('GIVEN a built UI at uiRoot on port 3999', (): void => {
+      let folder: string;
+
+      beforeEach(async (): Promise<void> => {
+        folder = await staticUiFolder();
+        const uiRoot = join(folder, 'ui');
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, uiRoot });
+      });
+
+      afterEach(async (): Promise<void> => {
+        await rm(folder, { recursive: true, force: true });
+      });
+
+      it('WHEN the browser navigates to / THEN answers the index page as HTML', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'none', 'sec-fetch-mode': 'navigate' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/', headers });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('<p>ui</p>');
+        expect(response.headers['content-type']).toMatch(/^text\/html/u);
+      });
+
+      it('WHEN the page loads /app.js from the same origin THEN answers 200', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'same-origin' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/app.js', headers });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it('WHEN a missing asset is requested THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST };
+
+        const response = await fastify.inject({ method: 'GET', url: '/missing.js', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /missing.js' });
+      });
+
+      it('WHEN an unknown API route is called THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST };
+
+        const response = await fastify.inject({ method: 'GET', url: '/api/nope', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /api/nope' });
+      });
+
+      it('WHEN the page posts to the API from its own origin THEN reaches the route', async (): Promise<void> => {
+        const headers = { host: UI_HOST, origin: `http://${UI_HOST}` };
+
+        const response = await fastify.inject({ method: 'POST', url: MISSING_SPEC_URL, headers, payload: GENERATE_BODY });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json<ApiErrorBody>().message).toBe('spec not found');
+      });
+    });
+
+    describe('GIVEN a built UI at uiRoot behind a real loopback socket', (): void => {
+      let folder: string;
+      let port: number;
+
+      beforeEach(async (): Promise<void> => {
+        folder = await staticUiFolder();
+        const uiRoot = join(folder, 'ui');
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, uiRoot });
+        await fastify.listen({ host: '127.0.0.1', port: 0 });
+        port = listeningPort(fastify.server);
+      });
+
+      afterEach(async (): Promise<void> => {
+        await rm(folder, { recursive: true, force: true });
+      });
+
+      it('WHEN / is fetched over the socket THEN answers the index page', async (): Promise<void> => {
+        const response = await rawGet(port, '/', UI_HOST);
+
+        expect(response).toMatch(/^HTTP\/1\.1 200 /u);
+        expect(response).toContain('<p>ui</p>');
+      });
+
+      it.each([
+        '/../package.json',
+        '/%2e%2e/package.json',
+        '/..%2fpackage.json',
+        '/..%5cpackage.json',
+        '/%2e%2e%2fpackage.json',
+        '/ui/../../package.json'
+      ])(
+        'WHEN the un-normalized path %s reaches the socket THEN answers 403 or 404 without leaking the file',
+        async (path: string): Promise<void> => {
+          const response = await rawGet(port, path, UI_HOST);
+
+          expect(response).toMatch(/^HTTP\/1\.1 40[34] /u);
+          expect(response).not.toContain('sentinel');
+        }
+      );
+    });
+
+    describe('GIVEN no uiRoot', (): void => {
+      beforeEach((): void => {
+        fastify = buildServer(UI_SERVER_OPTIONS);
+      });
+
+      it('WHEN the browser navigates to / THEN answers 404 with an ApiErrorBody', async (): Promise<void> => {
+        const headers = { host: UI_HOST, 'sec-fetch-site': 'none', 'sec-fetch-mode': 'navigate' };
+
+        const response = await fastify.inject({ method: 'GET', url: '/', headers });
+
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toStrictEqual({ message: 'route not found: GET /' });
+      });
+    });
+  });
+
+  describe('SCENARIO: spec worker', (): void => {
+    describe('GIVEN a specWorkerUrl, as the bundled package passes', (): void => {
+      it('WHEN the server warms its spec worker THEN the worker runs that module', async (): Promise<void> => {
+        const channel = new BroadcastChannel(WORKER_CHANNEL);
+        const spawned = once(channel, 'message');
+        const specWorkerUrl = new URL(`data:text/javascript,${encodeURIComponent(WORKER_SOURCE)}`);
+
+        fastify = buildServer({ ...UI_SERVER_OPTIONS, specWorkerUrl, warmSpecWorker: true });
+        const events: unknown[] = await spawned;
+
+        channel.close();
+
+        expect(events[0]).toMatchObject({ data: WORKER_SPAWNED });
       });
     });
   });

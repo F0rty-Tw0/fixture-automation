@@ -1,3 +1,4 @@
+import fastifyStatic from '@fastify/static';
 import server from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -5,7 +6,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import { aiRoutes } from './ai/routes.ts';
 import { API_PREFIX } from './contract/common/studio-api.const.ts';
 import { fixtureRoutes } from './fixture/routes.ts';
-import { SpecWorkers } from './spec-compute/data-access/spec-workers.store.ts';
+import { SpecWorkers, workerSpawn } from './spec-compute/data-access/spec-workers.store.ts';
 import { SpecCache } from './specs/data-access/spec-cache.store.ts';
 import { specsRoutes } from './specs/routes.ts';
 import type { StudioServerOptions } from './studio-server/common/studio-server.type.ts';
@@ -18,7 +19,8 @@ export const buildServer = (options: StudioServerOptions): FastifyInstance => {
   const fastify = server({ logger: options.logger });
   const guard = accessGuard(options);
   const cache = new SpecCache();
-  const workers = new SpecWorkers();
+  const spawn = workerSpawn(options.specWorkerUrl);
+  const workers = new SpecWorkers(spawn);
   const compute = { workers, timeoutMs: options.computeTimeoutMs };
   const routesOptions = { prefix: API_PREFIX };
   const closeWorkers = async (): Promise<void> => workers.close();
@@ -36,6 +38,12 @@ export const buildServer = (options: StudioServerOptions): FastifyInstance => {
   fastify.setNotFoundHandler(sendNotFound);
   fastify.addHook('onClose', closeWorkers);
   void fastify.register(apiRoutes, routesOptions);
+
+  if (options.uiRoot !== undefined) {
+    const uiOptions = { root: options.uiRoot, prefix: '/' };
+
+    void fastify.register(fastifyStatic, uiOptions);
+  }
 
   if (options.warmSpecWorker) workers.warm();
 

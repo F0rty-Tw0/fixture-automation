@@ -13,6 +13,7 @@
     }
   },
   "dependencies": {
+    "@fastify/static": "catalog:backend",
     "@fixture-automation/openapi-ai-fixtures": "workspace:*",
     "@fixture-automation/openapi-fixture-diff": "workspace:*",
     "@fixture-automation/openapi-fixture-merge": "workspace:*",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { studioEnv } from './studio-env.schema.ts';
+import type { StudioArgs } from '../common/studio-server.type.ts';
 
 const E2E_VARIABLES: [string, string][] = [
   ['STUDIO_API_PORT', '3334'],
@@ -9,14 +10,47 @@ const E2E_VARIABLES: [string, string][] = [
   ['STUDIO_COMPUTE_TIMEOUT_MS', ' 2000 '],
   ['NODE_ENV', 'production']
 ];
+const NO_ARGS: StudioArgs = { port: undefined, isOpen: true };
 
 describe('FEATURE: studio start-up settings', (): void => {
   describe('GIVEN an empty environment', (): void => {
     it('WHEN read THEN uses port 3333, a 15 s compute budget, the dev origins and real AI', (): void => {
-      const env = studioEnv({});
+      const env = studioEnv({}, NO_ARGS, false);
 
       expect(env).toMatchObject({ port: 3333, computeTimeoutMs: 15_000, isAiMock: false, isProduction: false });
       expect(env.allowedHosts).toContain('127.0.0.1:3333');
+    });
+  });
+
+  describe('GIVEN source mode', (): void => {
+    it('WHEN read THEN trusts the Angular dev server origins and their hosts', (): void => {
+      const env = studioEnv({}, NO_ARGS, false);
+
+      expect(env.allowedOrigins).toStrictEqual([
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+        'http://127.0.0.1:3333',
+        'http://localhost:3333'
+      ]);
+      expect(env.allowedHosts).toStrictEqual(['127.0.0.1:3333', 'localhost:3333', 'localhost:4200', '127.0.0.1:4200']);
+    });
+  });
+
+  describe('GIVEN bundled mode', (): void => {
+    it('WHEN read THEN trusts only the API loopback origins and hosts on its port', (): void => {
+      const env = studioEnv({}, NO_ARGS, true);
+
+      expect(env.allowedOrigins).toStrictEqual(['http://127.0.0.1:3333', 'http://localhost:3333']);
+      expect(env.allowedHosts).toStrictEqual(['127.0.0.1:3333', 'localhost:3333']);
+    });
+
+    it('WHEN STUDIO_ALLOWED_ORIGINS is set THEN trusts it and its host too', (): void => {
+      const variables = Object.fromEntries([['STUDIO_ALLOWED_ORIGINS', 'http://127.0.0.1:4300']]);
+
+      const env = studioEnv(variables, NO_ARGS, true);
+
+      expect(env.allowedOrigins).toStrictEqual(['http://127.0.0.1:3333', 'http://localhost:3333', 'http://127.0.0.1:4300']);
+      expect(env.allowedHosts).toStrictEqual(['127.0.0.1:3333', 'localhost:3333', '127.0.0.1:4300']);
     });
   });
 
@@ -24,7 +58,7 @@ describe('FEATURE: studio start-up settings', (): void => {
     it('WHEN read THEN takes the port, origins, mock flag and budget from it', (): void => {
       const variables = Object.fromEntries(E2E_VARIABLES);
 
-      const env = studioEnv(variables);
+      const env = studioEnv(variables, NO_ARGS, false);
 
       expect(env).toMatchObject({ port: 3334, computeTimeoutMs: 2000, isAiMock: true, isProduction: true });
       expect(env.allowedOrigins).toContain('http://127.0.0.1:4300');
@@ -35,6 +69,30 @@ describe('FEATURE: studio start-up settings', (): void => {
         '127.0.0.1:4200',
         '127.0.0.1:4300'
       ]);
+    });
+  });
+
+  describe('GIVEN a --port flag and STUDIO_API_PORT', (): void => {
+    const args: StudioArgs = { port: 3999, isOpen: true };
+    const variables = Object.fromEntries([['STUDIO_API_PORT', '3334']]);
+
+    it('WHEN read THEN the flag wins', (): void => {
+      const env = studioEnv(variables, args, false);
+
+      expect(env.port).toBe(3999);
+    });
+
+    it('WHEN read THEN hosts follow the flag port, not the variable', (): void => {
+      const env = studioEnv(variables, args, false);
+
+      expect(env.allowedHosts).toContain('127.0.0.1:3999');
+      expect(env.allowedHosts).not.toContain('127.0.0.1:3334');
+    });
+
+    it('WHEN read THEN origins include the API origin on the flag port', (): void => {
+      const env = studioEnv(variables, args, false);
+
+      expect(env.allowedOrigins).toContain('http://127.0.0.1:3999');
     });
   });
 
@@ -53,7 +111,7 @@ describe('FEATURE: studio start-up settings', (): void => {
         const message = `${name} must be ${range}, got "${value}"`;
         const fix = `unset ${name}, or set it to e.g. ${fallback}`;
 
-        expect((): unknown => studioEnv(variables)).toThrow(expect.objectContaining({ message, fix }));
+        expect((): unknown => studioEnv(variables, NO_ARGS, false)).toThrow(expect.objectContaining({ message, fix }));
       }
     );
   });
@@ -62,7 +120,7 @@ describe('FEATURE: studio start-up settings', (): void => {
     it('WHEN read THEN falls back to the default', (): void => {
       const variables = Object.fromEntries([['STUDIO_API_PORT', '  ']]);
 
-      const env = studioEnv(variables);
+      const env = studioEnv(variables, NO_ARGS, false);
 
       expect(env.port).toBe(3333);
     });

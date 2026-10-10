@@ -11,13 +11,13 @@ const SOURCE_EXEC_ARGV = ['--conditions=@fixture-automation/source'];
 const MAX_HEAP_MB = 512;
 const READY = 'ready';
 
-const spawnWorker = (): Worker => {
+const spawnWorker = (workerUrl: URL): Worker => {
   const resourceLimits = { maxOldGenerationSizeMb: MAX_HEAP_MB };
   const env = workerEnv(process.env);
   const isSource = MODULE_EXTENSION === '.ts';
   const sourceOptions = { env, execArgv: SOURCE_EXEC_ARGV, resourceLimits };
   const distOptions = { env, resourceLimits };
-  const worker = new Worker(WORKER_URL, isSource ? sourceOptions : distOptions);
+  const worker = new Worker(workerUrl, isSource ? sourceOptions : distOptions);
 
   worker.unref();
 
@@ -25,6 +25,13 @@ const spawnWorker = (): Worker => {
 };
 
 type WorkerSpawn = () => Worker;
+
+/** Starts spec workers from `workerUrl`, by default the worker module beside these sources; the bundled package passes its own. */
+export const workerSpawn = (workerUrl: URL = WORKER_URL): WorkerSpawn => {
+  const spawn = (): Worker => spawnWorker(workerUrl);
+
+  return spawn;
+};
 
 /** A worker that has loaded its modules (about 1-2 s from source) and posted `ready`; any other message before it is ignored. */
 const readyWorker = async (spawn: WorkerSpawn): Promise<Worker> => {
@@ -57,7 +64,7 @@ export class SpecWorkers {
   private isClosed = false;
 
   /** `spawn` starts the real spec worker; tests pass a stand-in. */
-  public constructor(spawn: WorkerSpawn = spawnWorker) {
+  public constructor(spawn: WorkerSpawn = workerSpawn()) {
     this.spawn = spawn;
   }
 

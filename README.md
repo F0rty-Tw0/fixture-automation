@@ -1,5 +1,7 @@
 # Fixture automation
 
+[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-donate-yellow.svg)](https://buymeacoffee.com/f0rty_tw0)
+
 Turn an OpenAPI spec into typed, validated test fixtures, with optional AI fill for the fields you corrupted on purpose.
 
 ## Pipeline

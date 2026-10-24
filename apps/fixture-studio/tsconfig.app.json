@@ -4,10 +4,11 @@
     "composite": false,
     "declarationMap": false,
     "experimentalDecorators": true,
-    "lib": ["es2024", "dom", "dom.iterable"],
+    "lib": ["es2025", "dom"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "outDir": "out-tsc/app",
+    "rootDir": "src",
     "tsBuildInfoFile": "out-tsc/app/tsconfig.app.tsbuildinfo",
     "types": []
   },

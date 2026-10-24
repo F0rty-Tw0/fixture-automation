@@ -3,7 +3,7 @@
   "compilerOptions": {
     "composite": false,
     "declarationMap": false,
-    "lib": ["es2024", "dom", "dom.iterable"],
+    "lib": ["es2025", "dom"],
     "noEmit": true,
     "tsBuildInfoFile": "../out-tsc/e2e/tsconfig.e2e.tsbuildinfo"
   },

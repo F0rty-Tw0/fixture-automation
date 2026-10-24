@@ -10,6 +10,15 @@
     "studio"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/F0rty-Tw0/fixture-automation.git",
+    "directory": "apps/fixture-studio-cli"
+  },
+  "homepage": "https://github.com/F0rty-Tw0/fixture-automation/tree/master/apps/fixture-studio-cli#readme",
+  "bugs": {
+    "url": "https://github.com/F0rty-Tw0/fixture-automation/issues"
+  },
   "engines": {
     "node": ">=24.3.0"
   },
